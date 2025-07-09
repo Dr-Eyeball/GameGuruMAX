@@ -709,6 +709,12 @@ void common_init ( void )
 		myDarkStyle(NULL);
 		#endif
 	}
+	#ifdef PENEWLAYOUT
+	else if (pref.current_style == 9)
+	{
+		myDarkStyle(NULL);
+	}
+	#endif
 	else if (pref.current_style == 2)
 		ImGui::StyleColorsClassic();
 	else if (pref.current_style == 3)

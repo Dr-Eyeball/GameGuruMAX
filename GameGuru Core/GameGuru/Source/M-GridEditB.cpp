@@ -10681,192 +10681,203 @@ void ProcessPreferences(void)
 			//	}
 			//}
 			//if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select interface style");
-const char* style_combo[] = { 
-											"Blue Style", //0->1
-											"Dark Style",//1->12
-											#ifdef PENEWLAYOUT
-											"Modern Dark",//2->13 
-											#else
-											"Darker Style",//2->13 
-											#endif
-											"Evening Blue",//3->9
-											"Green Tea",//4->2
-											"Light Style",//5->14 
-											"Moody Red",//6->8
-											"Purple Haze",//7->4
-											"Racing Green",//8->10
-											"Red Lines",//9->7
-											"Retro Green",//10->11
-											"Sea Blue",//11->0
-											"Smart Purple",//12->5
-											"Striking Yellow",//13->6
-											"Sunset Red",//14->3
-											"Tango",//15->3
-											};
+			const char* style_combo[] = { 
+						"Blue Style", //0->1
+						"Dark Style",//1->12
+						#ifdef PENEWLAYOUT
+						"Modern Dark",//2->13 
+						#else
+						"Darker Style",//2->13 
+						#endif
+						"Evening Blue",//3->9
+						"Green Tea",//4->2
+						"Light Style",//5->14 
+						"Moody Red",//6->8
+						"Purple Haze",//7->4
+						"Racing Green",//8->10
+						"Red Lines",//9->7
+						"Retro Green",//10->11
+						"Sea Blue",//11->0
+						"Smart Purple",//12->5
+						"Striking Yellow",//13->6
+						"Sunset Red",//14->3
+						"Tango",//15->3
+						"Darker Style",//16->9
+			};
 
-int style_current_type_selection;
-if (pref.current_style == 0) style_current_type_selection = 1;
-if (pref.current_style == 1) style_current_type_selection = 2;
-if (pref.current_style == 3) style_current_type_selection = 5;
-if (pref.current_style >= 10) style_current_type_selection = pref.current_style - 9;
-if (pref.current_style == 25) style_current_type_selection = 0; // ZJ: Moved blue to top of list, so pref.current_style - 10 no longer works.
+			int style_current_type_selection;
+			if (pref.current_style == 0) style_current_type_selection = 1;
+			if (pref.current_style == 1) style_current_type_selection = 2;
+			if (pref.current_style == 3) style_current_type_selection = 5;
+			if (pref.current_style >= 10) style_current_type_selection = pref.current_style - 9;
+			if (pref.current_style == 25) style_current_type_selection = 0; // ZJ: Moved blue to top of list, so pref.current_style - 10 no longer works.
+			if (pref.current_style == 9) style_current_type_selection = 16;
 
-if (ImGui::Combo("##BehavioursSimpleInput", &style_current_type_selection, style_combo, IM_ARRAYSIZE(style_combo)))
-{
-	myDefaultStyles();
-	if (style_current_type_selection == 0) {
-		//Blue
-		pref.tint_style = ImVec4(1.0, 1.0, 1.0, 1.0);
-		pref.shade_style = ImVec4(0.0, 0.0, 0.0, 0.0);
-		pref.title_style = ImVec4(0.0, 0.0, 0.0, 0.0);
-		pref.current_style = 25;
-		myStyleBlue(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 1) {
-		// dark
-		pref.tint_style = ImVec4(1.0, 1.0, 1.0, 1.0);
-		pref.shade_style = ImVec4(0.0, 0.0, 0.0, 0.0);
-		pref.title_style = ImVec4(0.0, 0.0, 0.0, 0.0);
-		pref.current_style = 0;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 2) {
-		// darker
-		pref.tint_style = ImVec4(1.0, 1.0, 1.0, 1.0);
-		pref.shade_style = ImVec4(0.0, 0.0, 0.0, 0.0);
-		pref.title_style = ImVec4(0.0, 0.0, 0.0, 0.0);
-		pref.current_style = 1;
-		#ifdef PENEWLAYOUT
-		void DarkColorsNoTransparent(void);
-		myStyle2(NULL);
-		DarkColorsNoTransparent();
-		#else
-		myDarkStyle(NULL);
-		#endif
-		SetIconSet();
-	}
-	if (style_current_type_selection == 3) {
-		//Evening blue
-		pref.tint_style = ImVec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.0);
-		pref.shade_style = ImVec4(0, 0, 0, 1.0);
-		pref.title_style = ImVec4(1 / 255.0, 36 / 255.0, 73 / 255.0, 0.0);
-		pref.current_style = 12;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 4) {
-		//Green tea
-		pref.tint_style = ImVec4(0, 0, 0, 1.0);
-		pref.shade_style = ImVec4(4 / 255.0, 124 / 255.0, 10 / 255.0, 0.0);
-		pref.title_style = ImVec4(89 / 255.0, 160 / 255.0, 93 / 255.0, 0.0);
-		pref.current_style = 13;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 5) {
-		// Light style
-		pref.tint_style = ImVec4(0.0, 0.0, 0.0, 0.0);
-		pref.shade_style = ImVec4(1.0, 1.0, 1.0, 1.0);
-		pref.title_style = ImVec4(1.0, 1.0, 1.0, 1.0);
-		pref.current_style = 3;
-		myLightStyle(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 6) {
-		//Moody red
-		pref.tint_style = ImVec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.0);
-		pref.shade_style = ImVec4(14 / 255.0, 12 / 255.0, 29 / 255.0, 0.0);
-		pref.title_style = ImVec4(131 / 255.0, 16 / 255.0, 6 / 255.0, 0.0);
-		pref.current_style = 15;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 7) {
-		//Purple haze
-		pref.tint_style = ImVec4(0, 0, 0, 1.0);
-		pref.shade_style = ImVec4(163 / 255.0, 43 / 255.0, 179 / 255.0, 0.0);
-		pref.title_style = ImVec4(251 / 255.0, 251 / 255.0, 251 / 255.0, 0.0);
-		pref.current_style = 16;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 8) {
-		//Racing green
-		pref.tint_style = ImVec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.0);
-		pref.shade_style = ImVec4(0, 0, 0, 1.0);
-		pref.title_style = ImVec4(18 / 255.0, 62 / 255.0, 0 / 255.0, 0.0);
-		pref.current_style = 17;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 9) {
-		//Red Lines
-		pref.tint_style = ImVec4(0, 0, 0, 1.0);
-		pref.shade_style = ImVec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.0);
-		pref.title_style = ImVec4(230 / 255.0, 56 / 255.0, 56 / 255.0, 0.0);
-		pref.current_style = 18;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 10) {
-		//Retro green
-		pref.tint_style = ImVec4(11 / 255.0, 248 / 255.0, 25 / 255.0, 0.0);
-		pref.shade_style = ImVec4(0, 0, 0, 1.0);
-		pref.title_style = ImVec4(0, 0, 0, 1.0);
-		pref.current_style = 19;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 11) {
-		//Sea blue
-		pref.tint_style = ImVec4(7 / 255.0, 7 / 255.0, 7 / 255.0, 1.0);
-		pref.shade_style = ImVec4(12 / 255.0, 100 / 255.0, 168 / 255.0, 0.0);
-		pref.title_style = ImVec4(28 / 255.0, 77 / 255.0, 244 / 255.0, 0.0);
-		pref.current_style = 20;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 12) {
-		//Smart purple
-		pref.tint_style = ImVec4(0, 0, 0, 1.0);
-		pref.shade_style = ImVec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.0);
-		pref.title_style = ImVec4(172 / 255.0, 96 / 255.0, 182 / 255.0, 0.0);
-		pref.current_style = 21;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 13) {
-		//Striking yellow
-		pref.tint_style = ImVec4(0, 0, 0, 1.0);
-		pref.shade_style = ImVec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.0);
-		pref.title_style = ImVec4(200 / 255.0, 191 / 255.0, 34 / 255.0, 0.0);
-		pref.current_style = 22;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 14) {
-		//Sunset red
-		pref.tint_style = ImVec4(0, 0, 0, 1.0);
-		pref.shade_style = ImVec4(164 / 255.0, 70 / 255.0, 70 / 255.0, 0.0);
-		pref.title_style = ImVec4(204 / 255.0, 63 / 255.0, 50 / 255.0, 0.0);
-		pref.current_style = 23;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 15) {
-		//Tango
-		pref.tint_style = ImVec4(0, 0, 0, 1.0);
-		pref.shade_style = ImVec4(244 / 255.0, 251 / 255.0, 0, 0.0);
-		pref.title_style = ImVec4(237 / 255.0, 86 / 255.0, 7 / 255.0, 0.0);
-		pref.current_style = 24;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	
-}
-if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select your preferred user interface style");
+			if (ImGui::Combo("##BehavioursSimpleInput", &style_current_type_selection, style_combo, IM_ARRAYSIZE(style_combo)))
+			{
+				myDefaultStyles();
+				if (style_current_type_selection == 0) {
+					//Blue
+					pref.tint_style = ImVec4(1.0, 1.0, 1.0, 1.0);
+					pref.shade_style = ImVec4(0.0, 0.0, 0.0, 0.0);
+					pref.title_style = ImVec4(0.0, 0.0, 0.0, 0.0);
+					pref.current_style = 25;
+					myStyleBlue(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 1) {
+					// dark
+					pref.tint_style = ImVec4(1.0, 1.0, 1.0, 1.0);
+					pref.shade_style = ImVec4(0.0, 0.0, 0.0, 0.0);
+					pref.title_style = ImVec4(0.0, 0.0, 0.0, 0.0);
+					pref.current_style = 0;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 2) {
+					// darker
+					pref.tint_style = ImVec4(1.0, 1.0, 1.0, 1.0);
+					pref.shade_style = ImVec4(0.0, 0.0, 0.0, 0.0);
+					pref.title_style = ImVec4(0.0, 0.0, 0.0, 0.0);
+					pref.current_style = 1;
+					#ifdef PENEWLAYOUT
+					void DarkColorsNoTransparent(void);
+					myStyle2(NULL);
+					DarkColorsNoTransparent();
+					#else
+					myDarkStyle(NULL);
+					#endif
+					SetIconSet();
+				}
+				if (style_current_type_selection == 3) {
+					//Evening blue
+					pref.tint_style = ImVec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.0);
+					pref.shade_style = ImVec4(0, 0, 0, 1.0);
+					pref.title_style = ImVec4(1 / 255.0, 36 / 255.0, 73 / 255.0, 0.0);
+					pref.current_style = 12;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 4) {
+					//Green tea
+					pref.tint_style = ImVec4(0, 0, 0, 1.0);
+					pref.shade_style = ImVec4(4 / 255.0, 124 / 255.0, 10 / 255.0, 0.0);
+					pref.title_style = ImVec4(89 / 255.0, 160 / 255.0, 93 / 255.0, 0.0);
+					pref.current_style = 13;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 5) {
+					// Light style
+					pref.tint_style = ImVec4(0.0, 0.0, 0.0, 0.0);
+					pref.shade_style = ImVec4(1.0, 1.0, 1.0, 1.0);
+					pref.title_style = ImVec4(1.0, 1.0, 1.0, 1.0);
+					pref.current_style = 3;
+					myLightStyle(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 6) {
+					//Moody red
+					pref.tint_style = ImVec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.0);
+					pref.shade_style = ImVec4(14 / 255.0, 12 / 255.0, 29 / 255.0, 0.0);
+					pref.title_style = ImVec4(131 / 255.0, 16 / 255.0, 6 / 255.0, 0.0);
+					pref.current_style = 15;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 7) {
+					//Purple haze
+					pref.tint_style = ImVec4(0, 0, 0, 1.0);
+					pref.shade_style = ImVec4(163 / 255.0, 43 / 255.0, 179 / 255.0, 0.0);
+					pref.title_style = ImVec4(251 / 255.0, 251 / 255.0, 251 / 255.0, 0.0);
+					pref.current_style = 16;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 8) {
+					//Racing green
+					pref.tint_style = ImVec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.0);
+					pref.shade_style = ImVec4(0, 0, 0, 1.0);
+					pref.title_style = ImVec4(18 / 255.0, 62 / 255.0, 0 / 255.0, 0.0);
+					pref.current_style = 17;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 9) {
+					//Red Lines
+					pref.tint_style = ImVec4(0, 0, 0, 1.0);
+					pref.shade_style = ImVec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.0);
+					pref.title_style = ImVec4(230 / 255.0, 56 / 255.0, 56 / 255.0, 0.0);
+					pref.current_style = 18;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 10) {
+					//Retro green
+					pref.tint_style = ImVec4(11 / 255.0, 248 / 255.0, 25 / 255.0, 0.0);
+					pref.shade_style = ImVec4(0, 0, 0, 1.0);
+					pref.title_style = ImVec4(0, 0, 0, 1.0);
+					pref.current_style = 19;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 11) {
+					//Sea blue
+					pref.tint_style = ImVec4(7 / 255.0, 7 / 255.0, 7 / 255.0, 1.0);
+					pref.shade_style = ImVec4(12 / 255.0, 100 / 255.0, 168 / 255.0, 0.0);
+					pref.title_style = ImVec4(28 / 255.0, 77 / 255.0, 244 / 255.0, 0.0);
+					pref.current_style = 20;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 12) {
+					//Smart purple
+					pref.tint_style = ImVec4(0, 0, 0, 1.0);
+					pref.shade_style = ImVec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.0);
+					pref.title_style = ImVec4(172 / 255.0, 96 / 255.0, 182 / 255.0, 0.0);
+					pref.current_style = 21;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 13) {
+					//Striking yellow
+					pref.tint_style = ImVec4(0, 0, 0, 1.0);
+					pref.shade_style = ImVec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.0);
+					pref.title_style = ImVec4(200 / 255.0, 191 / 255.0, 34 / 255.0, 0.0);
+					pref.current_style = 22;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 14) {
+					//Sunset red
+					pref.tint_style = ImVec4(0, 0, 0, 1.0);
+					pref.shade_style = ImVec4(164 / 255.0, 70 / 255.0, 70 / 255.0, 0.0);
+					pref.title_style = ImVec4(204 / 255.0, 63 / 255.0, 50 / 255.0, 0.0);
+					pref.current_style = 23;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 15) {
+					//Tango
+					pref.tint_style = ImVec4(0, 0, 0, 1.0);
+					pref.shade_style = ImVec4(244 / 255.0, 251 / 255.0, 0, 0.0);
+					pref.title_style = ImVec4(237 / 255.0, 86 / 255.0, 7 / 255.0, 0.0);
+					pref.current_style = 24;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 16) {
+					pref.tint_style = ImVec4(1.0, 1.0, 1.0, 1.0);
+					pref.shade_style = ImVec4(0.0, 0.0, 0.0, 0.0);
+					pref.title_style = ImVec4(0.0, 0.0, 0.0, 0.0);
+					pref.current_style = 9;
+					myDarkStyle(NULL);
+					SetIconSet();
+				}
+
+			}
+
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select your preferred user interface style");
 			
 			ImGui::PopItemWidth();		
 
@@ -11050,6 +11061,13 @@ if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select your preferred user 
 					myDarkStyle(NULL);
 					#endif
 				}
+				#ifdef PENEWLAYOUT
+				if(pref.current_style == 9)
+				{
+					myDarkStyle(NULL);
+				}
+				#endif
+
 				if (pref.current_style == 3) {
 					myLightStyle(NULL);
 				}
@@ -11908,6 +11926,13 @@ if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select your preferred user 
 				myDarkStyle(NULL);
 				#endif
 			}
+			#ifdef PENEWLAYOUT
+			if (pref.current_style == 9)
+			{
+				myDarkStyle(NULL);
+			}
+			#endif
+
 			if (pref.current_style == 3) {
 				myLightStyle(NULL);
 			}
