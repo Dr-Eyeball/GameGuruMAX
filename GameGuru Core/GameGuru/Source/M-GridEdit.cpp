@@ -1040,8 +1040,11 @@ void mapeditorexecutable_init ( void )
 	LoadImage("editors\\uiv3\\toolbar\\vert.png", TOOLBAR_VERT);
 	LoadImage("editors\\uiv3\\toolbar\\horizontal.png", TOOLBAR_HORI);
 
-
-	if (FileExist("editors\\uiv3\\play-icon.png"))
+	if (FileExist("editors\\uiv3\\playbut-icon.png"))
+	{
+		LoadImage("editors\\uiv3\\playbut-icon.png", TOOL_TESTGAME);
+	}
+	else if (FileExist("editors\\uiv3\\play-icon.png"))
 	{
 		LoadImage("editors\\uiv3\\play-icon.png", TOOL_TESTGAME);
 	}
@@ -2852,44 +2855,9 @@ void mapeditorexecutable_loop(void)
 
 		ImVec2 tool_selected_padding = { 1.0, 1.0 };
 
-		CheckTutorialAction("TOOL_SHAPE", -10.0f); //Tutorial: check if we are waiting for this action
-		if (t.grideditselect == 0 && t.terrain.terrainpaintermode >= 1 && t.terrain.terrainpaintermode <= 12)
-		{
-			//PE: Keep selection in all sculpt modes.
-			drawCol_tmp = drawCol_back_terrain * drawCol_back_active;
-			if (pref.current_style == 25) drawCol_Selection = drawCol_Divider_Selected;
-			window->DrawList->AddRect((window->DC.CursorPos - tool_selected_padding), window->DC.CursorPos + tool_selected_padding + iToolbarIconSize, ImGui::GetColorU32(tool_selected_col), 0.0f, 15, 2.0f);
-		}
-		else 
-		{
-			drawCol_tmp = drawCol_back_terrain;
-		}
-		if (t.visuals.bEnableEmptyLevelMode == false)
-		{
-			if (ImGui::ImgBtn(TOOL_TERRAIN_TOOLBAR, iToolbarIconSize, drawCol_tmp, drawCol_normal/**drawCol_Selection*/, drawCol_hover, drawCol_Down, 0, 0, 0, 0, false, toolbar_gradiant, false, false, false, bBoostIconColors))
-			{
-				CloseAllOpenTools();
-				if (bTutorialCheckAction) TutorialNextAction();
-#ifdef WICKEDENGINE
-				if (!pref.iEnableSingleRightPanelAdvanced)
-				{
-					Weather_Tools_Window = false;
-					Visuals_Tools_Window = false;
-					//LB: Shooter now a filter mode Shooter_Tools_Window = false;
-					iRestoreLastWindow = 0;
-				}
-#endif
-
-				bForceKey = true;
-				csForceKey = "t";
-				bForceKey2 = true;
-				csForceKey2 = "1";
-			}
-			if (ImGui::IsItemHovered() && iSkibFramesBeforeLaunch == 0) ImGui::SetTooltip("%s", "Terrain, Painting, Trees and Vegetation (T)"); //"Terrain Tools"
-		}
+#ifndef WICKEDENGINE
 		ImGui::SameLine();
 
-#ifndef WICKEDENGINE
 		drawCol_Selection = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
 		CheckTutorialAction("TOOL_LEVELMODE", -10.0f); //Tutorial: check if we are waiting for this action
 		if (current_mode == TOOL_LEVELMODE) drawCol_tmp = drawCol_back_terrain*drawCol_back_active; else drawCol_tmp = drawCol_back_terrain;
@@ -3019,42 +2987,6 @@ void mapeditorexecutable_loop(void)
 		#else
 		if (ImGui::IsItemHovered() && iSkibFramesBeforeLaunch == 0) ImGui::SetTooltip("%s", "Paint Grass");
 		#endif
-#endif
-
-		ImGui::SameLine();
-		ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPos().x + 2.0f, ImGui::GetCursorPos().y));
-		drawCol_Selection = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
-		CheckTutorialAction("TOOL_ENTITY", -10.0f); //Tutorial: check if we are waiting for this action
-		if (current_mode == TOOL_ENTITY || current_mode == TOOL_LOGIC) drawCol_tmp = drawCol_back_entities * drawCol_back_active; else drawCol_tmp = drawCol_back_entities;
-		if ((current_mode == TOOL_ENTITY || current_mode == TOOL_LOGIC) && pref.current_style == 25) drawCol_Selection = drawCol_Divider_Selected;
-		if ((current_mode == TOOL_ENTITY || current_mode == TOOL_LOGIC) && pref.current_style >= 0) window->DrawList->AddRect((window->DC.CursorPos - tool_selected_padding), window->DC.CursorPos + tool_selected_padding + iToolbarIconSize, ImGui::GetColorU32(tool_selected_col), 0.0f, 15, 2.0f);
-		if (ImGui::ImgBtn(TOOL_ENTITY, iToolbarIconSize, drawCol_tmp, drawCol_normal/**drawCol_Selection*/, drawCol_hover, drawCol_Down,0, 0, 0, 0, false, toolbar_gradiant,false,false,false, bBoostIconColors)) {
-
-			CloseAllOpenTools();
-			if (bTutorialCheckAction) TutorialNextAction();
-			#ifdef WICKEDENGINE
-			if (!pref.iEnableSingleRightPanelAdvanced)
-			{
-				Weather_Tools_Window = false;
-				Visuals_Tools_Window = false;
-				//LB: Shooter now a filter mode Shooter_Tools_Window = false;
-				iRestoreLastWindow = 0;
-			}
-			#endif
-
-			bForceKey = true;
-			#ifdef WICKEDENGINE
-			csForceKey = "o";
-			#else
-			csForceKey = "e";
-			#endif
-			 Entity_Tools_Window = true;
-			 GGTerrain::GGTerrain_CancelRamp();
-		}
-#ifdef WICKEDENGINE
-		if (ImGui::IsItemHovered() && iSkibFramesBeforeLaunch == 0) ImGui::SetTooltip("%s", "Object Tools (O)"); //Entity Mode
-#else
-		if (ImGui::IsItemHovered() && iSkibFramesBeforeLaunch == 0) ImGui::SetTooltip("%s", "Object Tools (E)"); //Entity Mode
 #endif
 
 		ImGui::SameLine();
@@ -3216,6 +3148,11 @@ void mapeditorexecutable_loop(void)
 
 		ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPos().x + 2.0f, ImGui::GetCursorPos().y));
 		float precise_icon_width = ImGui::GetCursorPos().x;
+
+		//---------------------------------------------------------------------------------
+		drawCol_tmp = drawCol_back_entities;
+		if (current_mode == TOOL_ENTITY || current_mode == TOOL_LOGIC) drawCol_tmp = drawCol_back_entities * drawCol_back_active; else drawCol_tmp = drawCol_back_entities;
+
 
 		CheckTutorialAction("TOOL_TESTGAME", -10.0f); //Tutorial: check if we are waiting for this action
 		//if (ImGui::ImgBtn(TOOL_TESTGAME, iToolbarIconSize, drawCol_back_test, drawCol_normal*drawCol_Selection, drawCol_hover, drawCol_Down,0, 0, 0, 0, false, toolbar_gradiant)) {
@@ -3457,8 +3394,87 @@ void mapeditorexecutable_loop(void)
 		//Puzzle End
 		*/
 
-		// Logic Toolbar - was Shooter Start
+
+		//------------------------------------------------------------------
+
+		CheckTutorialAction("TOOL_SHAPE", -10.0f); //Tutorial: check if we are waiting for this action
+		
+		ImGui::SetCursorPos(ImVec2(rightx - right_border - (precise_icon_width * 7), ImGui::GetCursorPos().y));
+		if (t.grideditselect == 0 && t.terrain.terrainpaintermode >= 1 && t.terrain.terrainpaintermode <= 12)
+		{
+			//PE: Keep selection in all sculpt modes.
+			drawCol_tmp = drawCol_back_terrain * drawCol_back_active;
+			if (pref.current_style == 25) drawCol_Selection = drawCol_Divider_Selected;
+			window->DrawList->AddRect((window->DC.CursorPos - tool_selected_padding), window->DC.CursorPos + tool_selected_padding + iToolbarIconSize, ImGui::GetColorU32(tool_selected_col), 0.0f, 15, 2.0f);
+		}
+		else
+		{
+			drawCol_tmp = drawCol_back_terrain;
+		}
+		drawCol_tmp = drawCol_back_test; //PE: Test. same background as toogle buttons.
+		if (t.visuals.bEnableEmptyLevelMode == false)
+		{
+			if (ImGui::ImgBtn(TOOL_TERRAIN_TOOLBAR, iToolbarIconSize, drawCol_tmp, drawCol_normal, drawCol_hover, drawCol_Down, 0, 0, 0, 0, false, toolbar_gradiant, false, false, false, bBoostIconColors))
+			{
+				CloseAllOpenTools();
+				if (bTutorialCheckAction) TutorialNextAction();
+				if (!pref.iEnableSingleRightPanelAdvanced)
+				{
+					Weather_Tools_Window = false;
+					Visuals_Tools_Window = false;
+					//LB: Shooter now a filter mode Shooter_Tools_Window = false;
+					iRestoreLastWindow = 0;
+				}
+				bForceKey = true;
+				csForceKey = "t";
+				bForceKey2 = true;
+				csForceKey2 = "1";
+			}
+			if (ImGui::IsItemHovered() && iSkibFramesBeforeLaunch == 0) ImGui::SetTooltip("%s", "Terrain, Painting, Trees and Vegetation (T)"); //"Terrain Tools"
+		}
+		ImGui::SameLine();
+
+		//------------------------------------------------------------------
+
 		ImGui::SetCursorPos(ImVec2(rightx - right_border - (precise_icon_width * 6), ImGui::GetCursorPos().y));
+
+		//ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPos().x + 2.0f, ImGui::GetCursorPos().y));
+		drawCol_Selection = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+		CheckTutorialAction("TOOL_ENTITY", -10.0f); //Tutorial: check if we are waiting for this action
+		if (current_mode == TOOL_ENTITY || current_mode == TOOL_LOGIC) drawCol_tmp = drawCol_back_entities * drawCol_back_active; else drawCol_tmp = drawCol_back_entities;
+		if ((current_mode == TOOL_ENTITY || current_mode == TOOL_LOGIC) && pref.current_style == 25) drawCol_Selection = drawCol_Divider_Selected;
+		if ((current_mode == TOOL_ENTITY || current_mode == TOOL_LOGIC) && pref.current_style >= 0) window->DrawList->AddRect((window->DC.CursorPos - tool_selected_padding), window->DC.CursorPos + tool_selected_padding + iToolbarIconSize, ImGui::GetColorU32(tool_selected_col), 0.0f, 15, 2.0f);
+		drawCol_tmp = drawCol_back_test; //PE: Test. same background as toogle buttons.
+		if (ImGui::ImgBtn(TOOL_ENTITY, iToolbarIconSize, drawCol_tmp, drawCol_normal/**drawCol_Selection*/, drawCol_hover, drawCol_Down, 0, 0, 0, 0, false, toolbar_gradiant, false, false, false, bBoostIconColors)) {
+
+			CloseAllOpenTools();
+			if (bTutorialCheckAction) TutorialNextAction();
+#ifdef WICKEDENGINE
+			if (!pref.iEnableSingleRightPanelAdvanced)
+			{
+				Weather_Tools_Window = false;
+				Visuals_Tools_Window = false;
+				//LB: Shooter now a filter mode Shooter_Tools_Window = false;
+				iRestoreLastWindow = 0;
+			}
+#endif
+
+			bForceKey = true;
+			csForceKey = "o";
+			Entity_Tools_Window = true;
+			GGTerrain::GGTerrain_CancelRamp();
+		}
+		if (ImGui::IsItemHovered() && iSkibFramesBeforeLaunch == 0) ImGui::SetTooltip("%s", "Object Tools (O)"); //Entity Mode
+
+		ImGui::SameLine();
+		//------------------------------------------------------------------
+
+
+		// Logic Toolbar - was Shooter Start
+		ImGui::SetCursorPos(ImVec2(rightx - right_border - (precise_icon_width * 5), ImGui::GetCursorPos().y));
+
+		//ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPos().x + 2.0f, ImGui::GetCursorPos().y));
+
 		toggle_color = drawCol_toogle;
 		if (pref.current_style == 25) drawCol_Selection = drawCol_Divider_Selected;
 		if (!Shooter_Tools_Window) 
@@ -3482,7 +3498,7 @@ void mapeditorexecutable_loop(void)
 		ImGui::SameLine();
 		//Shooter End
 
-		ImGui::SetCursorPos(ImVec2(rightx - right_border - (precise_icon_width * 5), ImGui::GetCursorPos().y));
+		ImGui::SetCursorPos(ImVec2(rightx - right_border - (precise_icon_width * 4), ImGui::GetCursorPos().y));
 		toggle_color = drawCol_toogle;
 		if (pref.current_style == 25) drawCol_Selection = drawCol_Divider_Selected;
 		if (!Visuals_Tools_Window) {
@@ -3537,7 +3553,7 @@ void mapeditorexecutable_loop(void)
 		if (ImGui::IsItemHovered() && iSkibFramesBeforeLaunch == 0) ImGui::SetTooltip("%s", "Environment Effects");
 		ImGui::SameLine();
 
-		ImGui::SetCursorPos(ImVec2(rightx - right_border -(precise_icon_width*4) , ImGui::GetCursorPos().y));
+		ImGui::SetCursorPos(ImVec2(rightx - right_border -(precise_icon_width*3) , ImGui::GetCursorPos().y));
 		toggle_color = drawCol_toogle;
 		if (pref.current_style == 25) drawCol_Selection = drawCol_Divider_Selected;
 		if (!Weather_Tools_Window)
@@ -3595,7 +3611,7 @@ void mapeditorexecutable_loop(void)
 		ImGui::SameLine();
 
 
-		ImGui::SetCursorPos(ImVec2(rightx - right_border - (precise_icon_width * 3), ImGui::GetCursorPos().y));
+		ImGui::SetCursorPos(ImVec2(rightx - right_border - (precise_icon_width * 2), ImGui::GetCursorPos().y));
 		toggle_color = drawCol_toogle;
 		if (pref.current_style == 25) drawCol_Selection = drawCol_Divider_Selected;
 		if (!bEditorLight)
@@ -3604,7 +3620,7 @@ void mapeditorexecutable_loop(void)
 			toggle_color = drawCol_back_test;
 		}
 
-		if (ImGui::ImgBtn(TOOL_CAMERALIGHT, iToolbarIconSize, toggle_color, drawCol_normal/**drawCol_Selection*/, drawCol_hover, drawCol_Down, 0, 0, 0, 0, false, toolbar_gradiant,false,false,false, bBoostIconColors)) 
+		if (ImGui::ImgBtn(TOOL_CAMERALIGHT, iToolbarIconSize, toggle_color, drawCol_normal, drawCol_hover, drawCol_Down, 0, 0, 0, 0, false, toolbar_gradiant,false,false,false, bBoostIconColors)) 
 		{
 			//Toggle camera mode.
 			if (bEditorLight) bEditorLight = false;
@@ -3613,7 +3629,7 @@ void mapeditorexecutable_loop(void)
 		}
 		if (ImGui::IsItemHovered() && iSkibFramesBeforeLaunch == 0) ImGui::SetTooltip("%s", "Editor Light");
 		ImGui::SameLine();
-		ImGui::SetCursorPos(ImVec2(rightx - right_border - (precise_icon_width * 2), ImGui::GetCursorPos().y));
+		ImGui::SetCursorPos(ImVec2(rightx - right_border - (precise_icon_width * 1), ImGui::GetCursorPos().y));
 
 		bool bIsTopDownStatus = !(bool)t.editorfreeflight.mode;
 		toggle_color = drawCol_toogle;
@@ -3626,7 +3642,7 @@ void mapeditorexecutable_loop(void)
 		drawCol_Selection = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
 		toggle_color = drawCol_back_test;
 
-		if (ImGui::ImgBtn(TOOL_CAMERA, iToolbarIconSize, toggle_color, drawCol_normal/**drawCol_Selection*/, drawCol_hover, drawCol_Down, 0, 0, 0, 0, false, toolbar_gradiant,false,false,false, bBoostIconColors))
+		if (ImGui::ImgBtn(TOOL_CAMERA, iToolbarIconSize, toggle_color, drawCol_normal, drawCol_hover, drawCol_Down, 0, 0, 0, 0, false, toolbar_gradiant,false,false,false, bBoostIconColors))
 		{
 			//Toggle camera mode.
 			bForceKey = true;
@@ -3642,16 +3658,19 @@ void mapeditorexecutable_loop(void)
 			}
 		}
 		if (ImGui::IsItemHovered() && iSkibFramesBeforeLaunch == 0) ImGui::SetTooltip("%s", "Camera View");
+
+		/* PE: Removed.
 		ImGui::SameLine();
 		ImGui::SetCursorPos(ImVec2(rightx - right_border - (precise_icon_width * 1), ImGui::GetCursorPos().y));
 		
-		if (ImGui::ImgBtn(QUESTION_ICON, iToolbarIconSize, toggle_color, drawCol_normal/**drawCol_Selection*/, drawCol_hover, drawCol_Down, 0, 0, 0, 0, false, toolbar_gradiant,
+		if (ImGui::ImgBtn(QUESTION_ICON, iToolbarIconSize, toggle_color, drawCol_normal, drawCol_hover, drawCol_Down, 0, 0, 0, 0, false, toolbar_gradiant,
 			false, false, false, bBoostIconColors))
 		{
 			//ExecuteFile("https://gameguru-max.document360.io/docs/test-topic", "", "", 0);
 			ExecuteFile("..\\Guides\\User Manual\\GameGuru MAX - User Guide.pdf", "", "", 0);
 		}
 		if (ImGui::IsItemHovered())ImGui::SetTooltip("Open GameGuru MAX User Guide");
+		*/
 
 		#endif
 
