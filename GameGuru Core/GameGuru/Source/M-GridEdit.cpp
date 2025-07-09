@@ -3853,50 +3853,14 @@ void mapeditorexecutable_loop(void)
 				if (ImGui::MenuItem("Paste", "CTRL+V")) {
 					iExecuteCTRLkey = ImGuiKey_V;
 				}
+				if (ImGui::MenuItem("Import", "CTRL+I")) {
+					iExecuteCTRLkey = 'I';
+				}
 				ImGui::Separator();
 				if (ImGui::MenuItem("Delete", "DEL")) {
 					iExecuteCTRLkey = ImGuiKey_Delete;
 				}
 
-				ImGui::Separator();
-				if (ImGui::MenuItem("Character Creator")) 
-				{
-					CloseAllOpenTools();
-					iLaunchAfterSync = 82; //Start Character Creator
-					iSkibFramesBeforeLaunch = 2;
-					strcpy(cTriggerMessage, "Loading Character Creator");
-					bTriggerMessage = true;
-				}
-
-				// Tooling
-				if (g_bParticleEditorPresent == true)
-				{
-					ImGui::Separator();
-					if (ImGui::MenuItem("Particle Editor"))
-					{
-						extern void launchOrShowParticleEditor(void);
-						launchOrShowParticleEditor();
-					}
-				}
-				if (g_bBuildingEditorPresent == true)
-				{
-					if (ImGui::MenuItem("Building Editor"))
-					{
-						extern void launchOrShowBuildingEditor(void);
-						launchOrShowBuildingEditor();
-					}
-				}
-
-				#ifndef GGMAXEDU
-				ImGui::Separator();
-				if (ImGui::MenuItem("Marketplace")) 
-				{
-					CloseAllOpenTools();
-					DeleteWaypointsAddedToCurrentCursor();
-					CloseDownEditorProperties();
-					bMarketplace_Window = true;
-				}
-				#endif
 
 				#endif
 				#ifdef BUILDINGEDITOR
@@ -4070,6 +4034,73 @@ void mapeditorexecutable_loop(void)
 					if (ImGui::IsItemHovered())
 						ImGui::OpenPopup("Edit");
 			}
+
+			if (ImGui::BeginMenu("Tools"))
+			{
+				if (ImGui::MenuItem("Character Creator"))
+				{
+					CloseAllOpenTools();
+					iLaunchAfterSync = 82; //Start Character Creator
+					iSkibFramesBeforeLaunch = 2;
+					strcpy(cTriggerMessage, "Loading Character Creator");
+					bTriggerMessage = true;
+				}
+
+				// Tooling
+				if (g_bParticleEditorPresent == true)
+				{
+					ImGui::Separator();
+					if (ImGui::MenuItem("Particle Editor"))
+					{
+						extern void launchOrShowParticleEditor(void);
+						launchOrShowParticleEditor();
+					}
+				}
+				if (g_bBuildingEditorPresent == true)
+				{
+					if(!g_bParticleEditorPresent == true)
+						ImGui::Separator();
+
+					if (ImGui::MenuItem("Building Editor"))
+					{
+						extern void launchOrShowBuildingEditor(void);
+						launchOrShowBuildingEditor();
+					}
+				}
+
+				ImGui::EndMenu();
+			}
+			else
+			{
+				if (pref.bAutoOpenMenuItems)
+					if (ImGui::IsItemHovered())
+						ImGui::OpenPopup("Tools");
+			}
+
+
+#ifndef GGMAXEDU
+			static bool bMarketHovered = false;
+			window = ImGui::GetCurrentWindow();
+			ImRect text_bb(window->DC.CursorPos, window->DC.CursorPos + ImVec2(100, ImGui::GetFontSize()) );
+			bool bEnabled = true;
+			if (ImGui::MenuItem2("Marketplace",nullptr, bMarketHovered, bEnabled))
+			{
+				CloseAllOpenTools();
+				DeleteWaypointsAddedToCurrentCursor();
+				CloseDownEditorProperties();
+				bMarketplace_Window = true;
+			}
+			ImVec2 startend = ImGui::GetCursorPos();
+			text_bb.Max.x = window->DC.CursorPos.x;
+			if (ImGui::IsMouseHoveringRect(text_bb.Min, text_bb.Max))
+			{
+				bMarketHovered = true;
+			}
+			else
+				bMarketHovered = false;
+
+#endif
+
 
 #ifndef WICKEDENGINE
 			if (ImGui::BeginMenu("Terrain"))
