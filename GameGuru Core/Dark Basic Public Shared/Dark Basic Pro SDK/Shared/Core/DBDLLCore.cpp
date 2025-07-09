@@ -523,9 +523,9 @@ void ImGui_RenderLast(void)
 		{
 		
 			//PE: VS2022 style
-			float r = (1.0f / 255.0f) * 14;
-			float g = (1.0f / 255.0f) * 99;
-			float b = (1.0f / 255.0f) * 156;
+			float r = pref.status_bar_color.x; // = ImVec4((1.0f / 255.0f) * 14, (1.0f / 255.0f) * 99, (1.0f / 255.0f) * 156, 1.0);
+			float g = pref.status_bar_color.y; // (1.0f / 255.0f) * 99;
+			float b = pref.status_bar_color.z; // (1.0f / 255.0f) * 156;
 			if (pref.current_style == 25)
 			{
 				r = (1.0f / 255.0f) * 43;

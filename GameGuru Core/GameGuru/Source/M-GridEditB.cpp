@@ -10870,6 +10870,100 @@ if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select your preferred user 
 			
 			ImGui::PopItemWidth();		
 
+			if (pref.current_style == 1)
+			{
+				//VS2022 colors.
+				//pref.status_bar_color
+				float ChangeColor[4];
+				ChangeColor[0] = pref.status_bar_color.x;
+				ChangeColor[1] = pref.status_bar_color.y;
+				ChangeColor[2] = pref.status_bar_color.z;
+				ChangeColor[3] = 1.0f;
+
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
+				ImGui::Text("Statusbar and highlight color: ");
+				ImGui::SameLine();
+
+				ImGui::PushItemWidth(32);
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 1);
+				bool open_popup = ImGui::ColorButton("##statusbarHighlight", pref.status_bar_color , 0, ImVec2(32, 18));
+				if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Change the status bar and highlight colors");
+				ImGui::PopItemWidth();
+				if (open_popup) ImGui::OpenPopup("##statusbarHighlight");
+				if (ImGui::BeginPopup("##statusbarHighlight", ImGuiWindowFlags_NoMove))
+				{
+					if (ImGui::ColorPicker4("##statusbarHighlight", &ChangeColor[0], ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview))
+					{
+						pref.status_bar_color.x = ChangeColor[0];
+						pref.status_bar_color.y = ChangeColor[1];
+						pref.status_bar_color.z = ChangeColor[2];
+						change_colors = true;
+					}
+					ImGui::EndPopup();
+				}
+
+				ImGui::SameLine();
+
+				ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 8);
+
+				ImVec4 colorselect = ImVec4((1.0f / 255.0f) * 14, (1.0f / 255.0f) * 99, (1.0f / 255.0f) * 156, 1.0);
+				if (ImGui::ColorButton("##statusbarHighlightdefault1", colorselect, 0, ImVec2(18, 18)))
+				{
+					pref.status_bar_color = colorselect;
+					change_colors = true;
+				}
+
+				ImGui::SameLine();
+				colorselect = ImVec4((1.0f / 255.0f) * 202, (1.0f / 255.0f) * 81, 0 , 1.0);
+				if (ImGui::ColorButton("##statusbarHighlightdefault2", colorselect, 0, ImVec2(18, 18)))
+				{
+					pref.status_bar_color = colorselect;
+					change_colors = true;
+				}
+
+				ImGui::SameLine();
+				colorselect = ImVec4((1.0f / 255.0f) * 18, (1.0f / 255.0f) * 117, (1.0f / 255.0f) * 58, 1.0);
+				if (ImGui::ColorButton("##statusbarHighlightdefault3", colorselect, 0, ImVec2(18, 18)))
+				{
+					pref.status_bar_color = colorselect;
+					change_colors = true;
+				}
+
+				ImGui::SameLine();
+				colorselect = ImVec4((1.0f / 255.0f) * 92, (1.0f / 255.0f) * 53, (1.0f / 255.0f) * 174, 1.0);
+				if (ImGui::ColorButton("##statusbarHighlightdefault4", colorselect, 0, ImVec2(18, 18)))
+				{
+					pref.status_bar_color = colorselect;
+					change_colors = true;
+				}
+
+				ImGui::SameLine();
+				colorselect = ImVec4((1.0f / 255.0f) * 166, (1.0f / 255.0f) * 45, (1.0f / 255.0f) * 25, 1.0);
+				if (ImGui::ColorButton("##statusbarHighlightdefault6", colorselect, 0, ImVec2(18, 18)))
+				{
+					pref.status_bar_color = colorselect;
+					change_colors = true;
+				}
+
+				ImGui::SameLine();
+				colorselect = ImVec4((1.0f / 255.0f) * 79, (1.0f / 255.0f) * 79, (1.0f / 255.0f) * 79, 1.0);
+				if (ImGui::ColorButton("##statusbarHighlightdefault5", colorselect, 0, ImVec2(18, 18)))
+				{
+					pref.status_bar_color = colorselect;
+					change_colors = true;
+				}
+
+				ImGui::SameLine();
+				colorselect = ImVec4( 0, 0, 0, 1.0);
+				if (ImGui::ColorButton("##statusbarHighlightdefault7", colorselect, 0, ImVec2(18, 18)))
+				{
+					pref.status_bar_color = colorselect;
+					change_colors = true;
+				}
+
+
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
+			}
 			bTmp = pref.iEnableCustomColors;
 			if (ImGui::Checkbox("Enable Custom Colors", &bTmp)) 
 			{

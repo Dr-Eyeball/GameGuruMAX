@@ -4693,9 +4693,9 @@ void DarkColorsNoTransparent(void)
 	colors[ImGuiCol_ResizeGripActive] = ImVec4(0.46f, 0.46f, 0.46f, 0.95f);
 	colors[ImGuiCol_PlotLines] = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
 	//PE: VS2022 style
-	const float r = (1.0f / 255.0f) * 14;
-	const float g = (1.0f / 255.0f) * 99;
-	const float b = (1.0f / 255.0f) * 156;
+	const float r = pref.status_bar_color.x; // (1.0f / 255.0f) * 14;
+	const float g = pref.status_bar_color.y; // (1.0f / 255.0f) * 99;
+	const float b = pref.status_bar_color.z; // (1.0f / 255.0f) * 156;
 
 	colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
 	colors[ImGuiCol_PlotHistogram] = ImVec4(r, g, b, 1.00f);
@@ -9274,7 +9274,7 @@ void coreResetIMGUIFunctionalityPrefs(void)
 	extern int g_iDevToolsOpen;
 	g_iDevToolsOpen = 0;
 	pref.iCheckFilesModifiedOnFocus = 1;
-
+	pref.status_bar_color = ImVec4((1.0f / 255.0f) * 14, (1.0f / 255.0f) * 99, (1.0f / 255.0f) * 156, 1.0);
 	#endif
 }
 

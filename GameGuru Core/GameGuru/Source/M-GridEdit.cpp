@@ -5040,9 +5040,9 @@ void mapeditorexecutable_loop(void)
 			if (pref.current_style == 1)
 			{
 				//PE: VS2022 style
-				const float r = (1.0f / 255.0f) * 14;
-				const float g = (1.0f / 255.0f) * 99;
-				const float b = (1.0f / 255.0f) * 156;
+				const float r = pref.status_bar_color.x; // (1.0f / 255.0f) * 14;
+				const float g = pref.status_bar_color.y; // (1.0f / 255.0f) * 99;
+				const float b = pref.status_bar_color.z; // (1.0f / 255.0f) * 156;
 				ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(r, g, b, 1.00f));
 				ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(r, g, b, 1.00f));
 			}
