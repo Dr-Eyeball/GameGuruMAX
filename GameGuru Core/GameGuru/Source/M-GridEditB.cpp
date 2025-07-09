@@ -73,6 +73,7 @@ extern char g_Storyboard_Current_Loading_Page[256];
 extern std::vector<std::string> projectbank_list;
 extern std::vector<std::string> projectbank_image;
 extern std::vector<int> projectbank_imageid;
+extern std::vector<int> projectbank_active;
 extern StoryboardStruct Storyboard;
 extern StoryboardStruct checkproject;
 extern StoryboardStruct202 updateproject202;
@@ -33928,9 +33929,12 @@ void GetProjectThumbnails()
 {
 	projectbank_image.clear();
 	projectbank_imageid.resize(projectbank_list.size());
-	
+	projectbank_active.resize(projectbank_list.size());
+
 	for (int i = 0; i < projectbank_list.size(); i++)
 	{
+		projectbank_active[i] = true;
+
 		if (!pestrcasestr((char *)projectbank_list[i].c_str(), "_backup_"))
 		{
 			char project[MAX_PATH];
@@ -34050,6 +34054,9 @@ void GetProjectThumbnails()
 							}
 						}
 					}
+					if(checkproject.project_inactive)
+						projectbank_active[i] = false;
+
 					projectbank_image.push_back(bestfound.Get());
 				}
 				else
@@ -34931,17 +34938,25 @@ void Welcome_Screen(void)
 					}
 					bCheckForAnyProjectFiles = false;
 				}
-
+				static bool bShowAvtiveProject = true;
 				if (ImGui::BeginTabItem(" My Games ", NULL, tabflagsMyGames))
 				{
 					ImGui::SetWindowFontScale(0.99f);
 
 					ImGui::Indent(10);
-					ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(905.0f, 6.0f));
+					ImVec2 cpos = ImGui::GetCursorPos();
+					ImGui::SetCursorPos(cpos + ImVec2(770.0f, 2.0f));
+					if (ImGui::Checkbox("Active/InActive", &bShowAvtiveProject))
+					{
+					}
+					ImGui::SameLine();
+
+					ImGui::SetCursorPos(cpos + ImVec2(905.0f, 2.0f));
+
 					ImGui::Text("Sort Projects: ");
 					ImGui::SameLine();
-					ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(0.0f, -2.0f));
-					
+					//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(0.0f, -2.0f));
+
 					const char* pProjectSortModes[] = { "Most Recent", "Least Recent", "A-Z", "Z-A" };
 					int iProjectSortMode = pref.iProjectSortMode;
 
@@ -35076,8 +35091,13 @@ void Welcome_Screen(void)
 									}
 								}
 							}
+							bool bValid = false;
+							if (bShowAvtiveProject && projectbank_active[i])
+								bValid = true;
+							if (!bShowAvtiveProject && !projectbank_active[i])
+								bValid = true;
 
-							if (!pestrcasestr((char *)projectbank_list[i].c_str(), "_backup_"))
+							if (bValid && !pestrcasestr((char *)projectbank_list[i].c_str(), "_backup_"))
 							{
 								ImGui::PushID(564231 + i);
 								int TextureID = BOX_CLICK_HERE;
@@ -35152,10 +35172,23 @@ void Welcome_Screen(void)
 
 					//PE: Always have a selection
 					//LB: moved down so can benefit from above sort call
-					if (current_project_selected == "" && projectbank_list.size() > 0)
+					if (!bResetProjectThumbnails && current_project_selected == "" && projectbank_list.size() > 0)
 					{
-						current_project_id = 0;
-						current_project_selected = projectbank_list[0];
+						//projectbank_active[i]
+						for (int i = 0; i < projectbank_active.size(); i++)
+						{
+							if (projectbank_active[i])
+							{
+								current_project_id = i;
+								current_project_selected = projectbank_list[i];
+								break;
+							}
+						}
+						if (current_project_selected == "")
+						{
+							current_project_id = 0;
+							current_project_selected = projectbank_list[0];
+						}
 					}
 
 					//PE: No trigger load here, moved to other column.
@@ -40694,6 +40727,10 @@ void process_storeboard(bool bInitOnly)
 
 		if (TriggerLoadGameProject != "")
 		{
+			// and in case this was a remote project, restore to writables regular
+			extern void switch_to_regular_projects(void);
+			switch_to_regular_projects();
+
 			load_storyboard((char *)TriggerLoadGameProject.Get());
 			iGamePausedNodeID = storyboard_add_missing_nodex(8, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
 			iLoadGameNodeID = storyboard_add_missing_nodex(3, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
@@ -42122,6 +42159,8 @@ void process_storeboard(bool bInitOnly)
 				}
 				ImGui::NextColumn();
 
+				ImGui::Text("");
+
 				if (ImGui::StyleCollapsingHeader("Game Description", ImGuiTreeNodeFlags_DefaultOpen) || iStoryboardExecuteKey != 0) //"Add New"
 				{
 					ImGui::Indent(10);
@@ -42175,6 +42214,30 @@ void process_storeboard(bool bInitOnly)
 					}
 					ImGui::Indent(-10);
 				}
+
+				ImGui::Text("");
+				bool bTmp = 1 - Storyboard.project_inactive;
+				if (ImGui::Checkbox("Active/InActive Project", &bTmp))
+				{
+					Storyboard.project_inactive = 1 - bTmp;
+					Storyboard.iChanged = true;
+					//PE: Check if we have a current list and update.
+					if (projectbank_list.size() > 0)
+					{
+						for (int i = 0; i < projectbank_list.size(); i++)
+						{
+							if (stricmp(Storyboard.gamename, projectbank_list[i].c_str()) == NULL )
+							{
+								if(Storyboard.project_inactive)
+									projectbank_active[i] = false;
+								else
+									projectbank_active[i] = true;
+								break;
+							}
+						}
+					}
+				}
+
 				ImGui::EndColumns();
 
 				bImGuiGotFocus = true;

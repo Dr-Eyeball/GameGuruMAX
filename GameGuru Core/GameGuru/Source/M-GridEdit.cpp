@@ -37,6 +37,7 @@ char g_Storyboard_Current_Loading_Page[256];
 std::vector<std::string> projectbank_list;
 std::vector<std::string> projectbank_image;
 std::vector<int> projectbank_imageid;
+std::vector<int> projectbank_active;
 StoryboardStruct Storyboard;
 //StoryboardStruct StoryboardBackup; //PE: Not used.
 StoryboardStruct checkproject;

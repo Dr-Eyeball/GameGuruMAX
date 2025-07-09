@@ -933,6 +933,7 @@ struct StoryboardStruct
 
 	char customprojectfolder[256];
 
+	int project_inactive;
 	//PE: To add new variables add them here, always add to botton of list.
 
 };
