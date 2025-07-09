@@ -25988,6 +25988,10 @@ void gridedit_mapediting ( void )
 					if (t.widget.pickedSection > 0 && t.widget.pickedSection != -98 && t.widget.pickedSection != -99) bWidgetHasControlHere = true;
 					if (bTriggerVisibleWidget == true) bWidgetHasControlHere = true;
 
+					//PE: Allow object to go 80% below terrain.
+					int GetActiveEditorObject(void);
+					int iActiveObj = GetActiveEditorObject();
+
 					//Dont change anyhthing when we are ready to place entity.
 					if (!bPlaceEntity && bWidgetHasControlHere == false )
 					{
@@ -26222,6 +26226,14 @@ void gridedit_mapediting ( void )
 												// only if above or on terrain
 												fGripY += pref.fEditorGridOffsetY;
 												float fTerrainAtThisPoint = BT_GetGroundHeight (0, t.gridentityposx_f, t.gridentityposz_f);
+
+												//PE: Allow object to go 80% below terrain.
+												if (iActiveObj > 0)
+												{
+													//PE: Object can go under terrain by 80%.
+													float fAllowBelowTerrainMax = (ObjectSizeY(iActiveObj, 1) * 0.80f);
+													fTerrainAtThisPoint -= fAllowBelowTerrainMax;
+												}
 												if (fGripY < fTerrainAtThisPoint)
 												{
 													fGripY = fTerrainAtThisPoint;
@@ -26372,11 +26384,13 @@ void gridedit_mapediting ( void )
 									// horiz position XZ mode
 									if (bDepartedFromChosenY == true) t.gridentityposy_f = fDepartedFromThisY;
 									float fActualHeightUnderObject = BT_GetGroundHeight(0, t.gridentityposx_f, t.gridentityposz_f);
-									if ( t.gridentityobj > 0 )
+									//PE: Allow object to go 80% below terrain.
+									if (iActiveObj > 0 )
 									{
 										// and ensure we CAN place objects that are submerged, just make sure they do not go entirely under
 										// the floor, so keep 20% of them anove the ground height
-										fActualHeightUnderObject -= ((float)ObjectSizeY(t.gridentityobj, 1) * 0.8f);
+										float fAllowBelowTerrainMax = ((float)ObjectSizeY(iActiveObj, 1) * 0.8f);
+										fActualHeightUnderObject -= fAllowBelowTerrainMax;
 									}
 									if (t.gridentityposy_f < fActualHeightUnderObject )
 									{
@@ -30746,6 +30760,24 @@ int GetEntityGridMode(void)
 {
 	return t.gridentitygridlock;
 }
+int GetEntitySelected(void)
+{
+	return t.widget.pickedEntityIndex;
+}
+int GetEntityObject(int iEntityIndex)
+{
+	return(t.entityelement[iEntityIndex].obj);
+}
+void GetEntityPosition(int iEntityIndex, float & x, float& y, float& z)
+{
+	x = t.entityelement[iEntityIndex].x;
+	y = t.entityelement[iEntityIndex].y;
+	z = t.entityelement[iEntityIndex].z;
+}
+int GetRubberbandSize(void)
+{
+	return(g.entityrubberbandlist.size());
+}
 void SetWidgetMode(int mode)
 {
 	bool bWidgetEnabled = pref.iEnableDragDropWidgetSelect;
@@ -31039,4 +31071,28 @@ void GridPopup(ImVec2 wpos)
 
 }
 #endif
+
+int GetActiveEditorObject( void )
+{
+	int iActiveObj = t.widget.activeObject;
+	if (t.gridentityextractedindex > 0)
+	{
+		if (t.gridentityobj > 0)
+			iActiveObj = t.gridentityobj;
+	}
+	else
+	{
+		int iEntityIndex = t.widget.pickedEntityIndex;
+		if (t.widget.activeObject == 0 && t.widget.pickedEntityIndex < t.entityelement.size())
+		{
+			if (t.widget.pickedEntityIndex > 0)
+				iActiveObj = t.entityelement[t.widget.pickedEntityIndex].obj;
+			else
+			{
+				iActiveObj = t.widget.activeObject;
+			}
+		}
+	}
+	return(iActiveObj);
+}
 

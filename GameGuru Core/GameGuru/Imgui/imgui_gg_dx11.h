@@ -439,6 +439,7 @@ const char *noc_file_dialog_open(int flags,
 	const char* pTitle = NULL);
 
 namespace ImGui {
+	bool MenuItem2(const char* label, const char* shortcut, bool selected, bool enabled);
 	bool BeginPopupContextItemAGK(const char* str_id = NULL, int mouse_button = 1);
 	const char* CalcWordWrapPositionB(float scale, const char* text, const char* text_end, float wrap_width, float line_start);
 	void TextCenter(const char* fmt, ...);

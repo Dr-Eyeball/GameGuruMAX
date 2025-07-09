@@ -467,6 +467,16 @@ void Master::InitializeSecondaries()
 			pref.iPlayedVideoSection[i] = 0;
 		pref.iResetAutoRunVideosOnNextStartup = 0;
 	}
+	if (pref.iAdvancedGridModeSettings == 0)
+	{
+		//PE: Set new fEditorGridSize settings. 
+		if (pref.fEditorGridSizeX <= 1) pref.fEditorGridSizeX = 1.0f;
+		pref.fEditorGridOffsetX = 0;
+		pref.fEditorGridOffsetY = 0;
+		pref.fEditorGridOffsetZ = 0;
+		pref.fEditorGridSizeY = pref.fEditorGridSizeX;
+		pref.fEditorGridSizeZ = pref.fEditorGridSizeX;
+	}
 
 	g_bEnableAutoFlattenSystem = pref.iEnableAutoFlattenSystem;
 

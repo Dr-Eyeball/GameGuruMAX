@@ -9483,8 +9483,19 @@ void Add_Grid_Snap_To_Position ( bool bFromWidgetMode )
 			t.gridentityposz_f = fGripZ;
 			if (pref.fEditorGridSizeY > 0)
 			{
+				//PE: Allow object to go 80% below terrain.
+				int GetActiveEditorObject(void);
+				int iActiveObj = GetActiveEditorObject();
+
 				// only if above or on terrain
 				float fTerrainAtThisPoint = BT_GetGroundHeight (0, t.gridentityposx_f, t.gridentityposz_f);
+				if (iActiveObj > 0)
+				{
+					//PE: Object can go under terrain by 80%.
+					float fAllowBelowTerrainMax = (ObjectSizeY(iActiveObj, 1) * 0.80f);
+					fTerrainAtThisPoint -= fAllowBelowTerrainMax;
+				}
+
 				if (fGripY < fTerrainAtThisPoint)
 				{
 					fGripY = fTerrainAtThisPoint;
@@ -11096,6 +11107,26 @@ void ProcessPreferences(void)
 			int smalltoolbar_selection;
 			if (ImGui::Combo("##SmallToolbarSetup", &pref.iSmallToolbar, smalltoolbar_combo, IM_ARRAYSIZE(smalltoolbar_combo)))
 			{
+				if (pref.iSmallToolbar > 0)
+				{
+					//PE: Set new grid system defaults.
+					pref.fEditorGridOffsetX = 0;
+					pref.fEditorGridOffsetY = 0;
+					pref.fEditorGridOffsetZ = 0;
+					pref.fEditorGridSizeX = 10.0f;
+					pref.fEditorGridSizeY = pref.fEditorGridSizeX;
+					pref.fEditorGridSizeZ = pref.fEditorGridSizeX;
+				}
+				else
+				{
+					//PE: Old defaults.
+					pref.fEditorGridOffsetY = 0;
+					pref.fEditorGridSizeY = 0;
+					pref.fEditorGridOffsetX = 50.0f;
+					pref.fEditorGridOffsetZ = 50.0f;
+					pref.fEditorGridSizeX = 100.0f;
+					pref.fEditorGridSizeZ = 100.0f;
+				}
 			}
 			ImGui::PopItemWidth();
 			#endif

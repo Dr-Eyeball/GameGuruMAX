@@ -2482,6 +2482,52 @@ void DebugInfo(char * text, const char *heading)
 
 namespace ImGui {
 
+	bool MenuItem2(const char* label, const char* shortcut, bool selected, bool enabled)
+	{
+		ImGuiWindow* window = GetCurrentWindow();
+		if (window->SkipItems)
+			return false;
+
+		ImGuiContext& g = *GImGui;
+		ImGuiStyle& style = g.Style;
+		ImVec2 pos = window->DC.CursorPos;
+		ImVec2 label_size = CalcTextSize(label, NULL, true);
+
+		// We've been using the equivalent of ImGuiSelectableFlags_SetNavIdOnHover on all Selectable() since early Nav system days (commit 43ee5d73),
+		// but I am unsure whether this should be kept at all. For now moved it to be an opt-in feature used by menus only.
+		ImGuiSelectableFlags flags = ImGuiSelectableFlags_PressedOnRelease | ImGuiSelectableFlags_SetNavIdOnHover | (enabled ? 0 : ImGuiSelectableFlags_Disabled);
+		bool pressed;
+		if (window->DC.LayoutType == ImGuiLayoutType_Horizontal)
+		{
+			// Mimic the exact layout spacing of BeginMenu() to allow MenuItem() inside a menu bar, which is a little misleading but may be useful
+			// Note that in this situation we render neither the shortcut neither the selected tick mark
+			float w = label_size.x;
+			window->DC.CursorPos.x += (float)(int)(style.ItemSpacing.x * 0.5f);
+			PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(style.ItemSpacing.x * 2.0f, style.ItemSpacing.y));
+			pressed = Selectable(label, selected, flags, ImVec2(w, 0.0f));
+			PopStyleVar();
+			window->DC.CursorPos.x += (float)(int)(style.ItemSpacing.x * (-1.0f + 0.5f)); // -1 spacing to compensate the spacing added when Selectable() did a SameLine(). It would also work to call SameLine() ourselves after the PopStyleVar().
+		}
+		else
+		{
+			ImVec2 shortcut_size = shortcut ? CalcTextSize(shortcut, NULL) : ImVec2(0.0f, 0.0f);
+			float w = window->MenuColumns.DeclColumns(label_size.x, shortcut_size.x, (float)(int)(g.FontSize * 1.20f)); // Feedback for next frame
+			float extra_w = ImMax(0.0f, GetContentRegionAvail().x - w);
+			pressed = Selectable(label, selected, flags | ImGuiSelectableFlags_DrawFillAvailWidth, ImVec2(w, 0.0f));
+			if (shortcut_size.x > 0.0f)
+			{
+				PushStyleColor(ImGuiCol_Text, g.Style.Colors[ImGuiCol_TextDisabled]);
+				RenderText(pos + ImVec2(window->MenuColumns.Pos[1] + extra_w, 0.0f), shortcut, NULL, false);
+				PopStyleColor();
+			}
+			if (selected)
+				RenderCheckMark(pos + ImVec2(window->MenuColumns.Pos[2] + extra_w + g.FontSize * 0.40f, g.FontSize * 0.134f * 0.5f), GetColorU32(enabled ? ImGuiCol_Text : ImGuiCol_TextDisabled), g.FontSize * 0.866f);
+		}
+
+		IMGUI_TEST_ENGINE_ITEM_INFO(window->DC.LastItemId, label, window->DC.ItemFlags | ImGuiItemStatusFlags_Checkable | (selected ? ImGuiItemStatusFlags_Checked : 0));
+		return pressed;
+	}
+
 	const char* CalcWordWrapPositionB(float scale, const char* textorig, const char* text_end, float wrap_width, float line_start)
 	{
 		// Simple word-wrapping for English, not full-featured. Please submit failing cases!
