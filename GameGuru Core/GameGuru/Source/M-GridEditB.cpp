@@ -41339,158 +41339,9 @@ void process_storeboard(bool bInitOnly)
 			}
 		}
 
-		bool bReadyToOpen = false;
-		if (bTriggerOpenProject)
-		{
-			if (iDelayTriggerOpenProject > 0)
-			{
-				iDelayTriggerOpenProject--;
-				if (iDelayTriggerOpenProject == 0)
-				{
-					strcpy(cNextWindowFocus, "Open Project##Storyboard");
-					iSkibFramesBeforeLaunch = 2;
-					iLaunchAfterSync = 81; //Delayed window focus.
-				}
-			}
-			else
-			{
-				bReadyToOpen = true;
-			}
-		}
-		if (bReadyToOpen)
-		{
-			//Open Project window.
-			static char OpenProjectName[256] = "\0";
-			static char OpenProjectError[256] = "\0";
+		void storyboard_openproject(float preview_size_x, float fNodeWidth, float fNodeHeight,int mode);
+		storyboard_openproject(preview_size_x, fNodeWidth, fNodeHeight,0);
 
-			ImGui::OpenPopup("Open Project##Storyboard");
-			ImGui::SetNextWindowSize(ImVec2(0, 532), ImGuiCond_Once);
-			static int popwinheight = 0;
-			if (popwinheight > 800 || iSkibFramesBeforeLaunch > 0)
-			{
-				ImGui::SetNextWindowSize(ImVec2(0, 532), ImGuiCond_Always);
-			}
-			ImGui::SetNextWindowPosCenter(ImGuiCond_Always);
-			bool bOpenWindow = true;
-			//PE: Somehow cant get this window ontop ?
-			if (ImGui::BeginPopupModal("Open Project##Storyboard", &bOpenWindow, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings))
-			{
-				popwinheight = ImGui::GetWindowSize().y;
-				ImGui::Indent(10);
-				ImGui::Text("");
-				ImGui::SetWindowFontScale(1.4);
-				ImGui::TextCenter("Open Game Project");
-				ImGui::Separator();
-
-				ImGui::SetWindowFontScale(1.0);
-				ImGui::Text("");
-				ImGui::Text("Select the project to open and click 'Open Project'");
-				ImGui::SameLine(); ImGui::Text(" ");
-				ImGui::Text("");
-				if (strlen(OpenProjectError) > 0)
-				{
-					ImGui::Text(OpenProjectError);
-					ImGui::Text("");
-				}
-				//Ignore _backup files.
-
-				// when in a remote project, need to rebuild the latest writables based project list
-				GG_SetWritablesToRoot(true);
-				GetProjectList("projectbank\\");
-				GG_SetWritablesToRoot(false);
-
-				static std::string current_project_selected = "";
-				ImVec2 size = { ImGui::GetContentRegionAvailWidth(),0 };
-
-				float fHeight = ImGui::GetFontSize() * 10.0;
-
-				ImGui::Text("Projects");
-				ImGui::SameLine();
-				static bool bDisplayBackups = false;
-				float fBoxWidth = ImGui::CalcTextSize("Display Backups").x;
-				ImGui::SetCursorPosX((ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x) - 10.0 - 30.0 - fBoxWidth);
-				ImGui::Checkbox("Display Backups", &bDisplayBackups);
-				ImGui::BeginChild("Projects##FileOpenStoryboard", ImVec2(ImGui::GetContentRegionAvail().x - 10.0, fHeight), true, iGenralWindowsFlags);
-				bool bTriggerLoad = false;
-				if (projectbank_list.size() > 0)
-				{
-					float fRegAvail = ImGui::GetContentRegionAvailWidth() - 10.0;
-					for (int i = 0; i < projectbank_list.size(); i++)
-					{
-						if (bDisplayBackups || !pestrcasestr((char *)projectbank_list[i].c_str(), "_backup_"))
-						{
-							bool bSelected = false;
-							if (current_project_selected == projectbank_list[i]) bSelected = true;
-							if (ImGui::Selectable(projectbank_list[i].c_str(), bSelected))
-							{
-								current_project_selected = projectbank_list[i];
-							}
-							if(ImGui::IsItemHovered())
-							{
-								if (ImGui::IsMouseDoubleClicked(0))
-								{
-									current_project_selected = projectbank_list[i];
-									bTriggerLoad = true;
-								}
-							}
-						}
-					}
-				}
-				else
-				{
-					ImGui::Text("No Projects Found.");
-				}
-				ImGui::EndChild();
-				ImGui::PushItemWidth(-10);
-				ImGui::InputText("##OpenProjectStoryboardText", (char *) current_project_selected.c_str(), 250, ImGuiInputTextFlags_ReadOnly); //ImGuiInputTextFlags_None
-				ImGui::PopItemWidth();
-
-				ImGui::Text("");
-
-				ImGui::SetWindowFontScale(1.4);
-				if (bTriggerLoad || ImGui::StyleButton("Open Project", ImVec2(ImGui::GetContentRegionAvail().x*0.5 - 20.0f, 0.0f)))
-				{
-					// and in case this was a remote project, restore to writables regular
-					extern void switch_to_regular_projects(void);
-					switch_to_regular_projects();
-
-					//Open
-					load_storyboard( (char *) current_project_selected.c_str());
-					iGamePausedNodeID = storyboard_add_missing_nodex(8, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
-					iLoadGameNodeID = storyboard_add_missing_nodex(3, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
-					iSaveGameNodeID = storyboard_add_missing_nodex(9, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
-					iGraphicsNodeID = storyboard_add_missing_nodex(10, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
-					iSoundsNodeID = storyboard_add_missing_nodex(11, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
-					iControlNodeID = storyboard_add_missing_nodex(12, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
-					iLoadingScreenNodeID = storyboard_add_missing_nodex(2, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
-					iHUDScreenNodeID = storyboard_add_missing_nodex(13, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
-
-					bTriggerOpenProject = false;
-					bOpenProjectsFromWelcome = false;
-				}
-				ImGui::SameLine();
-				if (ImGui::StyleButton("Cancel", ImVec2(ImGui::GetContentRegionAvail().x - 10.0f, 0.0f)))
-				{
-					//Cancel.
-					bTriggerOpenProject = false;
-					if (bOpenProjectsFromWelcome)
-					{
-						bWelcomeScreen_Window = true;
-						bStoryboardWindow = false;
-						bOpenProjectsFromWelcome = false;
-					}
-				}
-
-				ImGui::SetWindowFontScale(1.0);
-				ImGui::Text("");
-
-				bImGuiGotFocus = true;
-				ImGui::Indent(-10);
-				ImGui::EndPopup();
-
-				bBlockNextMouseCheck = true;
-			}
-		}
 		if (bStoryboardWindowOpenLoad)
 		{
 			bTriggerOpenProject = true;
@@ -46662,8 +46513,94 @@ void hub_menubar(void)
 	if (ImGui::BeginMenuBar())
 	{
 		ImVec2 CursorMenuStart = ImGui::GetCursorPos();
+		bool bIsMenuHovered = false;
 		if (ImGui::BeginMenu("File##Hub"))
 		{
+			//---------------------------------------------------------------------------
+
+			if (bPreferences_Window == false)
+			{
+				if (ImGui::MenuItem("New Game Project", ""))
+				{
+					CloseAllOpenTools();
+					bool bAbort = false;
+					if (Storyboard.iChanged)
+					{
+						if (!pref.iDisableProjectAutoSave && strlen(Storyboard.gamename) > 0)
+						{
+							save_storyboard(Storyboard.gamename, false);
+						}
+						else
+						{
+							int iAction = askBoxCancel(STORYBOARD_SAVE_MESSAGE, "Confirmation"); //1==Yes 2=Cancel 0=No
+							if (iAction == 1)
+							{
+								//Save.
+								if (strlen(Storyboard.gamename) > 0)
+									save_storyboard(Storyboard.gamename, false);
+								else
+								{
+									bAbort = true;
+									save_storyboard(Storyboard.gamename, true);
+								}
+							}
+						}
+					}
+					if (!bAbort)
+					{
+
+						strcpy(pref.cLastUsedStoryboardProject, "");
+						bStoryboardInitNodes = false; //Just init again.
+						bStoryboardFirstRunSetInitPos = false;
+						process_storeboard(true); //Init a new project.
+						//PE: Bug - When creating a new project, it would contain g_collectionList from prev. loaded project.
+						init_rpg_system();
+
+						bTriggerSaveAsAfterNewLevel = true;
+						bTriggerSaveAs = true;
+						strcpy(SaveProjectAsName, "");
+						strcpy(SaveProjectAsError, "");
+
+					}
+				}
+				if (!bIsMenuHovered) bIsMenuHovered = ImGui::IsItemHovered();
+				if (ImGui::MenuItem("Open Game Project", ""))
+				{
+					CloseAllOpenToolsThatNeedSave();
+					bool bAbort = false;
+					if (Storyboard.iChanged)
+					{
+						if (!pref.iDisableProjectAutoSave && strlen(Storyboard.gamename) > 0)
+						{
+							save_storyboard(Storyboard.gamename, false);
+						}
+						else
+						{
+							int iAction = askBoxCancel(STORYBOARD_SAVE_MESSAGE, "Confirmation"); //1==Yes 2=Cancel 0=No
+							if (iAction == 1)
+							{
+								//Save.
+								if (strlen(Storyboard.gamename) > 0)
+									save_storyboard(Storyboard.gamename, false);
+								else
+								{
+									bAbort = true;
+									save_storyboard(Storyboard.gamename, true);
+								}
+							}
+						}
+					}
+
+					if (!bAbort)
+					{
+						//Open Game Project
+						bTriggerOpenProject = true;
+					}
+				}
+				if (!bIsMenuHovered) bIsMenuHovered = ImGui::IsItemHovered();
+			}
+
+			//---------------------------------------------------------------------------
 			if (ImGui::MenuItem("Exit to Desktop"))
 			{
 				int iAction = askBoxCancel("Are you sure you would like to exit to desktop?", "Confirmation"); //1==Yes 2=Cancel 0=No
@@ -46686,6 +46623,15 @@ void hub_menubar(void)
 		}
 		ImGui::EndMenuBar();
 	}
+
+	int preview_size_x = ImGui::GetMainViewport()->Size.x - 300.0;
+	int preview_size_y = ImGui::GetMainViewport()->Size.y - 60.0;
+	float fNodeWidth = 180.0f;
+	float fNodeHeight = 130.0f;
+
+	void storyboard_openproject(float preview_size_x, float fNodeWidth, float fNodeHeight,int mode);
+	storyboard_openproject(preview_size_x, fNodeWidth, fNodeHeight,1);
+
 }
 
 void storyboard_menubar(float area_width, float node_width, float node_height)
@@ -53823,3 +53769,250 @@ void tmpdebugfunc(void)
 	}
 }
 
+void storyboard_openproject(float preview_size_x, float fNodeWidth, float fNodeHeight, int mode)
+{
+	bool bReadyToOpen = false;
+	if (bTriggerOpenProject)
+	{
+		if (iDelayTriggerOpenProject > 0)
+		{
+			iDelayTriggerOpenProject--;
+			if (iDelayTriggerOpenProject == 0)
+			{
+				strcpy(cNextWindowFocus, "Open Project##Storyboard");
+				iSkibFramesBeforeLaunch = 2;
+				iLaunchAfterSync = 81; //Delayed window focus.
+			}
+		}
+		else
+		{
+			bReadyToOpen = true;
+		}
+	}
+	if (bReadyToOpen)
+	{
+		//Open Project window.
+		static char OpenProjectName[256] = "\0";
+		static char OpenProjectError[256] = "\0";
+
+		ImGui::OpenPopup("Open Project##Storyboard");
+		ImGui::SetNextWindowSize(ImVec2(0, 532), ImGuiCond_Once);
+		static int popwinheight = 0;
+		if (popwinheight > 800 || iSkibFramesBeforeLaunch > 0)
+		{
+			ImGui::SetNextWindowSize(ImVec2(0, 532), ImGuiCond_Always);
+		}
+		ImGui::SetNextWindowPosCenter(ImGuiCond_Always);
+		bool bOpenWindow = true;
+		//PE: Somehow cant get this window ontop ?
+		if (ImGui::BeginPopupModal("Open Project##Storyboard", &bOpenWindow, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings))
+		{
+			popwinheight = ImGui::GetWindowSize().y;
+			ImGui::Indent(10);
+			ImGui::Text("");
+			ImGui::SetWindowFontScale(1.4);
+			ImGui::TextCenter("Open Game Project");
+			ImGui::Separator();
+
+			ImGui::SetWindowFontScale(1.0);
+			ImGui::Text("");
+			ImGui::Text("Select the project to open and click 'Open Project'");
+			ImGui::Text("Or click 'Import  Project' to find a valid Project to import");
+			ImGui::SameLine(); ImGui::Text(" ");
+			ImGui::Text("");
+			if (strlen(OpenProjectError) > 0)
+			{
+				ImGui::Text(OpenProjectError);
+				ImGui::Text("");
+			}
+			//Ignore _backup files.
+
+			// when in a remote project, need to rebuild the latest writables based project list
+			GG_SetWritablesToRoot(true);
+			GetProjectList("projectbank\\");
+			GG_SetWritablesToRoot(false);
+
+			static std::string current_project_selected = "";
+			ImVec2 size = { ImGui::GetContentRegionAvailWidth(),0 };
+
+			float fHeight = ImGui::GetFontSize() * 10.0;
+
+			ImGui::Text("Projects");
+			ImGui::SameLine();
+			static bool bDisplayBackups = false;
+			float fBoxWidth = ImGui::CalcTextSize("Display Backups").x;
+			ImGui::SetCursorPosX((ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x) - 10.0 - 30.0 - fBoxWidth);
+			ImGui::Checkbox("Display Backups", &bDisplayBackups);
+			ImGui::BeginChild("Projects##FileOpenStoryboard", ImVec2(ImGui::GetContentRegionAvail().x - 10.0, fHeight), true, iGenralWindowsFlags);
+			bool bTriggerLoad = false;
+			if (projectbank_list.size() > 0)
+			{
+				float fRegAvail = ImGui::GetContentRegionAvailWidth() - 10.0;
+				for (int i = 0; i < projectbank_list.size(); i++)
+				{
+					if (bDisplayBackups || !pestrcasestr((char*)projectbank_list[i].c_str(), "_backup_"))
+					{
+						bool bSelected = false;
+						if (current_project_selected == projectbank_list[i]) bSelected = true;
+						if (ImGui::Selectable(projectbank_list[i].c_str(), bSelected))
+						{
+							current_project_selected = projectbank_list[i];
+						}
+						if (ImGui::IsItemHovered())
+						{
+							if (ImGui::IsMouseDoubleClicked(0))
+							{
+								current_project_selected = projectbank_list[i];
+								bTriggerLoad = true;
+							}
+						}
+					}
+				}
+			}
+			else
+			{
+				ImGui::Text("No Projects Found.");
+			}
+			ImGui::EndChild();
+			ImGui::PushItemWidth(-10);
+			ImGui::InputText("##OpenProjectStoryboardText", (char*)current_project_selected.c_str(), 250, ImGuiInputTextFlags_ReadOnly); //ImGuiInputTextFlags_None
+			ImGui::PopItemWidth();
+
+			ImGui::Text("");
+
+			ImGui::SetWindowFontScale(1.4);
+			//Import  Project
+			if (ImGui::StyleButton("Import Project", ImVec2(ImGui::GetContentRegionAvail().x - 10.0f, 0.0f)))
+			{
+				cStr tOldDir = GetDir();
+				char* cFileSelected;
+				cstr fulldir = "c:\\dropbox";
+
+				cFileSelected = (char*)noc_file_dialog_open(NOC_FILE_DIALOG_DIR, "All\0*.*\0", fulldir.Get(), NULL);
+
+				SetDir(tOldDir.Get());
+
+				if (cFileSelected && strlen(cFileSelected) > 0) {
+					char projectfolder[MAX_PATH];
+					std::string projectname;
+					std::string projectpath;
+					strcpy(projectfolder, cFileSelected);
+					projectname = cFileSelected;
+					projectpath = cFileSelected;
+
+					bool bValid = false;
+					std::size_t slash = projectname.find_last_of("/\\");
+					if (slash > 0)
+					{
+						projectpath = projectname.substr(0,slash + 1);
+						projectname = projectname.substr(slash + 1);
+
+						std::string checkproject = projectpath + projectname + "\\Files"; //PE: Must exists.
+						if (PathExist((char *) checkproject.c_str()))
+						{
+							checkproject = checkproject + "\\projectbank\\" + projectname + "\\project.dat"; //PE: Must exists.
+							if (FileExist((char *) checkproject.c_str()))
+							{
+								//PE: Check if already exists.
+								bool bFound = false;
+								for (int i = 0; i < projectbank_list.size(); i++)
+								{
+									if (stricmp(projectname.c_str(), projectbank_list[i].c_str()) == NULL)
+									{
+										bFound = true;
+										break;
+									}
+								}
+								if (bFound)
+								{
+									BoxerInfo("Selected project already exists.", "Information!");
+									bValid = true;
+								}
+								else
+								{
+									//PE: Add project to docwrite folder.
+									bValid = true;
+									//remoteproject.txt
+									char pRemoteProject[MAX_PATH];
+									strcpy(pRemoteProject, "projectbank\\");
+									strcat(pRemoteProject, projectname.c_str());
+									strcat(pRemoteProject, "\\remoteproject.txt");
+									GG_GetRealPath(pRemoteProject, 1);
+
+									OpenToWrite(1, pRemoteProject);
+									WriteString(1, (char *) projectpath.c_str());
+									CloseFile(1);
+									//PE: Add to list for selection.
+									projectbank_list.push_back(projectname);
+									BoxerInfo("Project has been imported.", "Information!");
+									current_project_selected = projectname;
+									bTriggerLoad = true;
+								}
+							}
+						}
+					}
+					if (!bValid)
+					{
+						BoxerInfo("Selected folder is not a valid project.", "Information!");
+					}
+
+				}
+
+			}
+			if (bTriggerLoad || ImGui::StyleButton("Open Project", ImVec2(ImGui::GetContentRegionAvail().x * 0.5 - 20.0f, 0.0f)))
+			{
+
+				if(mode == 1)
+				{
+					//Load and start storyboard.
+					TriggerLoadGameProject = current_project_selected.c_str();
+					bWelcomeScreen_Window = false;
+					bStoryboardWindow = true;
+					bTriggerOpenProject = false;
+
+				}
+				else
+				{
+					// and in case this was a remote project, restore to writables regular
+					extern void switch_to_regular_projects(void);
+					switch_to_regular_projects();
+
+					//Open
+					load_storyboard((char*)current_project_selected.c_str());
+					iGamePausedNodeID = storyboard_add_missing_nodex(8, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
+					iLoadGameNodeID = storyboard_add_missing_nodex(3, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
+					iSaveGameNodeID = storyboard_add_missing_nodex(9, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
+					iGraphicsNodeID = storyboard_add_missing_nodex(10, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
+					iSoundsNodeID = storyboard_add_missing_nodex(11, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
+					iControlNodeID = storyboard_add_missing_nodex(12, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
+					iLoadingScreenNodeID = storyboard_add_missing_nodex(2, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
+					iHUDScreenNodeID = storyboard_add_missing_nodex(13, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
+
+					bTriggerOpenProject = false;
+					bOpenProjectsFromWelcome = false;
+				}
+			}
+			ImGui::SameLine();
+			if (ImGui::StyleButton("Cancel", ImVec2(ImGui::GetContentRegionAvail().x - 10.0f, 0.0f)))
+			{
+				//Cancel.
+				bTriggerOpenProject = false;
+				if (bOpenProjectsFromWelcome)
+				{
+					bWelcomeScreen_Window = true;
+					bStoryboardWindow = false;
+					bOpenProjectsFromWelcome = false;
+				}
+			}
+
+			ImGui::SetWindowFontScale(1.0);
+			ImGui::Text("");
+
+			bImGuiGotFocus = true;
+			ImGui::Indent(-10);
+			ImGui::EndPopup();
+
+			bBlockNextMouseCheck = true;
+		}
+	}
+}
