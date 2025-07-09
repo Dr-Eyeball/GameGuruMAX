@@ -9128,7 +9128,7 @@ void mapeditorexecutable_loop(void)
 								{
 									if (bAllowBehaviorChange == true)
 									{
-										DisplayFPEBehavior(false, iMasterID, &t.entityelement[iEntityIndex].eleprof, iEntityIndex);
+										DisplayFPEBehavior(false, iMasterID, &t.entityelement[iEntityIndex].eleprof, iEntityIndex, false);
 									}
 									else
 									{
@@ -13271,6 +13271,11 @@ void mapeditorexecutable_loop(void)
 										treename = treename + " (Auto-Gen) ";
 										bAutoGenObject = true;
 									}
+									if (t.entityelement[e].y == -999999)
+									{
+										treename = treename + " (Hidden) ";
+										bAutoGenObject = true;
+									}
 									bool TreeNodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)(e + 99000), node_flags, treename.c_str());
 									if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(0))
 									{
@@ -13781,9 +13786,11 @@ void mapeditorexecutable_loop(void)
 			ImGui::EndChild();
 
 			// number of game element buttson shown
-			entity_icons = 12; if (pref.iObjectEnableAdvanced)	entity_icons = 14;
+			entity_icons = 12;
+			if (pref.iObjectEnableAdvanced)
+				entity_icons = 15;
 
-			int entity_images[] = { ENTITY_START, ENTITY_CHECKPOINT, ENTITY_FLAG, ENTITY_TRIGGERZONE, ENTITY_WIN, ENTITY_LIGHT,ENTITY_VIDEO,ENTITY_MUSIC,ENTITY_SOUND,ENTITY_PARTICLE,ENTITY_IMAGE, ENTITY_TEXT, ENTITY_PROBE, ENTITY_COVER };
+			int entity_images[] = { ENTITY_START, ENTITY_CHECKPOINT, ENTITY_FLAG, ENTITY_TRIGGERZONE, ENTITY_WIN, ENTITY_LIGHT,ENTITY_VIDEO,ENTITY_MUSIC,ENTITY_SOUND,ENTITY_PARTICLE,ENTITY_IMAGE, ENTITY_TEXT, ENTITY_PROBE, ENTITY_COVER, ENTITY_BEHAVIOR };
 			cstr entity_scripts[] = {
 				"_markers\\Player Start.fpe",
 				"_markers\\Player Checkpoint.fpe",
@@ -13798,7 +13805,8 @@ void mapeditorexecutable_loop(void)
 				"_markers\\Image Zone.fpe",
 				"_markers\\Text Zone.fpe",
 				"_markers\\Probe.fpe",
-				"_markers\\Cover Zone.fpe"
+				"_markers\\Cover Zone.fpe",
+				"_markers\\Behavior.fpe" //global Behaviors
 			};
 			cstr entity_tooltip[] = {
 				"Add Player Start Position",
@@ -13814,7 +13822,8 @@ void mapeditorexecutable_loop(void)
 				"Add Image Zone",
 				"Add Text Zone",
 				"Add Environment Probe",
-				"Add Cover Zone"
+				"Add Cover Zone",
+				"Add Global Behavior"
 			};
 
 			int offset = 0;
@@ -28311,7 +28320,87 @@ void gridedit_save_test_map ( void )
 	timestampactivity(0,"SAVETESTMAP: Save elements");
 	entity_savebank ( );
 	entity_savebank_ebe ( );
+
+	//PE: Must remove , t.entityprofile[t.entid].ismarker == 12 && systemwide.
+	extern StoryboardStruct Storyboard;
+	std::vector <entitytype> StoreEntEle(20);
+	int storeindex = 1;
+	for (int i = 1; i <= g.entityelementlist; i++)
+	{
+		int tentid = t.entityelement[i].bankindex;
+		if (tentid > 0 && t.entityprofile[tentid].ismarker == 12)
+		{
+			if (t.entityelement[i].eleprof.aimain_s.Len() > 0)
+			{
+				if (t.entityelement[i].eleprof.systemwide_lua)
+				{
+					if (strlen(Storyboard.gamename) > 0)
+					{
+						if (StoreEntEle.capacity() < storeindex + 1)
+							StoreEntEle.reserve(storeindex + 10);
+						StoreEntEle[storeindex++] = t.entityelement[i];
+						t.entityelement[i].old_bankindex = t.entityelement[i].bankindex;
+						//PE: These will be added when loading so mark them for reuse in map.ele
+						t.entityelement[i].bankindex = 0; //PE: Save to be reused.
+					}
+					else
+					{
+						//PE: If we do not have a storyboard just convert systemwide to normal and save as normal map.ele
+						t.entityelement[i].eleprof.systemwide_lua = false;
+					}
+				}
+			}
+		}
+	}
+
 	entity_saveelementsdata ( false );
+
+	//PE: Restore systemwidelua.
+	for (int i = 1; i <= g.entityelementlist; i++)
+	{
+		int tentid = t.entityelement[i].old_bankindex;
+		if (tentid > 0 && t.entityprofile[tentid].ismarker == 12)
+		{
+			if (t.entityelement[i].eleprof.aimain_s.Len() > 0)
+			{
+				if (t.entityelement[i].eleprof.systemwide_lua)
+				{
+					t.entityelement[i].bankindex = t.entityelement[i].old_bankindex;
+				}
+			}
+		}
+	}
+
+	//PE: Save systemwidelua.ele
+	if (strlen(Storyboard.gamename) > 0)
+	{
+		timestampactivity(0, "saving systemwidelua.ele");
+		if (storeindex > 1)
+		{
+			cstr storeoldELEfile = t.elementsfilename_s;
+			char collectionELEfilename[MAX_PATH];
+			strcpy(collectionELEfilename, "projectbank\\");
+			strcat(collectionELEfilename, Storyboard.gamename);
+			strcat(collectionELEfilename, "\\systemwidelua.ele");
+			GG_GetRealPath(collectionELEfilename, 1);
+			if (FileExist(collectionELEfilename) == 1) DeleteFileA(collectionELEfilename);
+			t.elementsfilename_s = collectionELEfilename;
+
+			std::vector <entitytype> storeentityelement;
+			storeentityelement = t.entityelement;
+
+			int iStoreEntEleCount = g.entityelementlist;
+			g.entityelementlist = storeindex;
+			t.entityelement = StoreEntEle;
+			bool bForCollectionELE = true;
+			entity_saveelementsdata(bForCollectionELE);
+
+			g.entityelementlist = iStoreEntEleCount;
+			t.entityelement = storeentityelement;
+			storeentityelement.clear();
+			t.elementsfilename_s = storeoldELEfile;
+		}
+	}
 
 	//  Save waypoints
 	timestampactivity(0,"SAVETESTMAP: Save waypoints");
@@ -29834,6 +29923,11 @@ void gridedit_addentitytomap(void)
 			{
 				g_bLightProbeScaleChanged = true;
 			}
+		}
+
+		if (t.entityprofile[entid].ismarker == 12)
+		{
+			t.entityelement[t.e].eleprof.thumb_aimain_s = "";
 		}
 	}
 	/*

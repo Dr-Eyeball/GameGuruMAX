@@ -7917,7 +7917,271 @@ void tab_tab_visuals(int iPage, int iMode)
 				ImGui::Indent(-10);
 			}
 		}
+		if (iMode == 0)
+		{
+			if (ImGui::StyleCollapsingHeader("Global Behaviors", wflags))
+			{
+				static int iSelectecElement = -1;
 
+				ImGui::Indent(10);
+				float buttonwide = ImGui::GetContentRegionAvail().x * 0.5 - 10.0f;
+				static std::string myscript = "";
+				ImGuiWindow* window = ImGui::GetCurrentWindow();
+				if (iSelectedLibraryStingReturnID == window->GetID("ScriptSelector##+"))
+				{
+					//Update Script.
+					if (sSelectedLibrarySting != "")
+					{
+						myscript = sSelectedLibrarySting.Get();
+						sSelectedLibrarySting = "";
+						iSelectedLibraryStingReturnID = -1; //disable.
+						fpe_current_loaded_script = -1; //Reload image and DLUA.
+						CloseDownEditorProperties();
+						t.inputsys.constructselection = 0;
+						iLastEntityOnCursor = 0;
+
+						t.addentityfile_s = "_markers\\BehaviorHidden.fpe";
+						if (t.addentityfile_s != "")
+						{
+							entity_adduniqueentity(false);
+							t.tasset = t.entid;
+							if (t.talreadyloaded == 0)
+							{
+								editor_filllibrary();
+								iRestoreEntidMaster = -1;
+							}
+						}
+						t.tentid = t.entid;
+						t.sourceobj = g.entitybankoffset + t.tentid;
+
+						t.gridentity = t.entid;
+
+						//PE: all t.gridentity... need to be set for this to work correctly.
+						t.gridentitystaticmode = t.entityprofile[t.entid].defaultstatic;
+						t.gridentityposx_f = 0;
+						t.gridentityposy_f = -999999;
+						t.gridentityposz_f = 0;
+						t.gridentityrotatex_f = 0;
+						t.gridentityrotatey_f = 0;
+						t.gridentityrotatez_f = 0;
+						t.gridentityrotatequatmode = 0;
+						t.gridentityrotatequatx_f = 0;
+						t.gridentityrotatequaty_f = 0;
+						t.gridentityrotatequatz_f = 0;
+						t.gridentityrotatequatw_f = 1;
+						t.gridentityscalex_f = 10;
+						t.gridentityscaley_f = 10;
+						t.gridentityscalez_f = 10;
+						entity_fillgrideleproffromprofile();
+
+						//PE: InstanceObject - Cursor,Object Tools - objects must always be real clones.
+						extern bool bNextObjectMustBeClone;
+						bNextObjectMustBeClone = true;
+						t.e = 0;
+						gridedit_addentitytomap(); //Add it to map set t.e
+						bNextObjectMustBeClone = false;
+
+						t.entityelement[t.e].eleprof.aimain_s = myscript.c_str();
+						t.entityelement[t.e].eleprof.thumb_aimain_s = "";
+
+						PositionObject(t.entityelement[t.e].obj, t.entityelement[t.e].x, t.entityelement[t.e].y, t.entityelement[t.e].z);
+						RotateObject(t.entityelement[t.e].obj, t.entityelement[t.e].rx, t.entityelement[t.e].ry, t.entityelement[t.e].rz);
+						HideObject(t.entityelement[t.e].obj);
+
+						// Show elements when placing a new one down, prevents half being hidden and half not.
+						t.showeditorelements = 1;
+						editor_toggle_element_vis(t.showeditorelements);
+
+						editor_refresheditmarkers();
+
+						t.refreshgrideditcursor = 1;
+						current_selected_group = -1;
+						t.gridentity = 0;
+						t.gridentityposoffground = 0;
+						t.gridentityusingsoftauto = 0;
+						t.gridentityautofind = 0;
+						t.gridentityobj = 0;
+						editor_refreshentitycursor();
+						t.widget.pickedObject = 0;
+						t.gridentityextractedindex = 0;
+
+						t.widget.pickedObject = 0; widget_updatewidgetobject();
+						iSelectecElement = t.e - 1;
+					}
+				}
+
+				if (ImGui::StyleButton("Add", ImVec2(buttonwide, 0)))
+				{
+					//Select script.
+					sStartLibrarySearchString = "global";
+					iLastDisplayLibraryType = -1;
+					bExternal_Entities_Window = true;
+					iDisplayLibraryType = 4;
+					iLibraryStingReturnToID = window->GetID("ScriptSelector##+");
+				}
+				ImGui::SameLine();
+				int iDeleteIfFound = 0;
+				if (ImGui::StyleButton("Delete", ImVec2(buttonwide, 0)))
+				{
+					if (iSelectecElement >= 0)
+					{
+						//PE: Delete.
+						int iAction = askBoxCancel("This will delete all your visual changes, are you sure?", "Confirmation"); //1==Yes 2=Cancel 0=No
+						if (iAction == 1)
+						{
+							iDeleteIfFound = iSelectecElement;
+						}
+					}
+				}
+
+				uint32_t uniqueId = 4000;
+				uniqueId += 28000; //PE: from lib uniqueId += 24000;
+
+				int iDefaultTexture = FILETYPE_SCRIPT;
+				float w = ImGui::GetContentRegionAvailWidth();
+				ImGui::Columns(2, "GlobalBehaviors2elements", false);  //false no border
+				ImGui::SetColumnWidth(0, w * 0.5f);
+				ImGui::SetColumnWidth(1, w * 0.5f);
+				bool bFoundSelected = false;
+				for (t.e = 1; t.e <= g.entityelementlist; t.e++)
+				{
+					t.entid = t.entityelement[t.e].bankindex;
+					if (t.entid > 0 && t.entityprofile[t.entid].ismarker == 12)
+					{
+						int image = FILETYPE_SCRIPT;
+						if (t.entityelement[t.e].eleprof.aimain_s.Len() > 0)
+						{
+							//PE: check if we need to update icons.
+							if (t.entityelement[t.e].eleprof.aimain_s != t.entityelement[t.e].eleprof.thumb_aimain_s ||
+								t.entityelement[t.e].eleprof.thumb_id != uniqueId)
+							{
+								//PE: Load image.
+								std::string sFile = Left(t.entityelement[t.e].eleprof.aimain_s.Get(), Len(t.entityelement[t.e].eleprof.aimain_s.Get()) - 4);
+								std::string sImgName = "scriptbank\\" + sFile;
+								if (pref.current_style == 25 || pref.current_style == 3)
+									sImgName += ".png";
+								else
+									sImgName += "2.png";
+
+								if (ImageExist(uniqueId) == 1) DeleteImage(uniqueId);
+								image_setlegacyimageloading(true);
+								LoadImage((char*)sImgName.c_str(), uniqueId);
+								image_setlegacyimageloading(false);
+								t.entityelement[t.e].eleprof.thumb_aimain_s = t.entityelement[t.e].eleprof.aimain_s;
+								t.entityelement[t.e].eleprof.thumb_id = uniqueId;
+							}
+							if (ImageExist(uniqueId))
+							{
+								image = uniqueId;
+							}
+							uniqueId++;
+						}
+
+
+						int iTextureID = image;
+
+						ImVec2 ImageSize = ImVec2(buttonwide, ImGui::GetFontSize());
+						if (!(ImGui::GetColumnIndex() % 2))
+							ImageSize.x -= 2;
+
+						ID3D11ShaderResourceView* lpTexture = GetImagePointerView(iTextureID);
+						if (lpTexture)
+						{
+							float img_w = ImageWidth(iTextureID);
+							float img_h = ImageHeight(iTextureID);
+							ImageSize.y = img_h * (ImageSize.x / img_w);
+						}
+						ImVec2 vImagePos = ImGui::GetCursorPos();
+						ImGui::Dummy(ImageSize);
+						ImVec4 color = ImVec4(1.0, 1.0, 1.0, 1.0);
+						ImVec4 back_color = ImVec4(0.2, 0.2, 0.2, 0.75);
+
+						if (ImGui::IsItemHovered())
+						{
+							color.w = 0.75;
+							if (ImGui::IsMouseReleased(0))
+							{
+								iSelectecElement = t.e;
+								fpe_current_loaded_script = -1; //Reload image and DLUA.
+
+							}
+						}
+
+						ImVec2 img_pos = ImGui::GetWindowPos() + vImagePos;
+						img_pos.x -= 3; //PE: Fit under buttons.
+						if ((ImGui::GetColumnIndex() % 2))
+							img_pos.x -= 3;
+						img_pos.y -= ImGui::GetScrollY();
+						window->DrawList->AddRectFilled(img_pos, img_pos + ImageSize, ImGui::GetColorU32(back_color));
+						if (lpTexture)
+						{
+							window->DrawList->AddImage((ImTextureID)lpTexture, img_pos, img_pos + ImageSize, ImVec2(0, 0), ImVec2(1, 1), ImGui::GetColorU32(color));
+						}
+						if (iSelectecElement == t.e)
+						{
+							bFoundSelected = true;
+							ImVec4 bg_col = ImGui::GetStyle().Colors[ImGuiCol_PlotHistogram]; // { 0.0, 0.0, 0.0, 1.0 };
+							window->DrawList->AddRect(img_pos, img_pos + ImageSize - ImVec2(0, 0), ImGui::GetColorU32(bg_col), 0, 15, 3.0f);
+						}
+
+						std::string name = t.entityelement[t.e].eleprof.aimain_s.Get();
+						std::size_t slash = name.find_last_of("/\\");
+						if (slash > 0)
+						{
+							name = name.substr(slash + 1);
+						}
+						ImGui::TextCenter(" %s", name.c_str());
+
+						ImGui::NextColumn();
+
+					}
+				}
+				ImGui::Columns(1);
+
+				ImGui::Separator();
+				if (bFoundSelected && iSelectecElement >= 0)
+				{
+					int iEntityIndex = iSelectecElement;
+					int iMasterID = t.entityelement[iEntityIndex].bankindex;
+					if (iMasterID > 0)
+					{
+						DisplayFPEBehavior(false, iMasterID, &t.entityelement[iEntityIndex].eleprof, iEntityIndex, true);
+						ImGui::Separator();
+						bool btmp = t.entityelement[iEntityIndex].eleprof.systemwide_lua;
+
+						float fPropertiesColoumWidth = ImGui::GetCursorPosX() + 110.0f;
+						ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX(), ImGui::GetCursorPosY() + 3));
+						ImGui::Text("Active All Levels");
+						ImGui::SameLine();
+						ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX(), ImGui::GetCursorPosY() - 3));
+						ImGui::SetCursorPos(ImVec2(fPropertiesColoumWidth, ImGui::GetCursorPosY()));
+						if (ImGui::Checkbox("##Active All Levels", &btmp))
+						{
+							t.entityelement[iEntityIndex].eleprof.systemwide_lua = btmp;
+						}
+					}
+				}
+
+				if (bFoundSelected && iDeleteIfFound > 0)
+				{
+					t.obj = t.entityelement[iDeleteIfFound].obj;
+					if (t.obj > 0)
+					{
+						if (ObjectExist(t.obj) == 1)
+						{
+							DeleteObject(t.obj);
+						}
+					}
+					t.entityelement[iDeleteIfFound].obj = 0;
+					t.entityelement[iDeleteIfFound].maintype = 0;
+					t.entityelement[iDeleteIfFound].bankindex = 0;
+					fpe_current_loaded_script = -1; //Reload image and DLUA.
+					iSelectecElement = -1;
+				}
+
+				ImGui::Indent(-10);
+			}
+		}
 		// Control all in-game debugging options 
 		if (pref.iEnableDeveloperProperties)
 		{
@@ -19428,6 +19692,7 @@ void process_entity_library_v2(void)
 									if (strnicmp(dir_name.c_str(), "people", strlen("people")) == NULL)		bDisplayEverythingHere = false;
 									if (strnicmp(dir_name.c_str(), "puzzle", strlen("puzzle")) == NULL)		bDisplayEverythingHere = false;
 									if (strnicmp(dir_name.c_str(), "rpg", strlen("rpg")) == NULL)			bDisplayEverythingHere = false;
+									if (strnicmp(dir_name.c_str(), "global", strlen("global")) == NULL)		bDisplayEverythingHere = false;
 									if (strnicmp(dir_name.c_str(), "user", strlen("user")) == NULL)			bDisplayEverythingHere = false;
 									if (strnicmp(dir_name.c_str(), "weather", strlen("weather")) == NULL)	bDisplayEverythingHere = false;
 								}
@@ -26017,7 +26282,7 @@ void gridedit_makelighthybrid ( void )
 entityeleproftype *lua_grideleprof;
 entityeleproftype lua_readonly_grideleprof; //Temp for readonly dynamic lua parsing.
 
-void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_grideleprof, int elementID)
+void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_grideleprof, int elementID, bool bHideIcon)
 {
 	//FPE Properties.
 	bool bIsLightProbe = false;
@@ -26262,42 +26527,43 @@ void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_gridel
 		float ImgW = ImageWidth(fpe_current_loaded_script_image);
 		float ImgH = ImageHeight(fpe_current_loaded_script_image);
 		float fRatio = w/ImgW;
-
-		ImGuiWindow* window = ImGui::GetCurrentWindow();
-		if (iSelectedLibraryStingReturnID == window->GetID("ScriptSelector##+"))
+		if (!bHideIcon)
 		{
-			//Update Script.
-			if (sSelectedLibrarySting != "")
+			ImGuiWindow* window = ImGui::GetCurrentWindow();
+			if (iSelectedLibraryStingReturnID == window->GetID("ScriptSelector##+"))
 			{
-				if ( stricmp (edit_grideleprof->aimain_s.Get(), sSelectedLibrarySting.Get()) != NULL )
+				//Update Script.
+				if (sSelectedLibrarySting != "")
 				{
-					// changed behavior of object, ensure any behavior specific properties are cleared (as they cannot be set if new behavior does not expose them)
-					edit_grideleprof->overrideanimset_s = "";
-					edit_grideleprof->hasweapon_s = t.entityprofile[entid].hasweapon_s;
-					edit_grideleprof->hasweapon = 0;
-					extern bool g_bNowPopulateWithCorrectAnimSet;			
-					g_bNowPopulateWithCorrectAnimSet = true;
+					if (stricmp(edit_grideleprof->aimain_s.Get(), sSelectedLibrarySting.Get()) != NULL)
+					{
+						// changed behavior of object, ensure any behavior specific properties are cleared (as they cannot be set if new behavior does not expose them)
+						edit_grideleprof->overrideanimset_s = "";
+						edit_grideleprof->hasweapon_s = t.entityprofile[entid].hasweapon_s;
+						edit_grideleprof->hasweapon = 0;
+						extern bool g_bNowPopulateWithCorrectAnimSet;
+						g_bNowPopulateWithCorrectAnimSet = true;
+					}
+					edit_grideleprof->aimain_s = sSelectedLibrarySting;
+					sSelectedLibrarySting = "";
+					iSelectedLibraryStingReturnID = -1; //disable.
+					fpe_current_loaded_script = -1; //Reload image and DLUA.
 				}
-				edit_grideleprof->aimain_s = sSelectedLibrarySting;
-				sSelectedLibrarySting = "";
-				iSelectedLibraryStingReturnID = -1; //disable.
-				fpe_current_loaded_script = -1; //Reload image and DLUA.
 			}
-		}
-		if (ImGui::ImgBtn(fpe_current_loaded_script_image, ImVec2(ImgW*fRatio, ImgH*fRatio), drawCol_black, drawCol_normal, drawCol_normal, drawCol_normal, -1, 0, 0, 0, false))
-		{
-			//Select script.
-			sStartLibrarySearchString = "People";
-			iLastDisplayLibraryType = -1;
-			bExternal_Entities_Window = true;
-			iDisplayLibraryType = 4;
-			iLibraryStingReturnToID = window->GetID("ScriptSelector##+");
-			if (edit_grideleprof->aimain_s.Len() > 0)
-				sMakeDefaultSelecting = edit_grideleprof->aimain_s;
+			if (ImGui::ImgBtn(fpe_current_loaded_script_image, ImVec2(ImgW * fRatio, ImgH * fRatio), drawCol_black, drawCol_normal, drawCol_normal, drawCol_normal, -1, 0, 0, 0, false))
+			{
+				//Select script.
+				sStartLibrarySearchString = "People";
+				iLastDisplayLibraryType = -1;
+				bExternal_Entities_Window = true;
+				iDisplayLibraryType = 4;
+				iLibraryStingReturnToID = window->GetID("ScriptSelector##+");
+				if (edit_grideleprof->aimain_s.Len() > 0)
+					sMakeDefaultSelecting = edit_grideleprof->aimain_s;
 
+			}
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select Character Behavior");
 		}
-		if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select Character Behavior");
-
 		ImGui::TextCenter(cDisplayName);
 
 		#else
@@ -27027,32 +27293,33 @@ void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_gridel
 		float ImgW = ImageWidth(fpe_current_loaded_script_image);
 		float ImgH = ImageHeight(fpe_current_loaded_script_image);
 		float fRatio = w / ImgW;
-
-		if (iSelectedLibraryStingReturnID == window->GetID("ScriptSelector##+"))
+		if (!bHideIcon)
 		{
-			//Update Script.
-			if (sSelectedLibrarySting != "")
+			if (iSelectedLibraryStingReturnID == window->GetID("ScriptSelector##+"))
 			{
-				edit_grideleprof->aimain_s = sSelectedLibrarySting;
-				sSelectedLibrarySting = "";
-				iSelectedLibraryStingReturnID = -1; //disable.
-				fpe_current_loaded_script = -1; //Reload image and DLUA.
+				//Update Script.
+				if (sSelectedLibrarySting != "")
+				{
+					edit_grideleprof->aimain_s = sSelectedLibrarySting;
+					sSelectedLibrarySting = "";
+					iSelectedLibraryStingReturnID = -1; //disable.
+					fpe_current_loaded_script = -1; //Reload image and DLUA.
+				}
 			}
-		}
-		if (ImGui::ImgBtn(fpe_current_loaded_script_image, ImVec2(ImgW*fRatio, ImgH*fRatio), drawCol_black, drawCol_normal, drawCol_normal, drawCol_normal, -1, 0, 0, 0, false))
-		{
-			//Select script.
-			sStartLibrarySearchString = "Light";
-			iLastDisplayLibraryType = -1;
-			bExternal_Entities_Window = true;
-			iDisplayLibraryType = 4;
-			iLibraryStingReturnToID = window->GetID("ScriptSelector##+");
-			if (edit_grideleprof->aimain_s.Len() > 0)
-				sMakeDefaultSelecting = edit_grideleprof->aimain_s;
+			if (ImGui::ImgBtn(fpe_current_loaded_script_image, ImVec2(ImgW * fRatio, ImgH * fRatio), drawCol_black, drawCol_normal, drawCol_normal, drawCol_normal, -1, 0, 0, 0, false))
+			{
+				//Select script.
+				sStartLibrarySearchString = "Light";
+				iLastDisplayLibraryType = -1;
+				bExternal_Entities_Window = true;
+				iDisplayLibraryType = 4;
+				iLibraryStingReturnToID = window->GetID("ScriptSelector##+");
+				if (edit_grideleprof->aimain_s.Len() > 0)
+					sMakeDefaultSelecting = edit_grideleprof->aimain_s;
 
+			}
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select Light Behavior");
 		}
-		if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select Light Behavior");
-
 		ImGui::TextCenter(cDisplayName);
 		#else
 
@@ -28194,7 +28461,7 @@ void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_gridel
 		//health.lua
 		cstr aimain = edit_grideleprof->aimain_s.Lower();
 		//new: trigger anyting not a marker.
-		if (t.entityprofile[entid].ismarker == 0)// || aimain == "key.lua" || aimain == "objects\\key.lua" || aimain == "door.lua" || aimain == "default.lua" || aimain == "health.lua" || aimain == "pickuppable.lua" ) ) 
+		if (t.entityprofile[entid].ismarker == 0 || t.entityprofile[entid].ismarker == 12) // || aimain == "key.lua" || aimain == "objects\\key.lua" || aimain == "door.lua" || aimain == "default.lua" || aimain == "health.lua" || aimain == "pickuppable.lua" ) ) 
 		{
 			//"Name"
 			//Display icon.
@@ -28215,7 +28482,10 @@ void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_gridel
 			std::vector<cstr> scriptListTitle_s; scriptListTitle_s.clear();
 			cstr oldDir_s = GetDir();
 			SetDir(g.fpscrootdir_s.Get());
-			SetDir("Files\\scriptbank\\objects");
+			if(t.entityprofile[entid].ismarker == 12)
+				SetDir("Files\\scriptbank\\global");
+			else
+				SetDir("Files\\scriptbank\\objects");
 			ChecklistForFiles();
 			for (int f = 1; f <= ChecklistQuantity(); f++)
 			{
@@ -28245,7 +28515,10 @@ void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_gridel
 						}
 
 						// add script and title to list
-						scriptList_s.push_back(cstr("objects\\") + tfile_s);
+						if (t.entityprofile[entid].ismarker == 12)
+							scriptList_s.push_back(cstr("global\\") + tfile_s);
+						else
+							scriptList_s.push_back(cstr("objects\\") + tfile_s);
 						scriptListTitle_s.push_back(cstr(pTitleName));
 					}
 				}
@@ -28388,39 +28661,47 @@ void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_gridel
 			float ImgH = ImageHeight(fpe_current_loaded_script_image);
 			float fRatio = w / ImgW;
 
-			ImGuiWindow* window = ImGui::GetCurrentWindow();
-			if (iSelectedLibraryStingReturnID == window->GetID("ScriptSelector##+"))
+			if (!bHideIcon)
 			{
-				//Update Script.
-				if (sSelectedLibrarySting != "")
+				ImGuiWindow* window = ImGui::GetCurrentWindow();
+				if (iSelectedLibraryStingReturnID == window->GetID("ScriptSelector##+"))
 				{
-					edit_grideleprof->aimain_s = sSelectedLibrarySting;
-					sSelectedLibrarySting = "";
-					iSelectedLibraryStingReturnID = -1; //disable.
-					fpe_current_loaded_script = -1; //Reload image and DLUA.
-					if(!pestrcasestr(edit_grideleprof->aimain_s.Get(), "default.lua"))
+					//Update Script.
+					if (sSelectedLibrarySting != "")
 					{
-						//PE: When selecting a script, disable static so script will run.
-						if (elementID > 0) t.entityelement[elementID].staticflag = 0;
+						edit_grideleprof->aimain_s = sSelectedLibrarySting;
+						sSelectedLibrarySting = "";
+						iSelectedLibraryStingReturnID = -1; //disable.
+						fpe_current_loaded_script = -1; //Reload image and DLUA.
+						if (!pestrcasestr(edit_grideleprof->aimain_s.Get(), "default.lua"))
+						{
+							//PE: When selecting a script, disable static so script will run.
+							if (elementID > 0) t.entityelement[elementID].staticflag = 0;
+						}
 					}
 				}
+				//if (ImGui::ImgBtn(fpe_current_loaded_script_image, ImVec2(ImgW*fRatio, ImgH*fRatio), drawCol_back, drawCol_normal, drawCol_normal, drawCol_normal, -1, 0, 0, 0, true))
+				if (ImGui::ImgBtn(fpe_current_loaded_script_image, ImVec2(ImgW * fRatio, ImgH * fRatio), drawCol_black, drawCol_normal, drawCol_normal, drawCol_normal, -1, 0, 0, 0, false))
+				{
+					//Select script.
+					if (t.entityprofile[entid].bIsDecal)
+						sStartLibrarySearchString = "Decal";
+					else
+					{
+						if (t.entityprofile[entid].ismarker == 12)
+							sStartLibrarySearchString = "global";
+						else
+							sStartLibrarySearchString = "Objects";
+					}
+					iLastDisplayLibraryType = -1;
+					bExternal_Entities_Window = true;
+					iDisplayLibraryType = 4;
+					iLibraryStingReturnToID = window->GetID("ScriptSelector##+");
+					if (edit_grideleprof->aimain_s.Len() > 0)
+						sMakeDefaultSelecting = edit_grideleprof->aimain_s;
+				}
+				if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select Object Behavior");
 			}
-			//if (ImGui::ImgBtn(fpe_current_loaded_script_image, ImVec2(ImgW*fRatio, ImgH*fRatio), drawCol_back, drawCol_normal, drawCol_normal, drawCol_normal, -1, 0, 0, 0, true))
-			if (ImGui::ImgBtn(fpe_current_loaded_script_image, ImVec2(ImgW*fRatio, ImgH*fRatio), drawCol_black, drawCol_normal, drawCol_normal, drawCol_normal, -1, 0, 0, 0,false))
-			{
-				//Select script.
-				if (t.entityprofile[entid].bIsDecal)
-					sStartLibrarySearchString = "Decal";
-				else
-					sStartLibrarySearchString = "Objects";
-				iLastDisplayLibraryType = -1;
-				bExternal_Entities_Window = true;
-				iDisplayLibraryType = 4;
-				iLibraryStingReturnToID = window->GetID("ScriptSelector##+");
-				if ( edit_grideleprof->aimain_s.Len() > 0)
-					sMakeDefaultSelecting = edit_grideleprof->aimain_s;
-			}
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select Object Behavior");
 			ImGui::TextCenter(cDisplayName);
 			ImGui::PopItemWidth();
 			#else
@@ -28553,36 +28834,39 @@ void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_gridel
 				float ImgH = ImageHeight(fpe_current_loaded_script_image);
 				float fRatio = w / ImgW;
 
-				//LB: Do allow TRIGGER ZONE script to change
-				ImGuiWindow* window = ImGui::GetCurrentWindow();
-				if (t.entityprofile[entid].ismarker == 3 && t.entityprofile[entid].trigger.stylecolor == 2)
+				if (!bHideIcon)
 				{
-					if (iSelectedLibraryStingReturnID == window->GetID("ScriptSelector##+"))
-					{
-						//Update Script.
-						if (sSelectedLibrarySting != "")
-						{
-							edit_grideleprof->aimain_s = sSelectedLibrarySting;
-							sSelectedLibrarySting = "";
-							iSelectedLibraryStingReturnID = -1;
-							fpe_current_loaded_script = -1;
-						}
-					}
-				}
-				if (ImGui::ImgBtn(fpe_current_loaded_script_image, ImVec2(ImgW*fRatio, ImgH*fRatio), drawCol_black, drawCol_normal, drawCol_normal, drawCol_normal, -1, 0, 0, 0, false))
-				{
-					//LB: But do allow TRIGGER ZONE script to change
+					//LB: Do allow TRIGGER ZONE script to change
+					ImGuiWindow* window = ImGui::GetCurrentWindow();
 					if (t.entityprofile[entid].ismarker == 3 && t.entityprofile[entid].trigger.stylecolor == 2)
 					{
-						//Select script.
-						sStartLibrarySearchString = "Markers";
-						iLastDisplayLibraryType = -1;
-						bExternal_Entities_Window = true;
-						iDisplayLibraryType = 4;
-						iLibraryStingReturnToID = window->GetID("ScriptSelector##+");
-						if (edit_grideleprof->aimain_s.Len() > 0)
+						if (iSelectedLibraryStingReturnID == window->GetID("ScriptSelector##+"))
 						{
-							sMakeDefaultSelecting = edit_grideleprof->aimain_s;
+							//Update Script.
+							if (sSelectedLibrarySting != "")
+							{
+								edit_grideleprof->aimain_s = sSelectedLibrarySting;
+								sSelectedLibrarySting = "";
+								iSelectedLibraryStingReturnID = -1;
+								fpe_current_loaded_script = -1;
+							}
+						}
+					}
+					if (ImGui::ImgBtn(fpe_current_loaded_script_image, ImVec2(ImgW * fRatio, ImgH * fRatio), drawCol_black, drawCol_normal, drawCol_normal, drawCol_normal, -1, 0, 0, 0, false))
+					{
+						//LB: But do allow TRIGGER ZONE script to change
+						if (t.entityprofile[entid].ismarker == 3 && t.entityprofile[entid].trigger.stylecolor == 2)
+						{
+							//Select script.
+							sStartLibrarySearchString = "Markers";
+							iLastDisplayLibraryType = -1;
+							bExternal_Entities_Window = true;
+							iDisplayLibraryType = 4;
+							iLibraryStingReturnToID = window->GetID("ScriptSelector##+");
+							if (edit_grideleprof->aimain_s.Len() > 0)
+							{
+								sMakeDefaultSelecting = edit_grideleprof->aimain_s;
+							}
 						}
 					}
 				}
@@ -37637,6 +37921,11 @@ bool DoTreeNodeEntity(int masterid,bool bMoveCameraToObjectPosition)
 					treename = treename + " (Auto-Gen) ";
 					bAutoGenObject = true;
 				}
+				if (t.entityelement[i].y == -999999)
+				{
+					treename = treename + " (Hidden) ";
+					bAutoGenObject = true;
+				}
 
 				bool TreeNodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)(i + 90000), node_flags, treename.c_str());
 				ImGui::PopItemWidth();
@@ -37832,6 +38121,11 @@ bool DoTreeNodeBehavior(LPSTR behaviorscriptname, bool bMoveCameraToObjectPositi
 				if (t.entityelement[i].x == -99999 && t.entityelement[i].y == -99999 && t.entityelement[i].z == -99999)
 				{
 					treename = treename + " (Auto-Gen) ";
+					bAutoGenObject = true;
+				}
+				if (t.entityelement[i].y == -999999)
+				{
+					treename = treename + " (Hidden) ";
 					bAutoGenObject = true;
 				}
 
@@ -38225,7 +38519,8 @@ void SetIconSetCheck(bool bInstant)
 			LoadImage("editors\\uiv3\\shooter_enemies.png", ENTITY_ENEMIES); // Not used anymore?
 			LoadImage("editors\\uiv3\\shooter_allies.png", ENTITY_ALLIES); // Not used anymore?
 			LoadImage("editors\\uiv3\\entity_triggerzone.png", ENTITY_TRIGGERZONE);
-
+			LoadImage("editors\\uiv3\\entity_behavior.png", ENTITY_BEHAVIOR);
+			
 
 			LoadImage("editors\\uiv3\\ccp-hat.png", CCP_HAT);
 			LoadImage("editors\\uiv3\\ccp-feet.png", CCP_FEET);
@@ -38260,6 +38555,7 @@ void SetIconSetCheck(bool bInstant)
 			LoadImage("editors\\uiv3\\shooter_enemies2.png", ENTITY_ENEMIES);
 			LoadImage("editors\\uiv3\\shooter_allies2.png", ENTITY_ALLIES);
 			LoadImage("editors\\uiv3\\entity_triggerzone2.png", ENTITY_TRIGGERZONE);
+			LoadImage("editors\\uiv3\\entity_behavior2.png", ENTITY_BEHAVIOR);
 
 			LoadImage("editors\\uiv3\\ccp-hat2.png", CCP_HAT);
 			LoadImage("editors\\uiv3\\ccp-feet2.png", CCP_FEET);
@@ -38277,6 +38573,16 @@ void SetIconSetCheck(bool bInstant)
 		current_icon_set = pref.current_style;
 		image_setlegacyimageloading(false);
 		SetMipmapNum(-1);
+
+		//PE: Mark all global Behaviors to update.
+		for (t.e = 1; t.e <= g.entityelementlist; t.e++)
+		{
+			t.entid = t.entityelement[t.e].bankindex;
+			if (t.entid > 0 && t.entityprofile[t.entid].ismarker == 12)
+			{
+				t.entityelement[t.e].eleprof.thumb_id = -1;
+			}
+		}
 	}
 	//----
 }
@@ -41725,6 +42031,7 @@ void process_storeboard(bool bInitOnly)
 				}
 				if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Exit to Storyboard");
 				ImGui::SetCursorPos(vCurPos);
+
 
 				ImGui::Columns(2, "StoryboardWindowGameSettingsColumns", false);  //false no border
 				ImGui::SetColumnOffset(0, 0.0f);
@@ -47603,6 +47910,9 @@ bool load__storyboard_into_struct(const char *filepath, StoryboardStruct& storyb
 	if (projectfile)
 	{
 		memset(&storyboard, 0, sizeof(StoryboardStruct));
+		//PE: Features added to STORYBOARDVERSION 203 that need default values other then 0.
+		//PE: None yet. but like: storyboard.project_active = 1
+
 		size_t size = fread(&storyboard, 1, sizeof(storyboard), projectfile);
 		//Valid pref:
 		fclose(projectfile);

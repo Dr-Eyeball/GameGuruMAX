@@ -13630,6 +13630,68 @@ void procedural_new_level(void)
 					entity_copytoremoteifnotthere(t.visuals.sAmbientMusicTrack.Get());
 					entity_copytoremoteifnotthere(t.visuals.sCombatMusicTrack.Get());
 
+					//PE: Add any systemwidelua.ele to end of current elements
+					extern StoryboardStruct Storyboard;
+					if (strlen(Storyboard.gamename) > 0)
+					{
+						timestampactivity(0, "loading in systemwidelua.ele");
+						cstr storeoldELEfile = t.elementsfilename_s;
+						char collectionELEfilename[MAX_PATH];
+						strcpy(collectionELEfilename, "projectbank\\");
+						strcat(collectionELEfilename, Storyboard.gamename);
+						strcat(collectionELEfilename, "\\systemwidelua.ele");
+						t.elementsfilename_s = collectionELEfilename;
+						extern int g_iAddEntityElementsMode;
+						g_iAddEntityElementsMode = 2;
+						void c_entity_loadelementsdata(void);
+						c_entity_loadelementsdata();
+						t.elementsfilename_s = storeoldELEfile;
+						g_iAddEntityElementsMode = 0;
+
+						//PE: Need to load masterobject if not there.
+						for (int i = 1; i <= g.entityelementlist; i++)
+						{
+							if (t.entityelement[i].eleprof.systemwide_lua)
+							{
+								int tentid = t.entityelement[i].bankindex;
+								if (tentid == 0 || tentid > t.entityprofile.size() || t.entityprofile[tentid].ismarker != 12)
+								{
+									//PE: Need to reload and remap.
+									extern int g_iAddEntitiesModeFrom;
+									g_iAddEntitiesModeFrom = g.entidmaster + 1;
+									cstr entProfileToAdd_s = "_markers\\BehaviorHidden.fpe";
+
+									//PE: For now all systemwide_lua need to be hidden
+									//if(t.entityelement[i].y >= -9999) //PE: Hidden default = -999999
+									//	entProfileToAdd_s = "_markers\\Behavior.fpe";
+
+									int iFoundMatchEntID = 0;
+									for (int entid = 1; entid <= g.entidmaster; entid++)
+									{
+										if (stricmp(t.entitybank_s[entid].Get(), entProfileToAdd_s.Get()) == NULL)
+										{
+											iFoundMatchEntID = entid;
+											break;
+										}
+									}
+									if (iFoundMatchEntID == 0)
+									{
+										g.entidmaster++;
+										entity_validatearraysize();
+										t.entitybank_s[g.entidmaster] = entProfileToAdd_s;
+										iFoundMatchEntID = g.entidmaster;
+										extern int g_iAddEntitiesMode;
+										g_iAddEntitiesMode = 1;
+										entity_loadentitiesnow();
+										g_iAddEntitiesMode = 0;
+									}
+									t.entityelement[i].bankindex = iFoundMatchEntID;
+								}
+							}
+						}
+
+					}
+
 					//Code
 					iQuitProceduralLevel = 5;
 					bTreeGlobalInit = false;
