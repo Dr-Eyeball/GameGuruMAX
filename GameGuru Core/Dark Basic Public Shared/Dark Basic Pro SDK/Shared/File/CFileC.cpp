@@ -245,7 +245,7 @@ void FileRedirectSetup()
 }
 
 // returns 1 if file was found or created, 2 if directory was found or created, 0 if not known
-int GG_GetRealPath( char* fullPath, int create )
+int GG_GetRealPath( char* fullPath, int create, bool bIgnoreAdditional)
 {
 	// should only be called once pref structure filled (with custom writables folder location)
 	FileRedirectSetup();
@@ -321,7 +321,7 @@ int GG_GetRealPath( char* fullPath, int create )
 			//PE: If using custom docwrite folder, try to read from original /USER/ folder.
 			//PE: if user did not copy over all media after changing to a custom docwrite folder.
 			//PE: szAddWriteDirAdditional is a readonly folder.
-			if (bUseRootAsWriteArea == false)
+			if (bUseRootAsWriteArea == false && !bIgnoreAdditional)
 			{
 				if (!create && strlen(szAddWriteDirAdditional) > 0)
 				{

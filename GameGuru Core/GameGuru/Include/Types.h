@@ -6523,6 +6523,9 @@ struct entityeleproftype
 	int blendmode;
 	cstr explodable_decalname;
 	bool bUseFPESettings;
+	cstr thumb_aimain_s;
+	int thumb_id;
+	int systemwide_lua;
 	// Constructor
 	entityeleproftype ( )
 	{
@@ -6680,6 +6683,9 @@ struct entityeleproftype
 		 name_s = "";
 		 explodable_decalname = "";
 		 bUseFPESettings = true;
+		 thumb_aimain_s = "";
+		 thumb_id = 0;
+		 systemwide_lua = 0;
 	}
 	// End of Constructor
 
@@ -7021,10 +7027,15 @@ struct entitytype
 	std::vector<int> iPreScannedVisible;
 	int iPreScanVisibleCurrent;
 	int iWasSpawnedInGame;
+	int iThumbnail;
+	int old_bankindex;
+
 	#endif
 	// Constructor
 	entitytype ( )
 	{
+		 old_bankindex = 0;
+		 iThumbnail = 0;
 		 iWasSpawnedInGame = 0;
 		 iPreScanVisibleCurrent = 0;
 		 iPreScannedVisible.clear();

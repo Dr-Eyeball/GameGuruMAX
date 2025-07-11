@@ -3017,6 +3017,10 @@ bool importer_apply_materialformesh(MaterialComponentTEXTURESLOT eMatSlot, int i
 			pSelectedMaterial->textures[eMatSlot].resource = WickedCall_LoadImage(pSelectedMaterial->textures[eMatSlot].name);
 			if (pSelectedMaterial->textures[eMatSlot].resource)
 			{
+				//PE: TODO Check if we need to copy file to remote project.
+				extern bool entity_copytoremoteifnotthere(LPSTR);
+				entity_copytoremoteifnotthere(cFileSelected);
+
 				// loaded okay, update material
 				char* pTextureFilename = pSelectedMesh->pTextures[iGGMeshTexSlot].pName;
 				strcpy(pTextureFilename, cFileSelected);

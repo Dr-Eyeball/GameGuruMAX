@@ -152,7 +152,7 @@ void UnGroupSelected(bool bRetainRubberBandList = false);
 void UnGroupUndoSys(int index);
 void GroupUndoSys(int index, std::vector<sRubberBandType> groupData);
 void FreeTempImageList(void);
-void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype *edit_grideleprof = NULL, int elementID = 0);
+void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_grideleprof = NULL, int elementID = 0, bool bHideIcon = false);
 void DisplayFPEAdvanced(bool readonly, int entid, entityeleproftype *edit_grideleprof = NULL, int elementID = 0);
 void DisplayFPEGeneral(bool readonly, int entid, entityeleproftype *edit_grideleprof, int elementID);
 void DisplayFPEPhysics(bool readonly, int entid, entityeleproftype *edit_grideleprof = NULL);

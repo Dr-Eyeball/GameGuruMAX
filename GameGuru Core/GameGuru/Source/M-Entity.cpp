@@ -169,8 +169,23 @@ bool entity_copytoremoteifnotthere ( LPSTR pPathToFile )
 		{
 			// file not in local project, copy it over
 			strcpy(pPreferredProjectEntityFolder, pPathToFile);
-			GG_GetRealPath(pPreferredProjectEntityFolder, 1);
-			CopyFileA(fullRealPath, pPreferredProjectEntityFolder, TRUE);
+			int ret = GG_GetRealPath(pPreferredProjectEntityFolder, 1);
+			if( stricmp(pPreferredProjectEntityFolder, fullRealPath) != NULL )
+				CopyFileA(fullRealPath, pPreferredProjectEntityFolder, TRUE);
+			else if (ret == 0)
+			{
+				//PE: Remote project not found, use relative path.
+				char Relative[MAX_PATH];
+				const char* find = pestrcasestr(fullRealPath, "\\files\\");
+				if (find)
+				{
+					strcpy(Relative, find + 7);
+					int ret = GG_GetRealPath(Relative, 1);
+					if (stricmp(Relative, fullRealPath) != NULL)
+						CopyFileA(fullRealPath, Relative, TRUE);
+				}
+			}
+
 			bWeCopiedTheFileOver = true;
 		}
 	}
@@ -5671,7 +5686,7 @@ void c_entity_loadelementsdata ( void )
 					Dim2(t.entityshadervar, g.entityelementmax, g.globalselectedshadermax);
 					Dim (t.entitydebug_s, g.entityelementmax);
 				}
-				if (g_iAddEntityElementsMode == 1)
+				if (g_iAddEntityElementsMode == 1 || g_iAddEntityElementsMode == 2)
 				{
 					// ensure there are enough free slots
 					int iCount = 0;
@@ -5709,7 +5724,7 @@ void c_entity_loadelementsdata ( void )
 					{
 						t.e = n;
 					}
-					if (g_iAddEntityElementsMode == 1)
+					if (g_iAddEntityElementsMode == 1 || g_iAddEntityElementsMode == 2)
 					{
 						// find free slot in add mode
 						bool bFoundFreeSlot = false;
@@ -5739,7 +5754,8 @@ void c_entity_loadelementsdata ( void )
 						}
 
 						// special flag so can handle entity with collection list later
-						t.entityelement[t.e].specialentityloadflag = 123;
+						if(g_iAddEntityElementsMode == 1)
+							t.entityelement[t.e].specialentityloadflag = 123;
 					}
 					#ifdef VRTECH
 					if ( t.game.runasmultiplayer == 1 ) mp_refresh ( );
@@ -6352,7 +6368,10 @@ void c_entity_loadelementsdata ( void )
 						t.a = t.a_f = c_ReadFloat(1); fFiller = t.a_f;
 						t.a = t.a_f = c_ReadFloat(1); fFiller = t.a_f;
 						t.a = t.a_f = c_ReadFloat(1); fFiller = t.a_f;
-						t.a = c_ReadLong(1); iFiller = t.a;
+						t.a = c_ReadLong(1);
+						t.entityelement[t.e].eleprof.systemwide_lua = t.a;
+						if (t.entityelement[t.e].eleprof.systemwide_lua > 1)
+							t.entityelement[t.e].eleprof.systemwide_lua = 0;
 						t.a = c_ReadLong(1); iFiller = t.a;
 						t.a = c_ReadLong(1); iFiller = t.a;
 						t.a_s = c_ReadString(1); sFiller = t.a_s;
@@ -6733,6 +6752,68 @@ void entity_loadelementsdata(void)
 	c_entity_loadelementsdata();
 	char pLoadEntityDataAfter[MAX_PATH];
 	sprintf(pLoadEntityDataAfter, "c_entity_loadelementsdata after: %d", g.entityelementmax);
+	timestampactivity(0, pLoadEntityDataAfter);
+	
+	//PE: Add any systemwidelua.ele to end of current elements
+	extern StoryboardStruct Storyboard;
+	if (strlen(Storyboard.gamename) > 0)
+	{
+		timestampactivity(0, "loading in systemwidelua.ele");
+		cstr storeoldELEfile = t.elementsfilename_s;
+		char collectionELEfilename[MAX_PATH];
+		strcpy(collectionELEfilename, "projectbank\\");
+		strcat(collectionELEfilename, Storyboard.gamename);
+		strcat(collectionELEfilename, "\\systemwidelua.ele");
+		t.elementsfilename_s = collectionELEfilename;
+		extern int g_iAddEntityElementsMode;
+		g_iAddEntityElementsMode = 2;
+		c_entity_loadelementsdata();
+		t.elementsfilename_s = storeoldELEfile;
+		g_iAddEntityElementsMode = 0;
+
+		//PE: Need to load masterobject if not there.
+		for (int i = 1; i <= g.entityelementlist; i++)
+		{
+			if (t.entityelement[i].eleprof.systemwide_lua)
+			{
+				int tentid = t.entityelement[i].bankindex;
+				if (tentid == 0 || tentid > t.entityprofile.size() || t.entityprofile[tentid].ismarker != 12)
+				{
+					//PE: Need to reload and remap.
+					extern int g_iAddEntitiesModeFrom;
+					g_iAddEntitiesModeFrom = g.entidmaster + 1;
+					cstr entProfileToAdd_s = "_markers\\BehaviorHidden.fpe";
+					
+					//PE: For now all systemwide_lua need to be hidden
+					//if (t.entityelement[i].y >= -9999) //PE: Hidden default = -999999
+					//	entProfileToAdd_s = "_markers\\Behavior.fpe";
+
+					int iFoundMatchEntID = 0;
+					for (int entid = 1; entid <= g.entidmaster; entid++)
+					{
+						if (stricmp(t.entitybank_s[entid].Get(), entProfileToAdd_s.Get()) == NULL)
+						{
+							iFoundMatchEntID = entid;
+							break;
+						}
+					}
+					if (iFoundMatchEntID == 0)
+					{
+						g.entidmaster++;
+						entity_validatearraysize();
+						t.entitybank_s[g.entidmaster] = entProfileToAdd_s;
+						iFoundMatchEntID = g.entidmaster;
+						extern int g_iAddEntitiesMode;
+						g_iAddEntitiesMode = 1;
+						entity_loadentitiesnow();
+						g_iAddEntitiesMode = 0;
+					}
+					t.entityelement[i].bankindex = iFoundMatchEntID;
+				}
+			}
+		}
+	}
+	sprintf(pLoadEntityDataAfter, "c_entity_loadelementsdata after systemwidelua.ele: %d", g.entityelementmax);
 	timestampactivity(0, pLoadEntityDataAfter);
 
 	// now entitybank and entityelement and vEntityGroupList are loaded, we need to refresh any smart objects (they may have changed externally, i.e BE)
@@ -7257,8 +7338,16 @@ public:
 		}
 	}
 
-	void WriteString( const char* str ) 
+	void WriteString( char* str ) 
 	{
+		for (int i = 0; i < strlen(str); i++)
+		{
+			//PE: Make sure we dont break the .ele file , seen some corrupt strings with \n\r.
+			if (*(str + i) == '\n' || *(str + i) == '\r')
+			{
+				*(str + i) = ' ';
+			}
+		}
 		unsigned int elementSize = strlen(str);
 		if ( !doWrite ) iDataSize += elementSize + 2;
 		else
@@ -7275,6 +7364,33 @@ public:
 			iDataSize += 2;
 		}
 	}
+	void WriteStringInclude0xa(char* str)
+	{
+		for (int i = 0; i < strlen(str); i++)
+		{
+			//PE: Make sure we dont break the .ele file , seen some corrupt strings with \n\r.
+			if ( *(str + i) == '\r')
+			{
+				*(str + i) = ' ';
+			}
+		}
+		unsigned int elementSize = strlen(str);
+		if (!doWrite) iDataSize += elementSize + 2;
+		else
+		{
+			if (elementSize)
+			{
+				assert((iDataSize + elementSize) <= iMaxDataSize);
+				memcpy(pData + iDataSize, str, elementSize);
+				iDataSize += elementSize;
+			}
+
+			pData[iDataSize] = 13;
+			pData[iDataSize + 1] = 10;
+			iDataSize += 2;
+		}
+	}
+
 };
 
 void entity_saveelementsdata (bool bForCollectionELE)
@@ -7550,7 +7666,7 @@ void entity_saveelementsdata (bool bForCollectionELE)
 					writer.WriteLong( t.entityelement[ent].eleprof.parentlimbindex );
 					writer.WriteString( t.entityelement[ent].eleprof.soundset2_s.Get() );
 					writer.WriteString( t.entityelement[ent].eleprof.soundset3_s.Get() );
-					writer.WriteString( t.entityelement[ent].eleprof.soundset4_s.Get() );
+					writer.WriteStringInclude0xa( t.entityelement[ent].eleprof.soundset4_s.Get() );
 				}
 				if ( t.versionnumbersave >= 311 )
 				{
@@ -7863,7 +7979,7 @@ void entity_saveelementsdata (bool bForCollectionELE)
 					writer.WriteFloat(0.0f);
 					writer.WriteFloat(0.0f);
 					writer.WriteFloat(0.0f);
-					writer.WriteLong(0);
+					writer.WriteLong(t.entityelement[ent].eleprof.systemwide_lua);
 					writer.WriteLong(0);
 					writer.WriteLong(0);
 					writer.WriteString("");
@@ -8660,6 +8776,9 @@ void entity_addentitytomap_core ( void )
 	#ifdef WICKEDENGINE
 	t.entityelement[t.e].soundset5 = 0;
 	t.entityelement[t.e].soundset6 = 0;
+
+	//PE: Always false by default.
+	t.entityelement[t.e].eleprof.systemwide_lua = false;
 
 	// auto flatten system
 	t.entityelement[t.e].eleprof.iFlattenID = -1; // cannot carry this ID over

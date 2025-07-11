@@ -284,6 +284,7 @@ IMGUI_IMPL_API bool     ImGui_ImplDX11_CreateDeviceObjects();
 
 #define ENTITY_PROBE UIV3IMAGES+198
 #define ENTITY_COVER UIV3IMAGES+199
+#define ENTITY_BEHAVIOR UIV3IMAGES+211
 
 #define CCP_HAT UIV3IMAGES+200
 #define CCP_FEET UIV3IMAGES+201
@@ -439,6 +440,7 @@ const char *noc_file_dialog_open(int flags,
 	const char* pTitle = NULL);
 
 namespace ImGui {
+	bool MenuItem2(const char* label, const char* shortcut, bool selected, bool enabled);
 	bool BeginPopupContextItemAGK(const char* str_id = NULL, int mouse_button = 1);
 	const char* CalcWordWrapPositionB(float scale, const char* text, const char* text_end, float wrap_width, float line_start);
 	void TextCenter(const char* fmt, ...);
@@ -658,6 +660,7 @@ struct preferences {
 	int iDevToolsOpen = 0;
 	int iCheckFilesModifiedOnFocus = 1;
 	int iSmallToolbar = 0;
+	ImVec4 status_bar_color = ImVec4((1.0f / 255.0f) * 14, (1.0f / 255.0f) * 99, (1.0f / 255.0f) * 156, 1.0);
 };
 
 // can be moved to preferences (Lee needs to know the sequence to add to prefs properly, and the consequences) :)
@@ -932,6 +935,7 @@ struct StoryboardStruct
 
 	char customprojectfolder[256];
 
+	int project_inactive;
 	//PE: To add new variables add them here, always add to botton of list.
 
 };

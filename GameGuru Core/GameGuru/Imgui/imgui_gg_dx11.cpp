@@ -2482,6 +2482,52 @@ void DebugInfo(char * text, const char *heading)
 
 namespace ImGui {
 
+	bool MenuItem2(const char* label, const char* shortcut, bool selected, bool enabled)
+	{
+		ImGuiWindow* window = GetCurrentWindow();
+		if (window->SkipItems)
+			return false;
+
+		ImGuiContext& g = *GImGui;
+		ImGuiStyle& style = g.Style;
+		ImVec2 pos = window->DC.CursorPos;
+		ImVec2 label_size = CalcTextSize(label, NULL, true);
+
+		// We've been using the equivalent of ImGuiSelectableFlags_SetNavIdOnHover on all Selectable() since early Nav system days (commit 43ee5d73),
+		// but I am unsure whether this should be kept at all. For now moved it to be an opt-in feature used by menus only.
+		ImGuiSelectableFlags flags = ImGuiSelectableFlags_PressedOnRelease | ImGuiSelectableFlags_SetNavIdOnHover | (enabled ? 0 : ImGuiSelectableFlags_Disabled);
+		bool pressed;
+		if (window->DC.LayoutType == ImGuiLayoutType_Horizontal)
+		{
+			// Mimic the exact layout spacing of BeginMenu() to allow MenuItem() inside a menu bar, which is a little misleading but may be useful
+			// Note that in this situation we render neither the shortcut neither the selected tick mark
+			float w = label_size.x;
+			window->DC.CursorPos.x += (float)(int)(style.ItemSpacing.x * 0.5f);
+			PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(style.ItemSpacing.x * 2.0f, style.ItemSpacing.y));
+			pressed = Selectable(label, selected, flags, ImVec2(w, 0.0f));
+			PopStyleVar();
+			window->DC.CursorPos.x += (float)(int)(style.ItemSpacing.x * (-1.0f + 0.5f)); // -1 spacing to compensate the spacing added when Selectable() did a SameLine(). It would also work to call SameLine() ourselves after the PopStyleVar().
+		}
+		else
+		{
+			ImVec2 shortcut_size = shortcut ? CalcTextSize(shortcut, NULL) : ImVec2(0.0f, 0.0f);
+			float w = window->MenuColumns.DeclColumns(label_size.x, shortcut_size.x, (float)(int)(g.FontSize * 1.20f)); // Feedback for next frame
+			float extra_w = ImMax(0.0f, GetContentRegionAvail().x - w);
+			pressed = Selectable(label, selected, flags | ImGuiSelectableFlags_DrawFillAvailWidth, ImVec2(w, 0.0f));
+			if (shortcut_size.x > 0.0f)
+			{
+				PushStyleColor(ImGuiCol_Text, g.Style.Colors[ImGuiCol_TextDisabled]);
+				RenderText(pos + ImVec2(window->MenuColumns.Pos[1] + extra_w, 0.0f), shortcut, NULL, false);
+				PopStyleColor();
+			}
+			if (selected)
+				RenderCheckMark(pos + ImVec2(window->MenuColumns.Pos[2] + extra_w + g.FontSize * 0.40f, g.FontSize * 0.134f * 0.5f), GetColorU32(enabled ? ImGuiCol_Text : ImGuiCol_TextDisabled), g.FontSize * 0.866f);
+		}
+
+		IMGUI_TEST_ENGINE_ITEM_INFO(window->DC.LastItemId, label, window->DC.ItemFlags | ImGuiItemStatusFlags_Checkable | (selected ? ImGuiItemStatusFlags_Checked : 0));
+		return pressed;
+	}
+
 	const char* CalcWordWrapPositionB(float scale, const char* textorig, const char* text_end, float wrap_width, float line_start)
 	{
 		// Simple word-wrapping for English, not full-featured. Please submit failing cases!
@@ -4693,9 +4739,9 @@ void DarkColorsNoTransparent(void)
 	colors[ImGuiCol_ResizeGripActive] = ImVec4(0.46f, 0.46f, 0.46f, 0.95f);
 	colors[ImGuiCol_PlotLines] = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
 	//PE: VS2022 style
-	const float r = (1.0f / 255.0f) * 14;
-	const float g = (1.0f / 255.0f) * 99;
-	const float b = (1.0f / 255.0f) * 156;
+	const float r = pref.status_bar_color.x; // (1.0f / 255.0f) * 14;
+	const float g = pref.status_bar_color.y; // (1.0f / 255.0f) * 99;
+	const float b = pref.status_bar_color.z; // (1.0f / 255.0f) * 156;
 
 	colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
 	colors[ImGuiCol_PlotHistogram] = ImVec4(r, g, b, 1.00f);
@@ -7284,7 +7330,8 @@ void ParseLuaScriptWithElementID(entityeleproftype *tmpeleprof, char * script, i
 											labels.push_back("None");
 
 											char animlist[MAX_PATH];
-											strcpy(animlist, "gamecore\\interactive_anims.txt");
+											//strcpy(animlist, "gamecore\\interactive_anims.txt");
+											strcpy(animlist, "gamecore\\guns\\interactive\\interactive_anims.txt");
 											GG_GetRealPath(animlist, 0);
 											if (FileExist(animlist) == 1)
 											{
@@ -9273,7 +9320,7 @@ void coreResetIMGUIFunctionalityPrefs(void)
 	extern int g_iDevToolsOpen;
 	g_iDevToolsOpen = 0;
 	pref.iCheckFilesModifiedOnFocus = 1;
-
+	pref.status_bar_color = ImVec4((1.0f / 255.0f) * 14, (1.0f / 255.0f) * 99, (1.0f / 255.0f) * 156, 1.0);
 	#endif
 }
 
