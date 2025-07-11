@@ -1,0 +1,1 @@
+All Global Behaviors Scripts Should Be Moved Here.
