@@ -1,10 +1,10 @@
--- Quest Sequencer v10 by Necrym59
+-- Quest Sequencer v12 by Necrym59
 -- DESCRIPTION: Will sequentially run the next Quest/Mission in order at completion of each.
 -- DESCRIPTION: If a quests Quest Status = END_SEQ then the Quest Sequencer itself is destroyed when completed.
 -- DESCRIPTION: [QUEST_START_TEXT$="Quest Sequence Activated"]
 -- DESCRIPTION: [QUEST_END_TEXT$="Quest Completed"]
 -- DESCRIPTION: [@QUEST_READOUT=1(1=Title, 2=Description1)] 
--- DESCRIPTION: [READOUT_USER_GLOBAL$=""] user global name (eg: MyReadout)
+-- DESCRIPTION: [@@READOUT_USER_GLOBAL$=""(0=globallist)]] user global name (eg: MyReadout)
 -- DESCRIPTION: [@QuestChoice=1(0=QuestList)]
 -- DESCRIPTION: [HIDE_OBJECT!=0]
 -- DESCRIPTION: <Sound1> when quest completed.
