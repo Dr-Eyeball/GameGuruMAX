@@ -1187,7 +1187,7 @@ void Master::Update(float dt)
 					}
 					if (!pestrcasestr(fileName, "Files\\"))
 					{
-						int GG_GetRealPath(char* fullPath, int create);
+						int GG_GetRealPath(char* fullPath, int create, bool bIgnoreAdditional = false);
 						GG_GetRealPath(fileName, 0);
 					}
 				}

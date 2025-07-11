@@ -169,8 +169,23 @@ bool entity_copytoremoteifnotthere ( LPSTR pPathToFile )
 		{
 			// file not in local project, copy it over
 			strcpy(pPreferredProjectEntityFolder, pPathToFile);
-			GG_GetRealPath(pPreferredProjectEntityFolder, 1);
-			CopyFileA(fullRealPath, pPreferredProjectEntityFolder, TRUE);
+			int ret = GG_GetRealPath(pPreferredProjectEntityFolder, 1);
+			if( stricmp(pPreferredProjectEntityFolder, fullRealPath) != NULL )
+				CopyFileA(fullRealPath, pPreferredProjectEntityFolder, TRUE);
+			else if (ret == 0)
+			{
+				//PE: Remote project not found, use relative path.
+				char Relative[MAX_PATH];
+				const char* find = pestrcasestr(fullRealPath, "\\files\\");
+				if (find)
+				{
+					strcpy(Relative, find + 7);
+					int ret = GG_GetRealPath(Relative, 1);
+					if (stricmp(Relative, fullRealPath) != NULL)
+						CopyFileA(fullRealPath, Relative, TRUE);
+				}
+			}
+
 			bWeCopiedTheFileOver = true;
 		}
 	}

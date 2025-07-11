@@ -46551,7 +46551,7 @@ void FindFirstSplash(char *splash_name)
 					strcpy(splash_name, Storyboard.Nodes[i].thumb);
 					if (!pestrcasestr(splash_name, "Files\\"))
 					{
-						int GG_GetRealPath(char* fullPath, int create);
+						int GG_GetRealPath(char* fullPath, int create, bool bIgnoreAdditional = false);
 						GG_GetRealPath(splash_name, 0);
 					}
 					if (!GG_FileExists(splash_name))
