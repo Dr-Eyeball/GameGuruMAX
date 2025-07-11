@@ -6353,7 +6353,10 @@ void c_entity_loadelementsdata ( void )
 						t.a = t.a_f = c_ReadFloat(1); fFiller = t.a_f;
 						t.a = t.a_f = c_ReadFloat(1); fFiller = t.a_f;
 						t.a = t.a_f = c_ReadFloat(1); fFiller = t.a_f;
-						t.a = c_ReadLong(1); t.entityelement[t.e].eleprof.systemwide_lua = t.a;
+						t.a = c_ReadLong(1);
+						t.entityelement[t.e].eleprof.systemwide_lua = t.a;
+						if (t.entityelement[t.e].eleprof.systemwide_lua > 1)
+							t.entityelement[t.e].eleprof.systemwide_lua = 0;
 						t.a = c_ReadLong(1); iFiller = t.a;
 						t.a = c_ReadLong(1); iFiller = t.a;
 						t.a_s = c_ReadString(1); sFiller = t.a_s;
@@ -7320,8 +7323,16 @@ public:
 		}
 	}
 
-	void WriteString( const char* str ) 
+	void WriteString( char* str ) 
 	{
+		for (int i = 0; i < strlen(str); i++)
+		{
+			//PE: Make sure we dont break the .ele file , seen some corrupt strings with \n\r.
+			if (*(str + i) == '\n' || *(str + i) == '\r')
+			{
+				*(str + i) = ' ';
+			}
+		}
 		unsigned int elementSize = strlen(str);
 		if ( !doWrite ) iDataSize += elementSize + 2;
 		else
@@ -7338,6 +7349,33 @@ public:
 			iDataSize += 2;
 		}
 	}
+	void WriteStringInclude0xa(char* str)
+	{
+		for (int i = 0; i < strlen(str); i++)
+		{
+			//PE: Make sure we dont break the .ele file , seen some corrupt strings with \n\r.
+			if ( *(str + i) == '\r')
+			{
+				*(str + i) = ' ';
+			}
+		}
+		unsigned int elementSize = strlen(str);
+		if (!doWrite) iDataSize += elementSize + 2;
+		else
+		{
+			if (elementSize)
+			{
+				assert((iDataSize + elementSize) <= iMaxDataSize);
+				memcpy(pData + iDataSize, str, elementSize);
+				iDataSize += elementSize;
+			}
+
+			pData[iDataSize] = 13;
+			pData[iDataSize + 1] = 10;
+			iDataSize += 2;
+		}
+	}
+
 };
 
 void entity_saveelementsdata (bool bForCollectionELE)
@@ -7613,7 +7651,7 @@ void entity_saveelementsdata (bool bForCollectionELE)
 					writer.WriteLong( t.entityelement[ent].eleprof.parentlimbindex );
 					writer.WriteString( t.entityelement[ent].eleprof.soundset2_s.Get() );
 					writer.WriteString( t.entityelement[ent].eleprof.soundset3_s.Get() );
-					writer.WriteString( t.entityelement[ent].eleprof.soundset4_s.Get() );
+					writer.WriteStringInclude0xa( t.entityelement[ent].eleprof.soundset4_s.Get() );
 				}
 				if ( t.versionnumbersave >= 311 )
 				{
@@ -8723,6 +8761,9 @@ void entity_addentitytomap_core ( void )
 	#ifdef WICKEDENGINE
 	t.entityelement[t.e].soundset5 = 0;
 	t.entityelement[t.e].soundset6 = 0;
+
+	//PE: Always false by default.
+	t.entityelement[t.e].eleprof.systemwide_lua = false;
 
 	// auto flatten system
 	t.entityelement[t.e].eleprof.iFlattenID = -1; // cannot carry this ID over
