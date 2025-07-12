@@ -19771,17 +19771,27 @@ void process_entity_library_v2(void)
 
 								if (i == 0 && strlen(cSearchAllEntities[i]) > 0) {
 
-									if (pestrcasestr(myfiles->m_sBetterSearch.Get(), cSearchAllEntities[i]))
-										bIsVisible = true;
-									if (!bIsVisible) // else current_sortby == 4)
+									if (iDisplayLibraryType == 4 && stricmp(cSearchAllEntities[i], "global") == 0 )
 									{
-										if (bAdvancedFPEFeatures && myfiles->m_sFPEKeywords.Len() > 0)
+										bDisplayEverythingHere = false;
+										if (pestrcasestr(dir_name.c_str(), "global"))
 										{
-											if (pestrcasestr(myfiles->m_sFPEKeywords.Get(), cSearchAllEntities[i]))
-												bIsVisible = true;
+											bIsVisible = true;
 										}
 									}
-
+									else
+									{
+										if (pestrcasestr(myfiles->m_sBetterSearch.Get(), cSearchAllEntities[i]))
+											bIsVisible = true;
+										if (!bIsVisible) // else current_sortby == 4)
+										{
+											if (bAdvancedFPEFeatures && myfiles->m_sFPEKeywords.Len() > 0)
+											{
+												if (pestrcasestr(myfiles->m_sFPEKeywords.Get(), cSearchAllEntities[i]))
+													bIsVisible = true;
+											}
+										}
+									}
 									if (!bIsVisible && bSearchGameElements)
 									{
 										if (pestrcasestr(cSearchAllEntities[i], "Game Elements"))
