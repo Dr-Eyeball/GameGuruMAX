@@ -3185,6 +3185,44 @@ int mapfile_savestandalone_stage2c ( void )
 						}
 					}
 				}
+				//PE: And add any custom wematerial texture settings.
+				if (t.entityelement[t.e].eleprof.WEMaterial.MaterialActive)
+				{
+					//PE: Need relative path here.
+					cstr entpath = cstr("entitybank\\") + t.entitybank_s[t.entid];
+					for (t.n = Len(entpath.Get()); t.n >= 1; t.n += -1)
+					{
+						if (cstr(Mid(entpath.Get(), t.n)) == "\\" || cstr(Mid(entpath.Get(), t.n)) == "/")
+						{
+							entpath = Left(entpath.Get(), t.n);
+							break;
+						}
+					}
+
+					cstr texture;
+					for (int loop = 0; loop < MAXMESHMATERIALS; loop++)
+					{
+						for (int l = 0; l < 4; l++)
+						{
+							if (l == 0) texture = t.entityelement[t.e].eleprof.WEMaterial.baseColorMapName[loop];
+							if (l == 1) texture = t.entityelement[t.e].eleprof.WEMaterial.normalMapName[loop];
+							if (l == 2) texture = t.entityelement[t.e].eleprof.WEMaterial.surfaceMapName[loop];
+							if (l == 3) texture = t.entityelement[t.e].eleprof.WEMaterial.emissiveMapName[loop];
+
+							if (texture.Len() > 0)
+							{
+								if (!pestrcasestr(texture.Get(), "\\") &&
+									!pestrcasestr(texture.Get(), "/"))
+								{
+									cstr finalname = entpath + texture;
+									addtocollection((char*)finalname.Get());
+								}
+								else
+									addtocollection((char*)texture.Get());
+							}
+						}
+					}
+				}
 			}
 		}
 	}
