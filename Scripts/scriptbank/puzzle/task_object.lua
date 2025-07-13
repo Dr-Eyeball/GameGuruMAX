@@ -1,5 +1,5 @@
 -- LUA Script - precede every function and global member with lowercase name of script + '_main'
--- Task Object v10 by Necrym59
+-- Task Object v11 by Necrym59
 -- DESCRIPTION: This object will be treated as a switch object for activating other objects or game elements. Set Always Active = On
 -- DESCRIPTION: [TASK_TEXT$ = "Tool is required to use"]
 -- DESCRIPTION: [USE_RANGE=80(1,100)]
@@ -8,10 +8,16 @@
 -- DESCRIPTION: [TASK_USE_TEXT$="E to use the tool to activate"]
 -- DESCRIPTION: [TASK_DONE_TEXT$="Task Completed"]
 -- DESCRIPTION: [@VISIBLE=1(1=Yes, 2=No)]
--- DESCRIPTION: [@PROMPT_DISPLAY=1(1=Local,2=Screen)]
 -- DESCRIPTION: [SWITCH_VALUE=1(1,99)] success result for use with combo switches
+-- DESCRIPTION: [@PROMPT_DISPLAY=1(1=Local,2=Screen)]
+-- DESCRIPTION: [@ITEM_HIGHLIGHT=0(0=None,1=Shape,2=Outline,3=Icon)]
+-- DESCRIPTION: [HIGHLIGHT_ICON_IMAGEFILE$="imagebank\\icons\\hand.png"]
 -- DESCRIPTION: Play <Sound0> when using tool.
 -- DESCRIPTION: Play <Sound1> task completed.
+
+local module_misclib = require "scriptbank\\module_misclib"
+local U = require "scriptbank\\utillib"
+g_tEnt = {}
 
 g_tasktool 				= {}
 g_tasktoolname 			= {}
@@ -25,8 +31,10 @@ local tool_name 		= {}
 local task_use_text		= {}
 local task_done_text 	= {}
 local visible 			= {}
-local prompt_display 	= {}
 local switch_value 		= {}
+local prompt_display	= {}
+local item_highlight	= {}
+local highlight_icon	= {}
 
 local unlocked 			= {}
 local usereset			= {}
@@ -34,8 +42,13 @@ local doonce			= {}
 local played			= {}
 local wait 				= {}
 local status 			= {}
+local completed			= {}
+local tEnt 				= {}
+local hl_icon 			= {}
+local hl_imgwidth		= {}
+local hl_imgheight		= {}
 
-function task_object_properties(e, task_text, use_range, tool_required, tool_name, task_use_text, task_done_text, visible, prompt_display, switch_value)
+function task_object_properties(e, task_text, use_range, tool_required, tool_name, task_use_text, task_done_text, visible, switch_value, prompt_display, item_highlight, highlight_icon_imagefile)
 	taskobject[e].task_text = task_text
 	taskobject[e].use_range = use_range
 	taskobject[e].tool_required = tool_required
@@ -43,8 +56,10 @@ function task_object_properties(e, task_text, use_range, tool_required, tool_nam
 	taskobject[e].task_use_text = task_use_text
 	taskobject[e].task_done_text = task_done_text
 	taskobject[e].visible = visible
-	taskobject[e].prompt_display = prompt_display
 	taskobject[e].switch_value = switch_value or 1
+	taskobject[e].prompt_display = prompt_display
+	taskobject[e].item_highlight = item_highlight
+	taskobject[e].highlight_icon = highlight_icon_imagefile
 end
 
 function task_object_init(e)
@@ -56,22 +71,39 @@ function task_object_init(e)
 	taskobject[e].task_use_text = ""
 	taskobject[e].task_done_text = ""
 	taskobject[e].visible = 1
-	taskobject[e].prompt_display = 1
 	taskobject[e].switch_value = 1
+	taskobject[e].prompt_display = 1
+	taskobject[e].item_highlight = 0
+	taskobject[e].highlight_icon = "imagebank\\icons\\hand.png"
 
-	status[e] = "init"
+	status[e] = "init"	
+	hl_icon[e] = 0
+	hl_imgwidth[e] = 0
+	hl_imgheight[e] = 0	
 	unlocked[e] = 0
 	usereset[e] = 0
 	doonce[e] = 0
+	completed[e] = 0
 	played[e] = 0
 	wait[e] = math.huge
 	g_tasktool = 0
 	g_swcvalue = 0
+	tEnt[e] = 0
+	g_tEnt = 0	
 end
 
 function task_object_main(e)
 
 	if status[e] == "init" then
+		if taskobject[e].item_highlight == 3 and taskobject[e].highlight_icon ~= "" then
+			hl_icon[e] = CreateSprite(LoadImage(taskobject[e].highlight_icon))
+			hl_imgwidth[e] = GetImageWidth(LoadImage(taskobject[e].highlight_icon))
+			hl_imgheight[e] = GetImageHeight(LoadImage(taskobject[e].highlight_icon))
+			SetSpriteSize(hl_icon[e],-1,-1)
+			SetSpriteDepth(hl_icon[e],100)
+			SetSpriteOffset(hl_icon[e],hl_imgwidth[e]/2.0, hl_imgheight[e]/2.0)
+			SetSpritePosition(hl_icon[e],500,500)
+		end	
 		if g_tasktool == nil then g_tasktool = 0 end
 		if taskobject[e].tool_required == 1 then taskobject[e].tool_name = "Crowbar" end
 		if taskobject[e].tool_required == 2 then taskobject[e].tool_name = "Screwdriver" end
@@ -92,9 +124,13 @@ function task_object_main(e)
 
 	local PlayerDist = GetPlayerDistance(e)
 
-	if PlayerDist < taskobject[e].use_range then
-		local LookingAt = GetPlrLookingAtEx(e,1)
-		if LookingAt == 1 then
+	if PlayerDist < taskobject[e].use_range and completed[e] == 0 then
+		--pinpoint select object--
+		module_misclib.pinpoint(e,taskobject[e].use_range, taskobject[e].item_highlight,hl_icon[e])
+		tEnt[e] = g_tEnt
+		--end pinpoint select object--
+
+		if PlayerDist < taskobject[e].use_range and tEnt[e] == e and GetEntityVisibility(e) == 1 then
 			if g_tasktoolname ~= taskobject[e].tool_name and unlocked[e] == 0 then
 				if taskobject[e].prompt_display == 1 then PromptLocal(e,taskobject[e].task_text) end
 				if taskobject[e].prompt_display == 2 then Prompt(taskobject[e].task_text) end
@@ -130,24 +166,10 @@ function task_object_main(e)
 						g_tasktool = 0
 						g_tasktoolname = ""
 						unlocked[e] = 1
+						completed[e] = 1
 						played[e] = 0
 						g_swcvalue = g_swcvalue + taskobject[e].switch_value
 					end
-				end
-				if unlocked[e] == 1 then
-					Show(e)
-					CollisionOn(e)
-					if taskobject[e].prompt_display == 1 then PromptLocal(e,taskobject[e].task_done_text) end
-					if taskobject[e].prompt_display == 2 then Prompt(taskobject[e].task_done_text) end
-					SetActivated(e,1)
-					unlocked[e] = 1
-					SetAnimationName(e,"on")
-					PlayAnimation(e)
-					PerformLogicConnections(e)
-					ActivateIfUsed(e)
-					usereset[e] = 1
-					played[e] = 0
-					wait[e] = g_Time + 1000					
 				end
 				if g_tasktool ~= taskobject[e].tool_required and unlocked[e] == 0 then
 					if taskobject[e].prompt_display == 1 then PromptLocal(e,taskobject[e].task_text) end
@@ -155,30 +177,5 @@ function task_object_main(e)
 				end
 			end
 		end
-	end
-	if g_Entity[e]['activated'] == 1 and g_Time > wait[e] then
-		if doonce[e] == 0 then			
-			Show(e)
-			CollisionOn(e)
-			if played[e] == 0 then
-				PlaySound(e,1)
-				played[e] = 1
-			end
-			if taskobject[e].prompt_display == 1 then PromptLocal(e,taskobject[e].task_done_text) end
-			if taskobject[e].prompt_display == 2 then Prompt(taskobject[e].task_done_text) end
-			unlocked[e] = 1		
-			SetAnimationName(e,"on")
-			PlayAnimation(e)
-			usereset[e] = 1
-			wait[e] = g_Time + 3000
-			SetActivated(e,0)			
-			doonce[e] = 1
-		end
-	end
-
-	if g_Time > wait[e] and unlocked[e] == 1 then -- Reset
-		usereset[e] = 0
-		played[e] = 0
-		doonce[e] = 0
 	end
 end
