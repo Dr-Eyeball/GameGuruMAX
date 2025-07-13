@@ -561,6 +561,10 @@ char g_pRenameHUDScreenError[256] = "\0";
 bool g_bMappingKeyWindow = false;
 int g_iMappingKeyToChange = -1;
 
+bool bIncludeDocumentFolderInRemoteProject = false;
+
+
+
 #ifdef ENABLEIMGUI
 void imgui_set_openproperty_flags(int iMasterID)
 {
@@ -17368,10 +17372,11 @@ bool DoTreeNodeSearch(int parentid, char *lookup)
 bool bDisplayProjectMedia = false;
 bool bDisplayFavorite = false;
 
-void process_gotopurchaedandrefreshtopurchases ( void )
+void process_gotopurchaedandrefreshtopurchases ( bool bForceSearch )
 {
 	seleted_tree_item = -1;
-	strcpy(cSearchAllEntities[0], "Purchased");
+	if(!bIncludeDocumentFolderInRemoteProject || bForceSearch)
+		strcpy(cSearchAllEntities[0], "Purchased");
 	bDisplayProjectMedia = false;
 	bDisplayFavorite = false;
 	bViewAllFolders = false;
@@ -19298,6 +19303,24 @@ void process_entity_library_v2(void)
 			bDisplayProjectMedia = false;
 		}
 
+		int selectable_items = 0;
+
+		extern char szBeforeChangeWriteDir[MAX_PATH];
+		char projectfolder[MAX_PATH];
+		strcpy(projectfolder, "");
+		if (strlen(szBeforeChangeWriteDir) > 0 && strlen(Storyboard.customprojectfolder) > 0)
+		{
+			strcpy(projectfolder, Storyboard.customprojectfolder);
+			strcat(projectfolder, Storyboard.gamename);
+			if (ImGui::Checkbox("Include Document Folder", &bIncludeDocumentFolderInRemoteProject))
+			{
+				//PE: Regular project update the library.
+				extern int g_iRefreshLibraryFoldersAfterDelay;
+				g_iRefreshLibraryFoldersAfterDelay = 10;
+			}
+			selectable_items++;
+		}
+
 		if (ImGui::Selectable("View All", bViewAllFolders) || bSelectLibraryViewAll )
 		{
 			bSelectLibraryViewAll = false;
@@ -19317,6 +19340,7 @@ void process_entity_library_v2(void)
 			bUpdateSearchSorting = true;
 			bUpdateSearchScrollbar = true;
 		}
+		selectable_items++;
 
 		// only show SHOWCASE and PURCHASED as relating to objects (for now)
 		if (iDisplayLibraryType == 0)
@@ -19331,8 +19355,9 @@ void process_entity_library_v2(void)
 				if (ImGui::Selectable("Purchased", &bViewPurchased, 0))
 				{
 					// force library to purchased view, and refresh too
-					process_gotopurchaedandrefreshtopurchases();
+					process_gotopurchaedandrefreshtopurchases(true);
 				}
+				selectable_items++;
 			}
 		}
 		else
@@ -19344,8 +19369,9 @@ void process_entity_library_v2(void)
 				if (ImGui::Selectable("Purchased", &bViewPurchased, 0))
 				{
 					// force library to purchased view, and refresh too
-					process_gotopurchaedandrefreshtopurchases();
+					process_gotopurchaedandrefreshtopurchases(true);
 				}
+				selectable_items++;
 			}
 		}
 
@@ -19369,6 +19395,7 @@ void process_entity_library_v2(void)
 				bUpdateSearchSorting = true;
 				bUpdateSearchScrollbar = true;
 			}
+			selectable_items++;
 		}
 
 		if (ImGui::Selectable("Favorites##favourites", &bDisplayFavorite, 0))
@@ -19382,8 +19409,16 @@ void process_entity_library_v2(void)
 			bUpdateSearchSorting = true;
 			bUpdateSearchScrollbar = true;
 		}
-
-		ImGui::BeginChild("##LeftPanelCategories", ImVec2(0, vWindowSize.y - 67.0f), false, iGenralWindowsFlags);
+		selectable_items++;
+		static float setadder = 0;
+		if(selectable_items <= 3)
+			ImGui::BeginChild("##LeftPanelCategories", ImVec2(0, vWindowSize.y - (67.0f + setadder)), false, iGenralWindowsFlags);
+		else if (selectable_items <= 4)
+			ImGui::BeginChild("##LeftPanelCategories", ImVec2(0, vWindowSize.y - (95.0f)), false, iGenralWindowsFlags);
+		else if (selectable_items <= 5)
+			ImGui::BeginChild("##LeftPanelCategories", ImVec2(0, vWindowSize.y - (113.0f)), false, iGenralWindowsFlags);
+		else
+			ImGui::BeginChild("##LeftPanelCategories", ImVec2(0, vWindowSize.y - (133.0f)), false, iGenralWindowsFlags);
 
 		if (iDisplayLibraryType == 0 && iDisplayLibrarySubType == 1)
 		{
@@ -19429,6 +19464,7 @@ void process_entity_library_v2(void)
 		if (1)
 		{
 			static std::vector< std::pair<std::string, cFolderItem::sFolderFiles *>> sorted_files;
+			static std::vector< std::pair<std::string, cFolderItem::sFolderFiles*>> remoteproject_files;
 			if (sorted_files.size() == 0)
 				bUpdateSearchSorting = true;
 
@@ -19479,6 +19515,8 @@ void process_entity_library_v2(void)
 			if ((bCheckGotoPreview || bUpdateSearchSorting || bUpdateSearchSortingNextFrame) && pNewFolder)
 			{
 				sorted_files.clear();
+				remoteproject_files.clear();
+
 				pNewFolder = pNewFolder->m_pNext;
 
 				cStr path_remove = pNewFolder->m_sFolderFullPath.Get();
@@ -19937,7 +19975,52 @@ void process_entity_library_v2(void)
 										}
 									}
 
-									sorted_files.push_back(std::make_pair(SortBy, myfiles));
+									//PE: Remove dublicates here, if using 
+									bool bDuplicate = false;
+									bool bRemoteProject = false;
+									extern char szBeforeChangeWriteDir[MAX_PATH];
+ 									if (strlen(szBeforeChangeWriteDir) > 0 && strlen(projectfolder) > 0 )
+									{
+
+										//strcpy(projectfolder, Storyboard.customprojectfolder);
+										//strcat(projectfolder, Storyboard.gamename);
+
+										LPSTR pFileFolderToCheck = pNewFolder->m_sFolderFullPath.Get();
+										if (myfiles && strnicmp(pFileFolderToCheck, projectfolder, strlen(projectfolder)) == NULL)
+										{
+											bRemoteProject = true;
+										}
+										else
+										{
+											//PE: Check if we already added this to remoteproject_files.
+											for (int loop = 0; loop < remoteproject_files.size(); loop++)
+											{
+												if (remoteproject_files[loop].second->m_sName == myfiles->m_sName)
+												{
+													//PE: Check full folder.
+													char check[MAX_PATH];
+													strcpy(check, remoteproject_files[loop].second->m_sPath.Get());
+													const char* find = pestrcasestr(check, "\\files\\");
+													if (find)
+													{
+														if (pestrcasestr(myfiles->m_sPath.Get(),find))
+														{
+															//PE: Same path , mark as duplicate. and prefer remoteproject file.
+															bDuplicate = true;
+															break;
+														}
+													}
+												}
+											}
+										}
+									}
+									if (bRemoteProject)
+									{
+										remoteproject_files.push_back(std::make_pair(SortBy, myfiles));
+									}
+									if(!bDuplicate)
+										sorted_files.push_back(std::make_pair(SortBy, myfiles));
+
 									//Map pNewFolder to files entry.
 									myfiles->pNewFolder = pNewFolder;
 									//myfiles->bLoadedInNewFormat = bLoadedInNewFormat;
@@ -45945,6 +46028,12 @@ int save_level_as( void )
 
 void switch_to_remote_project(LPSTR ProjectAsName)
 {
+	extern char szWriteDir[MAX_PATH];
+	extern char szBeforeChangeWriteDir[MAX_PATH];
+	extern char szAddWriteDirAdditional[MAX_PATH];
+
+	strcpy(szBeforeChangeWriteDir, szWriteDir);
+
 	// store writables folder
 	char pStoreWriteable[MAX_PATH];
 	strcpy(pStoreWriteable, pref.cCustomWriteFolder);
@@ -45964,6 +46053,19 @@ void switch_to_remote_project(LPSTR ProjectAsName)
 	SetUpdaterWritePathFile(pref.cCustomWriteFolder);
 	FileRedirectChangeWritableArea("");
 
+	//PE: Fix szAddWriteDirAdditional
+	if (!pestrcasestr(szAddWriteDirAdditional, "GameGuruApps"))
+	{
+		strcat(szAddWriteDirAdditional, "\\GameGuruApps\\GameGuruMAX\\");
+	}
+
+	//PE: We are using szWriteDir for remote project path, so set szAddWriteDirAdditional to normal document folder.
+	if (strlen(pStoreWriteable) > 0)
+	{
+		// override writables with known custom writables folder
+		strcpy_s(szAddWriteDirAdditional, MAX_PATH, pStoreWriteable);
+	}
+
 	// create remote project marker
 	OpenToWrite(1, pRemoteProject);
 	WriteString(1, Storyboard.customprojectfolder);
@@ -45975,6 +46077,19 @@ void switch_to_remote_project(LPSTR ProjectAsName)
 
 void switch_to_regular_projects(void)
 {
+	extern char szBeforeChangeWriteDir[MAX_PATH];
+	extern char szWriteDir[MAX_PATH];
+
+	//PE: Check if we change from a remote project to none.
+	if (strlen(szBeforeChangeWriteDir) > 0)
+	{
+		//PE: Regular project update the library.
+		extern int g_iRefreshLibraryFoldersAfterDelay;
+		g_iRefreshLibraryFoldersAfterDelay = 10;
+	}
+
+	strcpy(szBeforeChangeWriteDir, "");
+
 	// generate app folder using exe name
 	HMODULE hModule = GetModuleHandle(NULL);
 	char szModule[MAX_PATH] = "";

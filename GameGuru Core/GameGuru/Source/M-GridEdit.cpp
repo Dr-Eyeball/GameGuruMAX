@@ -1883,6 +1883,21 @@ void mapeditorexecutable_full_folder_refresh(void)
 				// root folder
 				SetDir(pOld);
 				GetMainEntityList(pMediaFolderPattern, "", pLastFolder, "", false, iMediaFolderType);
+
+				extern char szBeforeChangeWriteDir[MAX_PATH];
+				extern bool bIncludeDocumentFolderInRemoteProject;
+				//PE: Normal writefolder if remote project.
+				if(bIncludeDocumentFolderInRemoteProject && strlen(szBeforeChangeWriteDir) > 0)
+				{
+					char newpath[MAX_PATH];
+					strcpy(newpath, szBeforeChangeWriteDir);
+					strcat(newpath, "Files");
+					SetDir(newpath);
+					GetMainEntityList(pMediaFolderPattern, "", pLastFolder, "", false, iMediaFolderType);
+				}
+
+				SetDir(pOld);
+
 			}
 		}
 
@@ -12665,8 +12680,8 @@ void mapeditorexecutable_loop(void)
 				extern void RefreshPurchasedFolder (void);
 				RefreshPurchasedFolder();
 				// force the purchased cateogry to show up (and also cause needed refresh)
-				extern void process_gotopurchaedandrefreshtopurchases (void);
-				process_gotopurchaedandrefreshtopurchases();
+				extern void process_gotopurchaedandrefreshtopurchases (bool bForceSearch);
+				process_gotopurchaedandrefreshtopurchases(false);
 				// trigger folder tree on left of library to recalculate in case of new folders (audiobank\xx)
 				extern bool bTreeViewInitInNextFrame;
 				bTreeViewInitInNextFrame = true;

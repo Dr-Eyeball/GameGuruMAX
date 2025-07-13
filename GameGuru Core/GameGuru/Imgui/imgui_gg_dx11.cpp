@@ -6002,6 +6002,8 @@ cstr GetNameFinalCreditFromAbsPath (LPSTR pAbsFullFolderPath)
 	return sNameFinalCredit;
 }
 
+extern char szBeforeChangeWriteDir[MAX_PATH];
+
 void GetMainEntityList(char* folder_s, char* rel_s, void *pFolder, char* folder_name_start, bool bForceToTop, int foldertype)
 {
 	//foldertype: 0 fpe , 1 waw mp3 ogg. , 2 BMP, JPG, PNG, TIF, and GIF
