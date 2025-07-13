@@ -1,9 +1,9 @@
 -- LUA Script - precede every function and global member with lowercase name of script + '_main'
--- NPC Monitor v12 by Necrym59
+-- NPC Monitor v14 by Necrym59
 -- DESCRIPTION: A global behavior that allows a named npc to be health monitored and trigger event(s) or Lose/Win game or go to a specified level upon its death.
 -- DESCRIPTION: Attach to an object set AlwaysActive=ON, and attach any logic links to this object and/or use ActivateIfUsed field.
 -- DESCRIPTION: [NPC_NAME$=""] to monitor.
--- DESCRIPTION: [@DEATH_ACTION=1(1=Event Triggers, 2=Lose Game, 3=Win Game, 4=Go To Level)]
+-- DESCRIPTION: [@DEATH_ACTION=1(1=Event Triggers, 2=Lose Game, 3=Win Game, 4=Go To Level, 5=Add to User Global)]
 -- DESCRIPTION: [@DISPLAY_HEALTH=2(1=Yes, 2=No)] to display health on npc
 -- DESCRIPTION: [@MONITOR_ACTIVE=1(1=Yes, 2=No)] if No then use a zone or switch to activate this monitor.
 -- DESCRIPTION: [ACTION_DELAY=2(0,100)] seconds delay before activating death action.
@@ -29,6 +29,7 @@ local status			= {}
 local wait				= {}
 local actiondelay		= {}
 local checktime			= {}
+local currentvalue		= {}
 
 function npc_monitor_properties(e, npc_name, death_action, display_health, monitor_active, action_delay, user_global, user_global_value, resetstates)
 	npc_monitor[e].npc_name = lower(npc_name) or ""
@@ -56,6 +57,7 @@ function npc_monitor_init(e)
 	wait[e] = math.huge
 	actiondelay[e] = math.huge
 	checktime[e] = 0
+	currentvalue[e] = 0
 	pEntn[e] = 0
 end
 
@@ -106,6 +108,14 @@ function npc_monitor_main(e)
 					_G["g_UserGlobal['"..npc_monitor[e].user_global.."']"] = npc_monitor[e].user_global_value
 				end
 				status[e] = "winorlose"
+			end
+			if g_Entity[pEntn[e]].health <= 0 and npc_monitor[e].death_action == 5 then			
+				if _G["g_UserGlobal['"..npc_monitor[e].user_global.."']"] ~= nil then
+					currentvalue[e] = _G["g_UserGlobal['"..npc_monitor[e].user_global.."']"]
+					_G["g_UserGlobal['"..npc_monitor[e].user_global.."']"] = currentvalue[e] + npc_monitor[e].user_global_value
+				end
+				status[e] = "end"
+				SwitchScript(e,"no_behavior_selected.lua")
 			end
 			if npc_monitor[e].display_health == 1 then
 				PromptLocal(pEntn[e],"Health: " ..g_Entity[pEntn[e]].health)
