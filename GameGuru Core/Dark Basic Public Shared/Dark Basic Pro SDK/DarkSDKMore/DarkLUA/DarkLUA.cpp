@@ -1603,6 +1603,8 @@ luaMessage** ppLuaMessages = NULL;
 	 if (e > 0)
 	 {
 		 iReturnValue = t.entityelement[e].eleprof.isobjective;
+		 if (t.entityelement[e].eleprof.isobjective_alwaysactive)
+			 iReturnValue = 3;
 	 }
 	 lua_pushinteger(L, iReturnValue);
 	 return 1;

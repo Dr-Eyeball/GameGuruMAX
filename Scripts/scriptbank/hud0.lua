@@ -1604,7 +1604,13 @@ function hud0.main()
 							end
 							if mapName == "objective" then
 								local thisobjective = GetEntityObjective(ee)
-								if thisobjective == 1 then
+								if thisobjective == 3 then
+									scritems = scritems + 1
+									itemstodraw[scritems] = ee
+									itemstodrawscale[scritems] = 1.0
+									itemstodrawscaleoffset[scritems] = 0
+									tscaleit = 1
+								elseif thisobjective == 1 then
 									if g_UserGlobalQuestTitleActiveE > 0 and g_UserGlobalQuestTitleActiveE == ee then
 										scritems = scritems + 1
 										itemstodraw[scritems] = ee

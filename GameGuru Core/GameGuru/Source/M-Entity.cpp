@@ -6372,7 +6372,7 @@ void c_entity_loadelementsdata ( void )
 						t.entityelement[t.e].eleprof.systemwide_lua = t.a;
 						if (t.entityelement[t.e].eleprof.systemwide_lua > 1)
 							t.entityelement[t.e].eleprof.systemwide_lua = 0;
-						t.a = c_ReadLong(1); iFiller = t.a;
+						t.a = c_ReadLong(1); t.entityelement[t.e].eleprof.isobjective_alwaysactive = t.a;
 						t.a = c_ReadLong(1); iFiller = t.a;
 						t.a_s = c_ReadString(1); sFiller = t.a_s;
 						t.a_s = c_ReadString(1); sFiller = t.a_s;
@@ -7983,7 +7983,7 @@ void entity_saveelementsdata (bool bForCollectionELE)
 					writer.WriteFloat(0.0f);
 					writer.WriteFloat(0.0f);
 					writer.WriteLong(t.entityelement[ent].eleprof.systemwide_lua);
-					writer.WriteLong(0);
+					writer.WriteLong(t.entityelement[ent].eleprof.isobjective_alwaysactive);
 					writer.WriteLong(0);
 					writer.WriteString("");
 					writer.WriteString("");
