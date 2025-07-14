@@ -1,4 +1,4 @@
--- Underwater v3 by Necrym59
+-- Underwater v4 by Necrym59
 -- DESCRIPTION: Will change to the designated LUT group when player is submerged
 -- DESCRIPTION: Attach to an object. Set Always Active ON.
 -- DESCRIPTION: [LUT_GROUP$="editors\lut\crispwintertable"] to change to (without ".png" file extension)
@@ -20,7 +20,7 @@ local newlut 	= {}
 local status 	= {}
 local default_color_r = {}
 local default_color_g = {}
-local default_color_b = {} 
+local default_color_b = {}
 
 function underwater_properties(e, lut_group, change_color, water_color_r, water_color_g, water_color_b)
     underwater[e].lut_group = lut_group
@@ -43,7 +43,8 @@ function underwater_init(e)
 	doonce[e] = 0
 	default_color_r[e] = GetWaterShaderColorRed()
 	default_color_g[e] = GetWaterShaderColorGreen()
-	default_color_b[e] = GetWaterShaderColorBlue()		
+	default_color_b[e] = GetWaterShaderColorBlue()
+	SetEntityAlwaysActive(e,1)	
 	status[e] = "init"
 end
 
@@ -53,9 +54,9 @@ function underwater_main(e)
 		newlut[e] = underwater[e].lut_group		
 		oldlut[e] = GetLut()
 		status[e] = "endinit"
-	end	
-	
-    if GetGamePlayerStateUnderwater() == 1 then
+	end
+
+	if g_PlayerPosY < GetWaterHeight()-10 and GetGamePlayerStateUnderwater() == 1 then
 		if doonce[e] == 0 then
 			SetLutTo(newlut[e].. ".png")
 			if underwater[e].change_color == 1 then
@@ -63,8 +64,9 @@ function underwater_main(e)
 			end
 			doonce[e] = 1
 		end
-    end	
-	if GetGamePlayerStateUnderwater() == 0 then 
+	end
+
+	if g_PlayerPosY > GetWaterHeight()-10 or GetGamePlayerStateUnderwater() == 0 then		
 		if doonce[e] == 1 then
 			SetLutTo(oldlut[e].. ".png")
 			if underwater[e].change_color == 1 then
@@ -72,5 +74,5 @@ function underwater_main(e)
 			end
 			doonce[e] = 0
 		end		
-    end	
+	end
 end
