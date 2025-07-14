@@ -12929,7 +12929,15 @@ void mapeditorexecutable_loop(void)
 			float fSpacer = 0.0f;
 			float entity_image_size = entity_w / (float)entity_icons_columns;
 			entity_image_size -= ((1.125f) * entity_icons_columns);
-			if (entity_w > 360)
+			if (entity_w > 680)
+			{
+				//Switch to 15 per row.
+				entity_icons = 15;
+				entity_icons_columns = entity_icons;// 12;
+				entity_image_size = entity_w / (float)entity_icons_columns;
+				entity_image_size -= 7.5f;
+			}
+			else if (entity_w > 360)
 			{
 				//Switch to 12 per row.
 				entity_icons_columns = entity_icons;// 12;
@@ -12946,6 +12954,8 @@ void mapeditorexecutable_loop(void)
 			content_avail.y -= 3.0f;
 			content_avail.y -= ((entity_w / entity_icons_columns) * iIconRows);
 			content_avail.y -= 10.0f;
+			if (entity_icons_columns > 10)
+				content_avail.y -= entity_image_size;
 
 			static bool bViewOptionsOpen = false;
 			if(bViewOptionsOpen)
@@ -13844,6 +13854,8 @@ void mapeditorexecutable_loop(void)
 			int offset = 0;
 			if (bViewOptionsOpen)
 				offset = 225;// 205;// 115;
+			if (entity_icons_columns > 10 && entity_icons_columns < 15)
+				offset += entity_image_size;
 
 			ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(0.0f, ImGui::GetContentRegionAvail().y - offset
 				- ((entity_w / entity_icons_columns) * iIconRows) - ImGui::GetFontSize() * 4.0f + 10.0f));
