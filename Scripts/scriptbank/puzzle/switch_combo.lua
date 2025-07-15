@@ -1,5 +1,6 @@
--- Switch Combo v12 
--- DESCRIPTION: A combo-value switch to add to 100 to Activate IfUsed and/or logic linked object.
+-- LUA Script - precede every function and global member with lowercase name of script + '_main'
+-- Switch Combo v14 by Necrym59
+-- DESCRIPTION: A combo-value switch to add up to 100 to Activate IfUsed and/or logic linked object.
 -- DESCRIPTION: [UseRange=90(1,200)]
 -- DESCRIPTION: [SwitchedOn!=0] state to decide if the switch is initially off or on, and customize the
 -- DESCRIPTION: [OnText$="To Turn Switch ON"] and [OffText$="To Turn Switch OFF"].
@@ -8,7 +9,9 @@
 -- DESCRIPTION: [SwitchValue=0(0,100)] for this switch value
 -- DESCRIPTION: [DeferLinks!=0] to defer linked connection trigger
 -- DESCRIPTION: [DeferLinksValue=50(1,99)] defer linked connection trigger value
--- DESCRIPTION: [@ITEM_HIGHLIGHT=0(0=None,1=Shape,2=Outline)] Use emmisive color for shape option
+-- DESCRIPTION: [@PROMPT_DISPLAY=1(1=Local,2=Screen)]
+-- DESCRIPTION: [@ITEM_HIGHLIGHT=0(0=None,1=Shape,2=Outline,3=Icon)]
+-- DESCRIPTION: [HIGHLIGHT_ICON_IMAGEFILE$="imagebank\\icons\\hand.png"]
 -- DESCRIPTION: <Sound0> when the object is switched ON.
 -- DESCRIPTION: <Sound1> when the object is switched OFF.
  
@@ -27,11 +30,16 @@ local switchtype 		= {}
 local switchvalue 		= {}
 local deferlinks 		= {}
 local deferlinksvalue 	= {}
+local prompt_display	= {}
 local item_highlight	= {}
+local highlight_icon	= {}
 
 local doonce 			= {}
 local dooncePC			= {}
 local status 			= {}
+local hl_icon 			= {}
+local hl_imgwidth		= {}
+local hl_imgheight		= {}
 local tEnt 				= {}
 local selectobj 		= {}
 local switched 			= {}
@@ -40,8 +48,7 @@ local tplayerlevel 		= {}
 local reachedvalue		= {}
 local reachedcheck		= {}
 
-function switch_combo_properties(e, userange, switchedon, ontext, offtext, playerlevel, switchtype, switchvalue, deferlinks, deferlinksvalue, item_highlight)
-	switch_combo[e] = g_Entity[e]
+function switch_combo_properties(e, userange, switchedon, ontext, offtext, playerlevel, switchtype, switchvalue, deferlinks, deferlinksvalue, prompt_display, item_highlight, highlight_icon_imagefile)
 	switch_combo[e].userange = userange or 90
 	switch_combo[e].initialstate = switchedon
 	switch_combo[e].ontext = ontext
@@ -51,7 +58,9 @@ function switch_combo_properties(e, userange, switchedon, ontext, offtext, playe
 	switch_combo[e].switchvalue = switchvalue
 	switch_combo[e].deferlinks = deferlinks
 	switch_combo[e].deferlinksvalue = deferlinksvalue or 99
-	switch_combo[e].item_highlight = item_highlight	or 0	
+	switch_combo[e].prompt_display = prompt_display
+	switch_combo[e].item_highlight = item_highlight
+	switch_combo[e].highlight_icon = highlight_icon_imagefile	
 end 
 
 function switch_combo_init(e)
@@ -65,7 +74,9 @@ function switch_combo_init(e)
 	switch_combo[e].switchvalue = 0	
 	switch_combo[e].deferlinks = 0
 	switch_combo[e].deferlinksvalue = 99
+	switch_combo[e].prompt_display = 1
 	switch_combo[e].item_highlight = 0
+	switch_combo[e].highlight_icon = "imagebank\\icons\\hand.png"
 	
 	tEnt[e] = 0
 	g_tEnt = 0
@@ -79,10 +90,22 @@ function switch_combo_init(e)
 	reachedvalue[e] = 0	
 	reachedcheck[e] = 0	
 	g_swcvalue = 0
+	hl_icon[e] = 0
+	hl_imgwidth[e] = 0
+	hl_imgheight[e] = 0	
 end
 
 function switch_combo_main(e)
 	if status[e] == "init" then
+		if switch_combo[e].item_highlight == 3 and switch_combo[e].highlight_icon ~= "" then
+			hl_icon[e] = CreateSprite(LoadImage(switch_combo[e].highlight_icon))
+			hl_imgwidth[e] = GetImageWidth(LoadImage(switch_combo[e].highlight_icon))
+			hl_imgheight[e] = GetImageHeight(LoadImage(switch_combo[e].highlight_icon))
+			SetSpriteSize(hl_icon[e],-1,-1)
+			SetSpriteDepth(hl_icon[e],100)
+			SetSpriteOffset(hl_icon[e],hl_imgwidth[e]/2.0, hl_imgheight[e]/2.0)
+			SetSpritePosition(hl_icon[e],500,500)
+		end		
 		tplayerlevel[e] = 0
 		tlevelrequired[e] = switch_combo[e].playerlevel		
 		if switch_combo[e].switchvalue > 100 then switch_combo[e].switchvalue = 100 end
@@ -102,13 +125,17 @@ function switch_combo_main(e)
 	local PlayerDist = GetPlayerDistance(e)
 	if PlayerDist < switch_combo[e].userange then
 		--pinpoint select object--
-		module_misclib.pinpoint(e,switch_combo[e].userange,switch_combo[e].item_highlight)
+		module_misclib.pinpoint(e,switch_combo[e].userange,switch_combo[e].item_highlight,hl_icon[e])
 		tEnt[e] = g_tEnt
 		--end pinpoint select object--	
 	end	
-	if PlayerDist < switch_combo[e].userange and tEnt[e] ~= 0 then
+	if PlayerDist < switch_combo[e].userange and tEnt[e] == e and GetEntityVisibility(e) == 1 then
 		if _G["g_UserGlobal['".."MyPlayerLevel".."']"] ~= nil then tplayerlevel[e] = _G["g_UserGlobal['".."MyPlayerLevel".."']"] end
-		if tplayerlevel[e] < tlevelrequired[e] then PromptLocal(e,"You need to be level "..tlevelrequired[e].." to use this switch") end
+		
+		if tplayerlevel[e] < tlevelrequired[e] then
+			if switch_combo[e].prompt_display == 1 then PromptLocal(e,"You need to be level "..tlevelrequired[e].." to use this switch") end
+			if switch_combo[e].prompt_display == 2 then Prompt("You need to be level "..tlevelrequired[e].." to use this switch") end
+		end
 		if tplayerlevel[e] >= tlevelrequired[e] then
 		
 			if switch_combo[e].switchtype == 1 then switched[e] = 0 end
@@ -120,7 +147,8 @@ function switch_combo_main(e)
 						if GetHeadTracker() == 1 then
 							PromptLocalForVR(e,"Trigger " .. switch_combo[e].ontext,3)
 						else
-							PromptLocalForVR(e,"E " .. switch_combo[e].ontext,3)
+							if switch_combo[e].prompt_display == 1 then PromptLocal(e,"E " ..switch_combo[e].ontext) end
+							if switch_combo[e].prompt_display == 2 then Prompt("E " ..switch_combo[e].ontext) end
 						end
 					end
 				end
@@ -143,7 +171,8 @@ function switch_combo_main(e)
 							if GetHeadTracker() == 1 then
 								PromptLocalForVR(e,"Trigger " .. switch_combo[e].offtext,3)
 							else
-								PromptLocalForVR(e,"E " .. switch_combo[e].offtext,3)
+								if switch_combo[e].prompt_display == 1 then PromptLocal(e,"E " ..switch_combo[e].offtext) end
+								if switch_combo[e].prompt_display == 2 then Prompt("E " ..switch_combo[e].offtext) end
 							end
 						end
 					end
