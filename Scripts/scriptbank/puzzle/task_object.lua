@@ -1,11 +1,11 @@
 -- LUA Script - precede every function and global member with lowercase name of script + '_main'
--- Task Object v11 by Necrym59
+-- Task Object v12 by Necrym59
 -- DESCRIPTION: This object will be treated as a switch object for activating other objects or game elements. Set Always Active = On
 -- DESCRIPTION: [TASK_TEXT$ = "Tool is required to use"]
 -- DESCRIPTION: [USE_RANGE=80(1,100)]
 -- DESCRIPTION: [@TOOL_REQUIRED=1(1=Crowbar, 2=Screwdriver, 3=Spanner, 4=Cutter, 5=Named Tool)],
 -- DESCRIPTION: [TOOL_NAME$="Named Tool"],
--- DESCRIPTION: [TASK_USE_TEXT$="E to use the tool to activate"]
+-- DESCRIPTION: [TASK_USE_TEXT$="E to use"]
 -- DESCRIPTION: [TASK_DONE_TEXT$="Task Completed"]
 -- DESCRIPTION: [@VISIBLE=1(1=Yes, 2=No)]
 -- DESCRIPTION: [SWITCH_VALUE=1(1,99)] success result for use with combo switches
@@ -42,7 +42,6 @@ local doonce			= {}
 local played			= {}
 local wait 				= {}
 local status 			= {}
-local completed			= {}
 local tEnt 				= {}
 local hl_icon 			= {}
 local hl_imgwidth		= {}
@@ -83,7 +82,6 @@ function task_object_init(e)
 	unlocked[e] = 0
 	usereset[e] = 0
 	doonce[e] = 0
-	completed[e] = 0
 	played[e] = 0
 	wait[e] = math.huge
 	g_tasktool = 0
@@ -124,7 +122,7 @@ function task_object_main(e)
 
 	local PlayerDist = GetPlayerDistance(e)
 
-	if PlayerDist < taskobject[e].use_range and completed[e] == 0 then
+	if PlayerDist < taskobject[e].use_range then
 		--pinpoint select object--
 		module_misclib.pinpoint(e,taskobject[e].use_range, taskobject[e].item_highlight,hl_icon[e])
 		tEnt[e] = g_tEnt
@@ -135,16 +133,16 @@ function task_object_main(e)
 				if taskobject[e].prompt_display == 1 then PromptLocal(e,taskobject[e].task_text) end
 				if taskobject[e].prompt_display == 2 then Prompt(taskobject[e].task_text) end
 			end
-			if g_tasktoolname ~= taskobject[e].tool_name and unlocked[e] == 1 then
-				if taskobject[e].prompt_display == 1 then PromptLocal(e,taskobject[e].task_done_text) end
-				if taskobject[e].prompt_display == 2 then Prompt(taskobject[e].task_done_text) end
+			if g_tasktoolname ~= taskobject[e].tool_name and unlocked[e] == 1 and g_Time > wait[e] then
+				if taskobject[e].prompt_display == 1 then PromptLocal(e,taskobject[e].task_use_text) end
+				if taskobject[e].prompt_display == 2 then Prompt(taskobject[e].task_use_text) end
 			end
 			if g_tasktoolname == taskobject[e].tool_name and usereset[e] == 0 then
 				if taskobject[e].prompt_display == 1 then PromptLocal(e,taskobject[e].task_use_text) end
 				if taskobject[e].prompt_display == 2 then Prompt(taskobject[e].task_use_text) end
-			end
+			end		
 
-			if g_KeyPressE == 1 then
+			if g_KeyPressE == 1 and unlocked[e] == 0 then
 				if g_tasktool == taskobject[e].tool_required then
 					if g_tasktoolname == taskobject[e].tool_name then
 						Show(e)
@@ -153,8 +151,6 @@ function task_object_main(e)
 							PlaySound(e,0)
 							played[e] = 1
 						end
-						if taskobject[e].prompt_display == 1 then PromptLocal(e,taskobject[e].task_done_text) end
-						if taskobject[e].prompt_display == 2 then Prompt(taskobject[e].task_done_text) end
 						SetActivated(e,1)
 						SetActivatedWithMP(e,201)
 						SetAnimationName(e,"on")
@@ -166,16 +162,45 @@ function task_object_main(e)
 						g_tasktool = 0
 						g_tasktoolname = ""
 						unlocked[e] = 1
-						completed[e] = 1
 						played[e] = 0
 						g_swcvalue = g_swcvalue + taskobject[e].switch_value
-					end
-				end
+					end					
+				end			
 				if g_tasktool ~= taskobject[e].tool_required and unlocked[e] == 0 then
 					if taskobject[e].prompt_display == 1 then PromptLocal(e,taskobject[e].task_text) end
 					if taskobject[e].prompt_display == 2 then Prompt(taskobject[e].task_text) end
 				end
-			end
+				if unlocked[e] == 1 then
+					if taskobject[e].prompt_display == 1 then PromptLocal(e,taskobject[e].task_done_text) end
+					if taskobject[e].prompt_display == 2 then Prompt(taskobject[e].task_done_text) end
+				end	
+			end			
+			if g_KeyPressE == 1 and unlocked[e] == 1 and g_Time > wait[e] then
+				Show(e)
+				CollisionOn(e)
+				if played[e] == 0 then
+					PlaySound(e,0)
+					played[e] = 1
+				end
+				unlocked[e] = 1
+				SetActivated(e,1)
+				SetActivatedWithMP(e,201)				
+				SetAnimationName(e,"on")
+				PlayAnimation(e)
+				PerformLogicConnections(e)				
+				usereset[e] = 1
+				wait[e] = g_Time + 3000
+				doonce[e] = 0
+			end			
 		end
+	end
+	if g_Time > wait[e] and unlocked[e] == 1 then -- Reset
+		if doonce[e] == 0 then
+			SetAnimationName(e,"off")
+			PlayAnimation(e)		
+			usereset[e] = 0
+			played[e] = 0
+			doonce[e] = 1
+		end	
 	end
 end
