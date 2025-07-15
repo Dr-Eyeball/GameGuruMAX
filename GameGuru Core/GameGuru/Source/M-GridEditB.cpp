@@ -36519,6 +36519,19 @@ void Welcome_Screen(void)
 			float fRatio = 288.0f / 512.0f;
 			float right_margin = 9.0;
 			ImVec2 vPreviewSize = { (fContentWidth - right_margin) , (fContentWidth - right_margin) * fRatio };
+
+			ImVec2 winsize = ImGui::GetWindowSize();
+			if (vPreviewSize.y >= winsize.y - 72.0f - 48.0f)
+			{
+				if (iCurrentOpenTab == 0 || iCurrentOpenTab == 1)
+				{
+					//PE: Must center image after this.
+					float fHRatio = 512.0f / 288.0f;
+					float maxheight = winsize.y - 72.0f - 48.0f; //buttons + new project bar + small description.
+					vPreviewSize = { maxheight * fHRatio , maxheight };
+				}
+			}
+
 			float fImageWidth = 460;
 			float fImageHeight = 215;
 			
@@ -36911,15 +36924,26 @@ void Welcome_Screen(void)
 
 				if (iTextureID > 0)
 				{
+					float missing = 0;
 					if (current_project_selected.length() > 0)
 					{
 						ImGuiWindow* window = ImGui::GetCurrentWindow();
 						ImVec4 tool_selected_col = ImGui::GetStyle().Colors[ImGuiCol_PlotHistogram];
 						ImVec2 padding = { 1.0, 1.0 };
-						const ImRect image_bb((window->DC.CursorPos - padding), window->DC.CursorPos + padding + vPreviewSize);
+						ImRect image_bb((window->DC.CursorPos - padding), window->DC.CursorPos + padding + vPreviewSize);
+						float width = ImGui::GetContentRegionAvailWidth();
+						ImVec2 winpos = ImGui::GetWindowPos();
+						if (image_bb.Max.x < winpos.x + width)
+						{
+							//PE: Center image.
+							missing = (winpos.x + width) - image_bb.Max.x;
+							missing *= 0.5f;
+							image_bb.Min.x += missing;
+							image_bb.Max.x += missing;
+						}
 						window->DrawList->AddRect(image_bb.Min, image_bb.Max, ImGui::GetColorU32(tool_selected_col), 0.0f, 15, 2.0f);
 					}
-
+					ImGui::SetCursorPosX(ImGui::GetCursorPosX() + missing);
 					if (ImGui::ImgBtn(iTextureID, vPreviewSize, ImColor(0, 0, 0, 0), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 200), 0, 0, 0, 0, false, false, false))
 					{
 						//Click ?
@@ -37034,14 +37058,29 @@ void Welcome_Screen(void)
 					int iTextureID = GetImageIDFilesListForLibrary(sCurrentGame);
 					if (iTextureID > 0)
 					{
+						float missing = 0;
+
 						if (current_project_selected.length() > 0)
 						{
 							ImGuiWindow* window = ImGui::GetCurrentWindow();
 							ImVec4 tool_selected_col = ImGui::GetStyle().Colors[ImGuiCol_PlotHistogram];
 							ImVec2 padding = { 1.0, 1.0 };
-							const ImRect image_bb((window->DC.CursorPos - padding), window->DC.CursorPos + padding + vPreviewSize);
+							ImRect image_bb((window->DC.CursorPos - padding), window->DC.CursorPos + padding + vPreviewSize);
+
+							float width = ImGui::GetContentRegionAvailWidth();
+							ImVec2 winpos = ImGui::GetWindowPos();
+							if (image_bb.Max.x < winpos.x + width)
+							{
+								//PE: Center image.
+								missing = (winpos.x + width) - image_bb.Max.x;
+								missing *= 0.5f;
+								image_bb.Min.x += missing;
+								image_bb.Max.x += missing;
+							}
+
 							window->DrawList->AddRect(image_bb.Min, image_bb.Max, ImGui::GetColorU32(tool_selected_col), 0.0f, 15, 2.0f);
 						}
+						ImGui::SetCursorPosX(ImGui::GetCursorPosX() + missing);
 
 						if (ImGui::ImgBtn(iTextureID, vPreviewSize, ImColor(0, 0, 0, 0), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 200), 0, 0, 0, 0, false, false, false))
 						{
