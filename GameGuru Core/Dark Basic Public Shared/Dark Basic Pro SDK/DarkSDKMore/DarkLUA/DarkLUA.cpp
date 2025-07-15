@@ -1807,7 +1807,7 @@ luaMessage** ppLuaMessages = NULL;
 	int n = lua_gettop(L);
 	if ( n < 2 ) return 0;
 	int iEntityIndex = lua_tonumber(L, 1);
-	if (iEntityIndex > 0)
+	if (iEntityIndex > 0 && iEntityIndex < t.entityelement.size())
 	{
 		float fValue = lua_tonumber(L, 2);
 		switch (iDataMode)
@@ -1871,7 +1871,7 @@ luaMessage** ppLuaMessages = NULL;
 		if ( n < 1 ) return 0;
 	}
 	int iEntityIndex = lua_tonumber(L, 1);
-	if ( iEntityIndex > 0 )
+	if ( iEntityIndex > 0 && iEntityIndex < t.entityelement.size() )
 	{
 		if ( iDataMode < 101 )
 		{
