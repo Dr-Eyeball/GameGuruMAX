@@ -29763,7 +29763,13 @@ void DisplayFPEGeneral(bool readonly, int entid, entityeleproftype *edit_gridele
 		if (t.entityprofile[entid].ismarker == 3)
 			edit_grideleprof->isobjective = 2;
 		else
+		{
 			edit_grideleprof->isobjective = 1;
+		}
+		ImGui::SameLine();
+		bool bTmp = edit_grideleprof->isobjective_alwaysactive;
+		ImGui::Checkbox("Always Visible", &bTmp);
+		edit_grideleprof->isobjective_alwaysactive = bTmp;
 	}
 	else
 	{
@@ -47926,6 +47932,11 @@ void load_storyboard(char *name)
 		strcat(pRemotePathToGrass, "\\Files\\");
 		GGGrass_Init_Textures(pRemotePathToGrass);
 		ReloadLensFlareImages();
+
+		//PE: Add custom fonts from remote project.
+		void AddRemoteProjectFonts(void);
+		AddRemoteProjectFonts();
+
 	}
 	else
 	{
