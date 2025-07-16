@@ -28402,15 +28402,16 @@ void gridedit_save_test_map ( void )
 	if (strlen(Storyboard.gamename) > 0)
 	{
 		timestampactivity(0, "saving systemwidelua.ele");
+		cstr storeoldELEfile = t.elementsfilename_s;
+		char collectionELEfilename[MAX_PATH];
+		strcpy(collectionELEfilename, "projectbank\\");
+		strcat(collectionELEfilename, Storyboard.gamename);
+		strcat(collectionELEfilename, "\\systemwidelua.ele");
+		GG_GetRealPath(collectionELEfilename, 1);
+		if (FileExist(collectionELEfilename) == 1) DeleteFileA(collectionELEfilename);
+
 		if (storeindex > 1)
 		{
-			cstr storeoldELEfile = t.elementsfilename_s;
-			char collectionELEfilename[MAX_PATH];
-			strcpy(collectionELEfilename, "projectbank\\");
-			strcat(collectionELEfilename, Storyboard.gamename);
-			strcat(collectionELEfilename, "\\systemwidelua.ele");
-			GG_GetRealPath(collectionELEfilename, 1);
-			if (FileExist(collectionELEfilename) == 1) DeleteFileA(collectionELEfilename);
 			t.elementsfilename_s = collectionELEfilename;
 
 			std::vector <entitytype> storeentityelement;
