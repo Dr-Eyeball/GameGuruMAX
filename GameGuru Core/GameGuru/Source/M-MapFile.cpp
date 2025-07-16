@@ -2145,7 +2145,12 @@ void mapfile_collectfoldersandfiles (cstr levelpathfolder)
 
 	addfoldertocollection("gamecore\\decals\\blood"); //PE: New particle effects.
 	addfoldertocollection("gamecore\\decals\\explosion"); //PE: New particle effects.
-
+	//PE: New added effects.
+	addfoldertocollection("gamecore\\decals\\explosion huge");
+	addfoldertocollection("gamecore\\decals\\explosion large");
+	addfoldertocollection("gamecore\\decals\\explosion medium");
+	addfoldertocollection("gamecore\\decals\\explosion small");
+	addfoldertocollection("gamecore\\decals\\explosion_blood");
 	addfoldertocollection("gamecore\\decals\\splat");
 	addfoldertocollection("gamecore\\decals\\bloodsplat");
 	addfoldertocollection("gamecore\\decals\\impact");
@@ -2158,6 +2163,11 @@ void mapfile_collectfoldersandfiles (cstr levelpathfolder)
 	addfoldertocollection("gamecore\\decals\\splash_misty");
 	addfoldertocollection("gamecore\\decals\\splash_ripple");
 	addfoldertocollection("gamecore\\decals\\splash_small");
+	addfoldertocollection("gamecore\\decals\\splinters");
+	addfoldertocollection("gamecore\\decals\\sparks");
+	addfoldertocollection("gamecore\\decals\\dust");
+
+
 	addfoldertocollection("gamecore\\vrcontroller");
 	addfoldertocollection("gamecore\\vrcontroller\\oculus");
 	addfoldertocollection("gamecore\\projectiletypes");
