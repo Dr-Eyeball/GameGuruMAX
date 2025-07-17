@@ -1,20 +1,21 @@
 -- LUA Script - precede every function and global member with lowercase name of script + '_main'
--- Carry Object V39 by Necrym59 and Lee
+-- Carry Object V40 by Necrym59 and Lee
 -- DESCRIPTION: A global or local behaviour for object handling.
 -- DESCRIPTION: If using globally. Set AlwaysActive=ON
 -- DESCRIPTION: Weight: Must be between 1-99. 0=No Pickup.
--- DESCRIPTION: [PICKUP_TEXT$="Press Q or Hold LMB to carry, RMB to carry/throw"]
+-- DESCRIPTION: [PICKUP_TEXT$="E or LMB to carry, RMB to carry/throw"]
 -- DESCRIPTION: [PICKUP_RANGE=80(1,500)]
 -- DESCRIPTION: [MAX_PICKUP_WEIGHT=99(1,99)]
 -- DESCRIPTION: [MAX_PICKUP_SIZE=40(1,100)]
--- DESCRIPTION: [RELEASE_TEXT$="R or LMB to drop, MMW Up/Down, Z to Rotate"]
+-- DESCRIPTION: [RELEASE_TEXT$="Q or LMB to drop, MMW Up/Down, Z to Rotate"]
 -- DESCRIPTION: [THROW_TEXT$="Shift to add force - Release RMB to throw"]
 -- DESCRIPTION: [REARM_WEAPON!=0]
 -- DESCRIPTION: [THROW_DAMAGE!=0]
 -- DESCRIPTION: [DIAGNOSTICS!=0]
 -- DESCRIPTION: [ITEM_OUTLINE!=0]
 -- DESCRIPTION: [USE_PICKUP_ICON!=0]
--- DESCRIPTION: [ICON_IMAGEFILE$="imagebank\\HUD\\cursor.png"]
+-- DESCRIPTION: [ICON_IMAGEFILE$="imagebank\\icons\\pickup.png"]
+-- DESCRIPTION: [@PROMPT_DISPLAY=1(1=Local,2=Screen)]
 -- DESCRIPTION: <Sound0> when picking up object.
 
 local U = require "scriptbank\\utillib"
@@ -35,6 +36,7 @@ local diagnostics		= {}
 local item_outline 		= {}
 local use_pickup_icon	= {}
 local pickup_icon		= {}
+local prompt_display 	= {}
 
 local carry_mode 		= {}
 local new_y 			= {}
@@ -75,8 +77,9 @@ local pu_icon			= {}
 local pu_imgwidth		= {}
 local pu_imgheight		= {}
 local emvalue			= {}
+local ctrlpause			= {}
 
-function carry_object_properties(e, pickup_text, pickup_range, max_pickup_weight, max_pickup_size, release_text, throw_text, rearm_weapon, throw_damage, diagnostics, item_outline, use_pickup_icon, icon_imagefile)
+function carry_object_properties(e, pickup_text, pickup_range, max_pickup_weight, max_pickup_size, release_text, throw_text, rearm_weapon, throw_damage, diagnostics, item_outline, use_pickup_icon, icon_imagefile, prompt_display)
 	carry_object[e].pickup_text = pickup_text
 	carry_object[e].pickup_range = pickup_range
 	carry_object[e].pickup_weight = max_pickup_weight or 99
@@ -86,26 +89,28 @@ function carry_object_properties(e, pickup_text, pickup_range, max_pickup_weight
 	carry_object[e].rearm_weapon = rearm_weapon
 	carry_object[e].throw_damage = throw_damage
 	carry_object[e].diagnostics = diagnostics
-	carry_object[e].item_outline = item_outline	
+	carry_object[e].item_outline = item_outline
 	carry_object[e].use_pickup_icon	= use_pickup_icon
 	carry_object[e].pickup_icon	= icon_imagefile
+	carry_object[e].prompt_display = prompt_display
 end
 
 function carry_object_init(e)
 	carry_object[e] = {}
-	carry_object[e].prompt_text = "Hold Q or LMB to carry, RMB to carry and throw"
+	carry_object[e].pickup_text = "E or LMB to carry, RMB to carry/throw"
 	carry_object[e].pickup_range = 50
 	carry_object[e].pickup_weight = 99
 	carry_object[e].pickup_size = 40
-	carry_object[e].release_text = "Use R or LMB to drop"
-	carry_object[e].throw_text = "Release RMB to throw"
+	carry_object[e].release_text = "Q or LMB to drop, MMW Up/Down, Z to Rotate"
+	carry_object[e].throw_text = "Shift to add force - Release RMB to throw"
 	carry_object[e].rearm_weapon = 0
 	carry_object[e].throw_damage = 0
 	carry_object[e].diagnostics = 0
-	carry_object[e].item_outline = 0	
+	carry_object[e].item_outline = 0
 	carry_object[e].use_pickup_icon	= 0
-	carry_object[e].pickup_icon	= ""
-	
+	carry_object[e].pickup_icon	= "imagebank\\icons\\pickup.png"
+	carry_object[e].prompt_display = 1
+
 	carry_mode[e] = 0
 	new_y[e] = 0
 	prop_x[e] = 0
@@ -136,6 +141,7 @@ function carry_object_init(e)
 	checktimer[e] = math.huge
 	throwtimer[e] = math.huge
 	updatetimer[e] = math.huge
+	ctrlpause[e] = math.huge
 	pu_icon[e] = ""
 	pu_imgwidth[e] = 0
 	pu_imgheight[e] = 0
@@ -145,7 +151,7 @@ end
 function carry_object_main(e)
 
 	if status[e] == 'init' then
-		if carry_object[e].use_pickup_icon == 1 then 
+		if carry_object[e].use_pickup_icon == 1 then
 			if carry_object[e].pickup_icon > "" then
 				pu_icon[e] = CreateSprite(LoadImage(carry_object[e].pickup_icon))
 				pu_imgwidth[e] = GetImageWidth(LoadImage(carry_object[e].pickup_icon))
@@ -155,7 +161,7 @@ function carry_object_main(e)
 				SetSpritePosition(pu_icon[e],500,500)
 				SetSpriteOffset(pu_icon[e],pu_imgwidth[e]/2.0, pu_imgheight[e]/2.0)
 			end
-		end	
+		end
 		if carry_object[e].pickup_weight > 99 then carry_object[e].pickup_weight = 99 end
 		if carry_object[e].pickup_size > 100 then carry_object[e].pickup_size = 100 end
 		checktimer[e] = g_Time + 500
@@ -182,7 +188,7 @@ function carry_object_main(e)
 				end
 			end
 			updatetimer[e] = g_Time + 1000
-		end	
+		end
 		if g_Time > checktimer[e] then
 			objlookedat[e] = U.ObjectPlayerLookingAt(carry_object[e].pickup_range)
 			if objlookedat[e] > 0 then
@@ -211,7 +217,7 @@ function carry_object_main(e)
 				-- pinpoint select object--
 				selectobj[e] = U.ObjectPlayerLookingAt(carry_object[e].pickup_range)
 				if selectobj[e] ~= 0 then
-					tEnt[e] = P.ObjectToEntity(selectobj[e])					
+					tEnt[e] = P.ObjectToEntity(selectobj[e])
 					allegiance[e] = GetEntityAllegiance(tEnt[e])
 					if allegiance[e] == -1 then
 						local xmin, ymin, zmin, xmax, ymax, zmax = GetObjectColBox(g_Entity[tEnt[e]]['obj'])
@@ -238,12 +244,14 @@ function carry_object_main(e)
 							if carry_object[e].use_pickup_icon == 1 and carry_object[e].pickup_icon ~= "" then
 								if carry_object[e].item_outline == 1 then SetEntityOutline(tEnt[e],1) end
 								PasteSpritePosition(pu_icon[e],50,50)
-								TextCenterOnX(50,95,3,carry_object[e].pickup_text)
+								if carry_object[e].prompt_display == 1 then TextCenterOnX(50,54,1,carry_object[e].pickup_text) end
+								if carry_object[e].prompt_display == 2 then Prompt(carry_object[e].pickup_text) end
 							else
 								if carry_object[e].item_outline == 0 then TextCenterOnXColor(50-0.01,50,3,"+",255,255,255) end
 								if carry_object[e].item_outline == 1 then SetEntityOutline(tEnt[e],1) end
-								TextCenterOnX(50,95,3,carry_object[e].pickup_text)							
-							end	
+								if carry_object[e].prompt_display == 1 then TextCenterOnX(50,54,1,carry_object[e].pickup_text) end
+								if carry_object[e].prompt_display == 2 then Prompt(carry_object[e].pickup_text) end
+							end
 						end
 						if objweight[tEnt[e]] > carry_object[e].pickup_weight or nocarry[e] == 1 then
 							tEnt[e] = 0
@@ -251,12 +259,12 @@ function carry_object_main(e)
 					end
 					if allegiance[e] ~= -1 then
 						tEnt[e] = 0
-					end					
-					--end pinpoint select object--
+					end
 				end
+				--end pinpoint select object--
 				if selectobj[e] == 0 then
 					tEnt[e] = 0
-					objlookedat[e] = 0					
+					objlookedat[e] = 0
 					status[e] = 'pickup'
 				end
 				if nearEnt[e] ~= tEnt[e] then
@@ -271,7 +279,7 @@ function carry_object_main(e)
 			end
 
 			if tEnt[e] ~= 0 then
-				if g_KeyPressQ == 1 and g_carrying == 0 then
+				if g_KeyPressE == 1 and g_carrying == 0 then
 					kpressed[e] = 1
 					status[e] = 'carry'
 					g_carrying = 1
@@ -283,27 +291,28 @@ function carry_object_main(e)
 					PlaySound(e,0)
 				end
 				if g_MouseClick == 1 and g_carrying == 0 then
-					g_KeyPressQ = 1
+					g_KeyPressE = 1
+					kpressed[e] = 1
+					status[e] = 'carry'
+					g_carrying = 1
 					last_gun[e] = g_PlayerGunName
 					if g_PlayerGunID > 0 then
 						CurrentlyHeldWeaponID = GetPlayerWeaponID()
 						SetPlayerWeapons(0)
 					end
 					PlaySound(e,0)
-					status[e] = 'carry'
-					g_carrying = 1
-					PlaySound(e,0)
+					ctrlpause[e] = g_Time + 1000
 				end
 				if g_MouseClick == 2 and g_carrying == 0 then
-					g_KeyPressQ = 1
+					g_KeyPressE = 1
+					kpressed[e] = 1
+					status[e] = 'carry'
+					g_carrying = 1
 					last_gun[e] = g_PlayerGunName
 					if g_PlayerGunID > 0 then
 						CurrentlyHeldWeaponID = GetPlayerWeaponID()
 						SetPlayerWeapons(0)
 					end
-					PlaySound(e,0)
-					status[e] = 'carry'
-					g_carrying = 1
 					PlaySound(e,0)
 					thrown[e] = 1
 				end
@@ -351,21 +360,28 @@ function carry_object_main(e)
 		PositionObject(g_Entity[tEnt[e]]['obj'],prop_x[tEnt[e]],prop_y[tEnt[e]]+objheight[tEnt[e]],prop_z[tEnt[e]])
 		RotateObject(g_Entity[tEnt[e]]['obj'],0,g_Entity[tEnt[e]]['angley'],g_PlayerAngZ)
 		if g_MouseClick == 2 and g_carrying == 1 then
-			TextCenterOnX(50,95,3,carry_object[e].throw_text)
+			if carry_object[e].prompt_display == 1 then TextCenterOnX(50,54,1,carry_object[e].throw_text) end
+			if carry_object[e].prompt_display == 2 then Prompt(carry_object[e].throw_text) end
 			if g_KeyPressSHIFT == 1 then
 				fgain[e] = fgain[e] + 0.02
-				TextCenterOnX(50,97,3,"Increasing throw force by " ..math.ceil(fgain[e]))
+				if carry_object[e].prompt_display == 1 then TextCenterOnX(50,56,1,"Increasing throw force by " ..math.ceil(fgain[e])) end
+				if carry_object[e].prompt_display == 2 then Prompt("Increasing throw force by " ..math.ceil(fgain[e])) end
 			end
 			if fgain[e] >= 20 then fgain[e] = 20 end
 		else
-			TextCenterOnX(50,95,3,carry_object[e].release_text)
+			if carry_object[e].prompt_display == 1 then TextCenterOnX(50,54,1,carry_object[e].release_text) end
+			if carry_object[e].prompt_display == 2 then Prompt(carry_object[e].release_text) end
 		end
 
 		if ( GetGamePlayerStateCamAngleX()<-35) then SetGamePlayerStateCamAngleX(-35) end
 		if ( GetGamePlayerStateCamAngleX()>35) then SetGamePlayerStateCamAngleX(35) end
-		
+
 		if g_MouseClick == 2 and g_carrying == 1 then thrown[e] = 1 end
-		if g_KeyPressR == 1 or g_MouseClick == 1 or g_MouseClick == 2 then kpressed[e] = 0 end
+		if g_carrying == 1 then
+			if g_KeyPressQ == 1 then kpressed[e] = 0 end
+			if g_MouseClick == 1 and g_Time > ctrlpause[e] then kpressed[e] = 0 end
+			if g_MouseClick == 2 then kpressed[e] = 0 end
+		end
 		if kpressed[e] == 0 and g_MouseClick == 0 and colobj[e] == 0 then
 			SetEntityZDepthMode(tEnt[e],1)
 			surface[e] = GetSurfaceHeight(g_Entity[tEnt[e]]['x'],g_Entity[tEnt[e]]['y'],g_Entity[tEnt[e]]['z'])
@@ -379,7 +395,7 @@ function carry_object_main(e)
 			g_carrying = 0
 			g_carryingweight = 0
 			checktimer[e] = g_Time + 250
-			objlookedat[e] = 0			
+			objlookedat[e] = 0
 			if carry_object[e].rearm_weapon == 1 then
 				ChangePlayerWeapon(last_gun[e])
 				SetPlayerWeapons(1)
