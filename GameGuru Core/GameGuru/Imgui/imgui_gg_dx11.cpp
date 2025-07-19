@@ -7281,9 +7281,10 @@ void ParseLuaScriptWithElementID(entityeleproftype *tmpeleprof, char * script, i
 									}
 
 									// can intercept label list here if special indicator that it is an animset or questlist list
-									if (labels.size()==2 && iObjID > 0 )
+									//PE: Allow more DLUA lists to work on zones.
+									if (labels.size()==2 ) // && iObjID > 0
 									{
-										if(stricmp(labels[1].c_str(),"animsetlist")==NULL)
+										if(iObjID > 0 && stricmp(labels[1].c_str(),"animsetlist")==NULL)
 										{
 											labels.clear();
 											labels.push_back(cVariable);
@@ -7390,8 +7391,6 @@ void ParseLuaScriptWithElementID(entityeleproftype *tmpeleprof, char * script, i
 									//PE: Let some lists work on zones also.
 									if (labels.size() == 2)
 									{
-
-										
 										if (stricmp(labels[1].c_str(), "armanimsetlist") == NULL)
 										{
 											labels.clear();
