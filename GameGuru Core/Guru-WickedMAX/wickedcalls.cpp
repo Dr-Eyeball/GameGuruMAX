@@ -161,6 +161,18 @@ void WickedCall_InitImageManagement(LPSTR pRootFolder)
 	g_rootFolder = pRootFolder;
 }
 
+void WickedCall_FreeImage_By_MasterID(uint32_t masterid)
+{
+	for (int i = 0; i < g_imageList.size(); i++)
+	{
+		sImageList* pImage = &g_imageList[i];
+		if (pImage->MasterObject == masterid)
+		{
+			WickedCall_FreeImage(pImage);
+		}
+	}
+}
+
 void WickedCall_FreeImage(sImageList* pImage)
 {
 	if ( pImage )
@@ -183,6 +195,7 @@ void WickedCall_FreeImage(sImageList* pImage)
 			//wiResourceManager::Clear() <-- clears everything!!
 			//pImage->image.swap(); what frees all resources created with the wiResourceManager::Load call?
 			pImage->image = NULL;
+			pImage->MasterObject = 0;
 		}
 	}
 }
@@ -252,7 +265,7 @@ int WickedCall_FindImageIndexInList(std::string pFilenameToFind, LPSTR pFullRela
 	// return result
 	return iImageIndex;
 }
-
+uint32_t SetMasterObject = 0;
 void WickedCall_AddImageToList(std::shared_ptr<wiResource> image, eImageResType eType, std::string pFilenameRef, int iKbused)
 {
 	sImageList newImage;
@@ -261,6 +274,13 @@ void WickedCall_AddImageToList(std::shared_ptr<wiResource> image, eImageResType 
 	newImage.iMemUsedKB = iKbused;
 	newImage.pName = new char[strlen(pFilenameRef.c_str()) + 1];
 	strcpy(newImage.pName, pFilenameRef.c_str());
+
+	//PE: Mark masterobject this image belong to.
+	// > 50000 < 70000
+	if(SetMasterObject > 50000 && SetMasterObject < 70000)
+		newImage.MasterObject = SetMasterObject;
+	else
+		newImage.MasterObject = 0;
 
 	// add loaded image to existing list slot, or add a new one
 	int i = 0;

@@ -280,7 +280,10 @@ void entity_adduniqueentity ( bool bAllowDuplicates )
 		t.entid = g.entidmaster;
 		t.ent_s = t.entitybank_s[t.entid];
 		t.entpath_s = getpath(t.ent_s.Get());
+		extern uint32_t SetMasterObject;
+		SetMasterObject = g.entitybankoffset + t.entid;
 		entity_load ();
+		SetMasterObject = 0;
 
 		// copy over all related files if using a remote project
 		if (bAlsoCopyOverAllRelatedEntityFiles == true)
@@ -8573,8 +8576,11 @@ void entity_loadentitiesnow ( void )
 			extern int g_iAbortedAsEntityIsGroupFileModeStubOnly;
 			g_iAbortedAsEntityIsGroupFileModeStubOnly = 1;
 
+			extern uint32_t SetMasterObject;
+			SetMasterObject = g.entitybankoffset + t.entid;
 			// regular FPE entity
 			entity_load ( );
+			SetMasterObject = 0;
 
 			// only used for when loading entities
 			g_iAbortedAsEntityIsGroupFileModeStubOnly = 0;
@@ -8608,6 +8614,11 @@ void entity_deletebank ( void )
 			// delete parent entity object
 			t.entobj = g.entitybankoffset+t.entid;
 			if ( ObjectExist(t.entobj) == 1  ) DeleteObject (  t.entobj );
+
+			//PE: Delete all textures used by master object here.
+			//PE: TODO Perhaps use the .lst file from newly loaded level and do not delete those if they are used in the new level.
+			void WickedCall_FreeImage_By_MasterID(uint32_t masterid);
+			WickedCall_FreeImage_By_MasterID(t.entobj);
 
 			#ifdef VRTECH
 			#else
