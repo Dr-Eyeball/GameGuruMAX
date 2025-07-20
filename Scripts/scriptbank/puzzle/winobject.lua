@@ -63,7 +63,7 @@ function winobject_init(e)
 	endvideo[e] = 0
 	hl_icon[e] = 0
 	hl_imgwidth[e] = 0
-	hl_imgheight[e] = 0	
+	hl_imgheight[e] = 0		
 	status[e] = "init"
 end
  

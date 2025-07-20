@@ -1,30 +1,37 @@
 -- LUA Script - precede every function and global member with lowercase name of script + '_main'
 -- Rockfall v5 - by Necrym59 
 -- DESCRIPTION: A Rockfall activated from range or a trigger zone. Always Active=ON. Physics=ON, Gravity=ON, Collision=BOX
--- DESCRIPTION: [PROMPT_TEXT$="Rock Fall"], [ACTIVATION_RANGE=800(1,2000)], [EVENT_DURATION=6(1,10)] secs
--- DESCRIPTION: [HIT_DAMAGE=10(1,500)],[HIT_RADIUS=50(1,500)], [START_HEIGHT=10(0,1000)]
--- DESCRIPTION: [@GROUND_SHAKE=1(1=Off, 2=On)], [@HIDE_ROCK=1(1=Off, 2=On)]
+-- DESCRIPTION: [PROMPT_TEXT$="Rock Fall"]
+-- DESCRIPTION: [ACTIVATION_RANGE=800(1,2000)]
+-- DESCRIPTION: [EVENT_DURATION=6(1,10)] in seconds
+-- DESCRIPTION: [HIT_DAMAGE=10(1,500)]
+-- DESCRIPTION: [HIT_RADIUS=50(1,500)]
+-- DESCRIPTION: [START_HEIGHT=10(0,1000)]
+-- DESCRIPTION: [@GROUND_SHAKE=1(1=Off, 2=On)],
+-- DESCRIPTION: [@HIDE_ROCK=1(1=Off, 2=On)]
 -- DESCRIPTION: <Sound0> Rockfall loop
 
-	local P = require "scriptbank\\physlib"
+local P = require "scriptbank\\physlib"
+local U = require "scriptbank\\utillib"
 
-	local rockfall 			= {}
-	local prompt_text 		= {}
-	local activation_range 	= {}
-	local event_duration 	= {}
-	local hit_damage		= {}
-	local hit_radius 		= {}
-	local start_height		= {}
-	local ground_shake		= {}
-	local hide_rock			= {}
-	local status 			= {}
-	local rock_hit 			= {}
-	local height 			= {}
-	local rockfall_time 	= {}
-	local rocks				= {}
-	local startx			= {}
-	local starty			= {}
-	local startz			= {}
+local rockfall 			= {}
+local prompt_text 		= {}
+local activation_range 	= {}
+local event_duration 	= {}
+local hit_damage		= {}
+local hit_radius 		= {}
+local start_height		= {}
+local ground_shake		= {}
+local hide_rock			= {}
+local status 			= {}
+local rock_hit 			= {}
+local height 			= {}
+local rockfall_time 	= {}
+local rocks				= {}
+local startx			= {}
+local starty			= {}
+local startz			= {}
+local checktimer		= {}
 	
 function rockfall_properties(e, prompt_text, activation_range, event_duration, hit_damage, hit_radius, start_height, ground_shake, hide_rock)
 	rockfall[e] = g_Entity[e]
@@ -55,6 +62,7 @@ function rockfall_init(e)
 	CollisionOff(e)
 	rocks[e] = 0
 	g_Time = 0
+	checktimer[e] = 0
 end
 
 function rockfall_main(e)
@@ -73,11 +81,12 @@ function rockfall_main(e)
 		if status[e] == "start_event" then					
 			PromptDuration(rockfall[e].prompt_text,3000)
 			rockfall_time[e] = g_Time + (rockfall[e].event_duration*1000)
-			StartTimer(e)			
+			StartTimer(e)
 			Show(e)		
 			status[e] = "rockfall"
 			GravityOn(e)
 			CollisionOn(e)
+			PushObject(g_Entity[e]['obj'], math.random(1,1000), math.random(1,188), math.random(1,810/2), 118, 111, 110 )
 		end			
 		if status[e] == "rockfall" and g_PlayerHealth > 0 then			
 			LoopSound(e,0)			
@@ -86,6 +95,16 @@ function rockfall_main(e)
 				ForcePlayer(0,3)
 				rock_hit[e] = 1
 			end
+			if g_Time > checktimer[e] then
+				for _, v in pairs(U.ClosestEntities(80,math.huge,g_Entity[e]['x'],g_Entity[e]['z'])) do
+					if GetEntityAllegiance(v) > -1 then
+						if g_Entity[v]['health'] > 0 then
+							SetEntityHealth(v,g_Entity[v]['health']-rockfall[e].hit_damage)							
+						end
+						checktimer[e] = g_Time + 250
+					end
+				end
+			end	
 			if rockfall[e].ground_shake == 2 then
 				if GamePlayerControlSetShakeTrauma ~= nil then
 					if g_Time < rockfall_time[e] then
