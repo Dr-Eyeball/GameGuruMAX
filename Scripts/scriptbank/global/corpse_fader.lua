@@ -1,5 +1,5 @@
 -- Corpse Fader v4 by Smallg modified by Necrym59
--- DESCRIPTION: A global behavior to fades out entity corpses after a set delay. 
+-- DESCRIPTION: A global behavior to fade out entity corpses after a set delay. 
 -- DESCRIPTION: Set [#FADE_DELAY=5(0,100)] seconds after death of entity.
 -- DESCRIPTION: Set [#FADE_TIME=5(0,100)] seconds for fade.
 
