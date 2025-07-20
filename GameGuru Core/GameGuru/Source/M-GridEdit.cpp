@@ -18088,12 +18088,12 @@ void editor_previewmapormultiplayer_afterloopcode ( int iUseVRTest )
 	#endif
 
 	// LUA may have changed fog, restore it
-	t.visuals.FogNearest_f = t.editorvisuals.FogNearest_f;
-	t.visuals.FogDistance_f = t.editorvisuals.FogDistance_f;
-	t.visuals.FogR_f = t.editorvisuals.FogR_f;
-	t.visuals.FogG_f = t.editorvisuals.FogG_f;
-	t.visuals.FogB_f = t.editorvisuals.FogB_f;
-	t.visuals.FogA_f = t.editorvisuals.FogA_f;
+	t.visuals.FogNearest_f = t.gamevisuals.FogNearest_f;
+	t.visuals.FogDistance_f = t.gamevisuals.FogDistance_f;
+	t.visuals.FogR_f = t.gamevisuals.FogR_f;
+	t.visuals.FogG_f = t.gamevisuals.FogG_f;
+	t.visuals.FogB_f = t.gamevisuals.FogB_f;
+	t.visuals.FogA_f = t.gamevisuals.FogA_f;
 
 	// remember game states for next time
 	visuals_save ( );
