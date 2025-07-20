@@ -1,6 +1,5 @@
 -- RPG_Player State v14
 -- DESCRIPTION: A global behavior that incrementally adds or deducts the players User Globals over time.
--- DESCRIPTION: Attach to an object, Set always active On.
 -- DESCRIPTION: [@@USER_GLOBAL_AFFECTED1$="MyGlobal1"(0=globallist)] eg: MyGlobal1
 -- DESCRIPTION: [AMOUNT1=0] units
 -- DESCRIPTION: [TIME_INTERVAL1=0] seconds
