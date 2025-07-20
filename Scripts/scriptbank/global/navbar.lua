@@ -1,5 +1,5 @@
 -- Navigation Bar v14 by Smallg and Necrym59
--- DESCRIPTION: A global behavior that adds a Nagigation Bar to your game, use the Navbar Objective behavior to add markers.
+-- DESCRIPTION: A global behavior that adds a Navigation Bar to your game, use the Navbar Objective behavior to add markers.
 -- DESCRIPTION: [IMAGEFILE$="imagebank\\navbar\\navbar.png"]
 -- DESCRIPTION: [VIEWRANGE=6000] of objectives shown on the radar
 -- DESCRIPTION: [WIDTH=15(1,100)] of the navigation bar on screen 
