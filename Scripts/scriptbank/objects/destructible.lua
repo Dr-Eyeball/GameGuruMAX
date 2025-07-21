@@ -1,4 +1,4 @@
--- Destructible v3 by Lee and Necrym59
+-- Destructible v4 by Lee and Necrym59
 -- DESCRIPTION: This object has destruction fragment limbs that can be used to destroy an object and can also block navmesh.
 -- DESCRIPTION: Set IsImmobile to YES.
 -- DESCRIPTION: [SOLID_LIMB=2]
@@ -10,6 +10,7 @@
 -- DESCRIPTION: <Sound0> plays when destroyed.
 
 local NAVMESH = require "scriptbank\\navmeshlib"
+local U = require "scriptbank\\utillib"
 local lower = string.lower
 local destructible = {}
 local solid_limb = {}
@@ -81,6 +82,12 @@ function destructible_main(e)
 		if destructible[e].destroy_at_end == 1 then
 			if GetObjectAnimationFinished(e,destructible[e].destroy_anim_trim) == 1 then 
 				Destroy(e)
+			end
+		end
+		for n = 1, g_EntityElementMax do
+			if n ~= nil and g_Entity[n] ~= nil then
+				local objid = g_Entity[n]['obj']
+				PushObject(objid,0,0,0,0,0,0)
 			end
 		end
 	end
