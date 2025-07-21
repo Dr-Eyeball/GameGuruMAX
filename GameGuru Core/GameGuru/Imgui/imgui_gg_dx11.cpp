@@ -5330,53 +5330,56 @@ void AddRemoteProjectFonts(void)
 		strcpy(destination, Storyboard.customprojectfolder);
 		strcat(destination, Storyboard.gamename);
 		strcat(destination, "\\files\\editors\\templates\\fonts\\");
-		SetDir(destination);
-		ChecklistForFiles();
-		SetDir(pOldDir);
-		DARKSDK LPSTR ChecklistString(int iIndex);
-		DARKSDK int ChecklistQuantity(void);
-		for (int c = 1; c <= ChecklistQuantity(); c++)
+		if (PathExist(destination))
 		{
-			char* file = ChecklistString(c);
-			if (file)
+			SetDir(destination);
+			ChecklistForFiles();
+			SetDir(pOldDir);
+			DARKSDK LPSTR ChecklistString(int iIndex);
+			DARKSDK int ChecklistQuantity(void);
+			for (int c = 1; c <= ChecklistQuantity(); c++)
 			{
-				if (strlen(file) > 4)
+				char* file = ChecklistString(c);
+				if (file)
 				{
-					const char* pestrcasestr(const char* arg1, const char* arg2);
-					if (strnicmp(file + strlen(file) - 4, ".ttf", 4) == NULL || strnicmp(file + strlen(file) - 4, ".otf", 4) == NULL)
+					if (strlen(file) > 4)
 					{
-						bool bAlreadyThere = false;
-						for (int i = 0; i < StoryboardFonts.size(); i++)
+						const char* pestrcasestr(const char* arg1, const char* arg2);
+						if (strnicmp(file + strlen(file) - 4, ".ttf", 4) == NULL || strnicmp(file + strlen(file) - 4, ".otf", 4) == NULL)
 						{
-							if (pestrcasestr(file,StoryboardFonts[i].second.c_str()))
+							bool bAlreadyThere = false;
+							for (int i = 0; i < StoryboardFonts.size(); i++)
 							{
-								bAlreadyThere = true;
-								break;
+								if (pestrcasestr(file, StoryboardFonts[i].second.c_str()))
+								{
+									bAlreadyThere = true;
+									break;
+								}
 							}
-						}
-						//Add font.
-						if (!bAlreadyThere)
-						{
-							char path[MAX_PATH];
-							strcpy(path, destination);
-							strcat(path, file);
-							if (pestrcasestr(file, "arial"))
-								tmpfont = io.Fonts->AddFontFromFileTTF(path, 60, NULL, &Generic_ranges_everything[0]); //Add font
-							else
-								tmpfont = io.Fonts->AddFontFromFileTTF(path, 60, NULL, &Generic_ranges_all[0]); //Add font
-							StoryboardFonts.push_back(std::make_pair(tmpfont, file));
-							bAddedFonts = true;
+							//Add font.
+							if (!bAlreadyThere)
+							{
+								char path[MAX_PATH];
+								strcpy(path, destination);
+								strcat(path, file);
+								if (pestrcasestr(file, "arial"))
+									tmpfont = io.Fonts->AddFontFromFileTTF(path, 60, NULL, &Generic_ranges_everything[0]); //Add font
+								else
+									tmpfont = io.Fonts->AddFontFromFileTTF(path, 60, NULL, &Generic_ranges_all[0]); //Add font
+								StoryboardFonts.push_back(std::make_pair(tmpfont, file));
+								bAddedFonts = true;
+							}
 						}
 					}
 				}
 			}
-		}
-		if (bAddedFonts)
-		{
-			//ImGui_ImplDX11_CreateDeviceObjects();
-			ImGui_ImplDX11_CreateFontsTexture();
-			//PE: old frame could have our old font texture , so disable it until newframe.
-			bBlockImGuiUntilNewFrame = true;
+			if (bAddedFonts)
+			{
+				//ImGui_ImplDX11_CreateDeviceObjects();
+				ImGui_ImplDX11_CreateFontsTexture();
+				//PE: old frame could have our old font texture , so disable it until newframe.
+				bBlockImGuiUntilNewFrame = true;
+			}
 		}
 		SetDir(pOldDir);
 	}
