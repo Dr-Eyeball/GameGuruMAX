@@ -31194,6 +31194,12 @@ void GridPopup(ImVec2 wpos)
 }
 #endif
 
+void GetConvertSettings(int *maxwidth,int *active)
+{
+	*active = g.globals.ConvertToDDS;
+	*maxwidth = g.globals.ConvertToDDSMaxSize;
+}
+
 int GetActiveEditorObject( void )
 {
 	int iActiveObj = t.widget.activeObject;

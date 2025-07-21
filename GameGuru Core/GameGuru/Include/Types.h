@@ -3435,9 +3435,14 @@ struct globalstype
 	float realshadowdistancehigh;
 	int editorusemediumshadows;
 	float CurveDistanceScaler;
+	int ConvertToDDS;
+	int ConvertToDDSMaxSize;
 	// Constructor
 	globalstype ( )
 	{
+		ConvertToDDS = 0;
+		ConvertToDDSMaxSize = 2048;
+
 		CurveDistanceScaler = 250; // 200;
 		 realshadowdistance = 5000.0f;
 		 realshadowdistancehigh = 5000.0f;

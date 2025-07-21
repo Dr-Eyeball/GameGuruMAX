@@ -442,7 +442,13 @@ std::shared_ptr<wiResource> WickedCall_LoadImage(std::string pFilenameToLoadIN, 
 			std::vector<uint8_t> data;
 			if (wiHelper::FileRead(VirtualFilename, data))
 			{
-				image = wiResourceManager::Load(pFilenameToLoad, 0, data.data(), data.size());
+				//PE: Now controlled in setup.ini so always (1 << 2)
+				//setup.ini:
+				//ConvertToDDS = 1
+				//ConvertToDDSMaxsize = 2048
+
+				uint32_t flag = 1 << 2; //IMPORT_CONVERT_TO_DDS
+				image = wiResourceManager::Load(pFilenameToLoad, flag, data.data(), data.size());
 				data.clear();
 			}
 			if (image != NULL)

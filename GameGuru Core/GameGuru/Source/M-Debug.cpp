@@ -107,6 +107,7 @@ void timestampactivity ( int i, char* desc_s )
 		{
 			FILE * pFile;
 			GG_SetWritablesToRoot(true);
+			SetWriteAsRootTemp(true);
 			pFile = GG_fopen(file_s.Get(), "a+");
 			if (pFile != NULL)
 			{
@@ -124,6 +125,7 @@ void timestampactivity ( int i, char* desc_s )
 				fclose(pFile);
 			}
 			GG_SetWritablesToRoot(false);
+			SetWriteAsRootTemp(false);
 		}
 		else
 		{
