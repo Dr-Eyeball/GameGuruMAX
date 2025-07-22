@@ -33,6 +33,7 @@ int fileRedirectSetup = 0;
 FILE *pLogFile = 0;
 char szRootDir[ MAX_PATH ];
 char szWriteDir[ MAX_PATH ];
+char szBeforeChangeWriteDir[MAX_PATH] = "\0";
 char szAddWriteDirAdditional[MAX_PATH];
 
 // separate writabkes for root/global writing and rest for remote project location (or can also be in global if no remote set)

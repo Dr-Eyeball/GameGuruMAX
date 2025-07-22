@@ -1883,6 +1883,21 @@ void mapeditorexecutable_full_folder_refresh(void)
 				// root folder
 				SetDir(pOld);
 				GetMainEntityList(pMediaFolderPattern, "", pLastFolder, "", false, iMediaFolderType);
+
+				extern char szBeforeChangeWriteDir[MAX_PATH];
+				extern bool bIncludeDocumentFolderInRemoteProject;
+				//PE: Normal writefolder if remote project.
+				if(bIncludeDocumentFolderInRemoteProject && strlen(szBeforeChangeWriteDir) > 0)
+				{
+					char newpath[MAX_PATH];
+					strcpy(newpath, szBeforeChangeWriteDir);
+					strcat(newpath, "Files");
+					SetDir(newpath);
+					GetMainEntityList(pMediaFolderPattern, "", pLastFolder, "", false, iMediaFolderType);
+				}
+
+				SetDir(pOld);
+
 			}
 		}
 
@@ -12665,8 +12680,8 @@ void mapeditorexecutable_loop(void)
 				extern void RefreshPurchasedFolder (void);
 				RefreshPurchasedFolder();
 				// force the purchased cateogry to show up (and also cause needed refresh)
-				extern void process_gotopurchaedandrefreshtopurchases (void);
-				process_gotopurchaedandrefreshtopurchases();
+				extern void process_gotopurchaedandrefreshtopurchases (bool bForceSearch);
+				process_gotopurchaedandrefreshtopurchases(false);
 				// trigger folder tree on left of library to recalculate in case of new folders (audiobank\xx)
 				extern bool bTreeViewInitInNextFrame;
 				bTreeViewInitInNextFrame = true;
@@ -12914,7 +12929,15 @@ void mapeditorexecutable_loop(void)
 			float fSpacer = 0.0f;
 			float entity_image_size = entity_w / (float)entity_icons_columns;
 			entity_image_size -= ((1.125f) * entity_icons_columns);
-			if (entity_w > 360)
+			if (entity_w > 680)
+			{
+				//Switch to 15 per row.
+				entity_icons = 15;
+				entity_icons_columns = entity_icons;// 12;
+				entity_image_size = entity_w / (float)entity_icons_columns;
+				entity_image_size -= 7.5f;
+			}
+			else if (entity_w > 360)
 			{
 				//Switch to 12 per row.
 				entity_icons_columns = entity_icons;// 12;
@@ -12931,6 +12954,8 @@ void mapeditorexecutable_loop(void)
 			content_avail.y -= 3.0f;
 			content_avail.y -= ((entity_w / entity_icons_columns) * iIconRows);
 			content_avail.y -= 10.0f;
+			if (entity_icons_columns > 10)
+				content_avail.y -= entity_image_size;
 
 			static bool bViewOptionsOpen = false;
 			if(bViewOptionsOpen)
@@ -13829,6 +13854,8 @@ void mapeditorexecutable_loop(void)
 			int offset = 0;
 			if (bViewOptionsOpen)
 				offset = 225;// 205;// 115;
+			if (entity_icons_columns > 10 && entity_icons_columns < 15)
+				offset += entity_image_size;
 
 			ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(0.0f, ImGui::GetContentRegionAvail().y - offset
 				- ((entity_w / entity_icons_columns) * iIconRows) - ImGui::GetFontSize() * 4.0f + 10.0f));
@@ -18061,12 +18088,12 @@ void editor_previewmapormultiplayer_afterloopcode ( int iUseVRTest )
 	#endif
 
 	// LUA may have changed fog, restore it
-	t.visuals.FogNearest_f = t.editorvisuals.FogNearest_f;
-	t.visuals.FogDistance_f = t.editorvisuals.FogDistance_f;
-	t.visuals.FogR_f = t.editorvisuals.FogR_f;
-	t.visuals.FogG_f = t.editorvisuals.FogG_f;
-	t.visuals.FogB_f = t.editorvisuals.FogB_f;
-	t.visuals.FogA_f = t.editorvisuals.FogA_f;
+	t.visuals.FogNearest_f = t.gamevisuals.FogNearest_f;
+	t.visuals.FogDistance_f = t.gamevisuals.FogDistance_f;
+	t.visuals.FogR_f = t.gamevisuals.FogR_f;
+	t.visuals.FogG_f = t.gamevisuals.FogG_f;
+	t.visuals.FogB_f = t.gamevisuals.FogB_f;
+	t.visuals.FogA_f = t.gamevisuals.FogA_f;
 
 	// remember game states for next time
 	visuals_save ( );
@@ -28375,15 +28402,16 @@ void gridedit_save_test_map ( void )
 	if (strlen(Storyboard.gamename) > 0)
 	{
 		timestampactivity(0, "saving systemwidelua.ele");
+		cstr storeoldELEfile = t.elementsfilename_s;
+		char collectionELEfilename[MAX_PATH];
+		strcpy(collectionELEfilename, "projectbank\\");
+		strcat(collectionELEfilename, Storyboard.gamename);
+		strcat(collectionELEfilename, "\\systemwidelua.ele");
+		GG_GetRealPath(collectionELEfilename, 1);
+		if (FileExist(collectionELEfilename) == 1) DeleteFileA(collectionELEfilename);
+
 		if (storeindex > 1)
 		{
-			cstr storeoldELEfile = t.elementsfilename_s;
-			char collectionELEfilename[MAX_PATH];
-			strcpy(collectionELEfilename, "projectbank\\");
-			strcat(collectionELEfilename, Storyboard.gamename);
-			strcat(collectionELEfilename, "\\systemwidelua.ele");
-			GG_GetRealPath(collectionELEfilename, 1);
-			if (FileExist(collectionELEfilename) == 1) DeleteFileA(collectionELEfilename);
 			t.elementsfilename_s = collectionELEfilename;
 
 			std::vector <entitytype> storeentityelement;
@@ -31165,6 +31193,12 @@ void GridPopup(ImVec2 wpos)
 
 }
 #endif
+
+void GetConvertSettings(int *maxwidth,int *active)
+{
+	*active = g.globals.ConvertToDDS;
+	*maxwidth = g.globals.ConvertToDDSMaxSize;
+}
 
 int GetActiveEditorObject( void )
 {

@@ -397,7 +397,8 @@ bool save_rpg_system_items(char* name, bool bIncludeELEFile)
 
 					strcat(theline, pTab);
 				}
-				theline[strlen(theline) - 1] = 0;
+				if(strlen(theline) > 0) //PE: Crashed here if strlen==0
+					theline[strlen(theline) - 1] = 0;
 				strcat(theline, pCR);
 				fwrite (theline, strlen (theline) * sizeof (char), 1, collectionFile);
 			}
@@ -409,6 +410,8 @@ bool save_rpg_system_items(char* name, bool bIncludeELEFile)
 			}
 		}
 		fclose(collectionFile);
+		timestampactivity(0, "DONE saving collection - items.tsv");
+
 	}
 
 	// also save an up to date copy of the needed elements

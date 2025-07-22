@@ -41,6 +41,7 @@ struct sImageList
 	eImageResType eType;
 	std::shared_ptr<wiResource> image;
 	int iMemUsedKB = 0;
+	uint32_t MasterObject = 0;
 };
 #endif
 

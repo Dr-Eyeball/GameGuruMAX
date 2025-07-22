@@ -1306,10 +1306,14 @@ void ShowMemDebug(void)
 			fGBMemUsed = (float)SMEMAvailable(1) / 1024.0 / 1024.0;
 
 #ifdef INCLUDEVRAM
-		static float vram = 0;
+		//PE: Always show dedicated VRAM + system RAM GPU use.
+		static float tvram = 0;
 		if (memupdatecount % 13 == 0)
-			vram = GetVramUsage();
-		sprintf(memtmp, "FPS %.1f Mem %.2f VRam %.2f", (ImGui::GetIO().Framerate + oldfps) * 0.5f, fGBMemUsed, vram / 1024.0f);
+		{
+			float GetTotalVramUsage(void);
+			tvram = GetTotalVramUsage();
+		}
+		sprintf(memtmp, "FPS %.1f Mem %.2f VRam %.2f", (ImGui::GetIO().Framerate + oldfps) * 0.5f, fGBMemUsed, tvram / 1024.0f);
 		wide = 210.0f;
 #else
 		//sprintf(memtmp, "FPS: %.1f Mem GB: %.3f", ImGui::GetIO().Framerate, fGBMemUsed);
@@ -6192,5 +6196,28 @@ float GetVramUsage(void)
 	DXGI_QUERY_VIDEO_MEMORY_INFO videoMemoryInfo;
 	adapter->QueryVideoMemoryInfo(g_iActiveAdapterNumber, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &videoMemoryInfo);
 	return (float)videoMemoryInfo.CurrentUsage / 1024.0f / 1024.0f;
+}
+
+float GetTotalVramUsage(void)
+{
+	extern uint32_t g_iActiveAdapterNumber;
+	if (!pFactory)
+		CreateDXGIFactory1(__uuidof(IDXGIFactory4), (void**)&pFactory);
+	if (!adapter)
+		pFactory->EnumAdapters(0, reinterpret_cast<IDXGIAdapter**>(&adapter));
+	DXGI_QUERY_VIDEO_MEMORY_INFO videoMemoryInfo = {};
+	adapter->QueryVideoMemoryInfo(g_iActiveAdapterNumber, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &videoMemoryInfo);
+	float TotalVRam = (float)videoMemoryInfo.CurrentUsage / 1024.0f / 1024.0f;
+
+	DXGI_QUERY_VIDEO_MEMORY_INFO nonLocalVideoMemoryInfo = {};
+	HRESULT hrNonLocal = adapter->QueryVideoMemoryInfo(g_iActiveAdapterNumber, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &nonLocalVideoMemoryInfo);
+	TotalVRam += (float)nonLocalVideoMemoryInfo.CurrentUsage / 1024.0f / 1024.0f;
+
+	//usageInfo.nonLocalUsedMB = (float)nonLocalVideoMemoryInfo.CurrentUsage / 1024.0f / 1024.0f;
+	//usageInfo.nonLocalBudgetMB = (float)nonLocalVideoMemoryInfo.Budget / 1024.0f / 1024.0f;
+	//usageInfo.nonLocalSwappedOutMB = (float)(nonLocalVideoMemoryInfo.Budget - nonLocalVideoMemoryInfo.CurrentUsage) / 1024.0f / 1024.0f;
+	//if (usageInfo.nonLocalSwappedOutMB < 0) usageInfo.nonLocalSwappedOutMB = 0; // Ensure non-negative
+
+	return(TotalVRam);
 }
 #endif

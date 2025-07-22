@@ -3435,9 +3435,14 @@ struct globalstype
 	float realshadowdistancehigh;
 	int editorusemediumshadows;
 	float CurveDistanceScaler;
+	int ConvertToDDS;
+	int ConvertToDDSMaxSize;
 	// Constructor
 	globalstype ( )
 	{
+		ConvertToDDS = 0;
+		ConvertToDDSMaxSize = 2048;
+
 		CurveDistanceScaler = 250; // 200;
 		 realshadowdistance = 5000.0f;
 		 realshadowdistancehigh = 5000.0f;
@@ -6526,6 +6531,7 @@ struct entityeleproftype
 	cstr thumb_aimain_s;
 	int thumb_id;
 	int systemwide_lua;
+	int isobjective_alwaysactive;
 	// Constructor
 	entityeleproftype ( )
 	{
@@ -6686,6 +6692,7 @@ struct entityeleproftype
 		 thumb_aimain_s = "";
 		 thumb_id = 0;
 		 systemwide_lua = 0;
+		 isobjective_alwaysactive = 0;
 	}
 	// End of Constructor
 

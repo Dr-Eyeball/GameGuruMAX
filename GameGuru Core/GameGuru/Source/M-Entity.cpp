@@ -280,7 +280,10 @@ void entity_adduniqueentity ( bool bAllowDuplicates )
 		t.entid = g.entidmaster;
 		t.ent_s = t.entitybank_s[t.entid];
 		t.entpath_s = getpath(t.ent_s.Get());
+		extern uint32_t SetMasterObject;
+		SetMasterObject = g.entitybankoffset + t.entid;
 		entity_load ();
+		SetMasterObject = 0;
 
 		// copy over all related files if using a remote project
 		if (bAlsoCopyOverAllRelatedEntityFiles == true)
@@ -6372,7 +6375,7 @@ void c_entity_loadelementsdata ( void )
 						t.entityelement[t.e].eleprof.systemwide_lua = t.a;
 						if (t.entityelement[t.e].eleprof.systemwide_lua > 1)
 							t.entityelement[t.e].eleprof.systemwide_lua = 0;
-						t.a = c_ReadLong(1); iFiller = t.a;
+						t.a = c_ReadLong(1); t.entityelement[t.e].eleprof.isobjective_alwaysactive = t.a;
 						t.a = c_ReadLong(1); iFiller = t.a;
 						t.a_s = c_ReadString(1); sFiller = t.a_s;
 						t.a_s = c_ReadString(1); sFiller = t.a_s;
@@ -6777,38 +6780,41 @@ void entity_loadelementsdata(void)
 			if (t.entityelement[i].eleprof.systemwide_lua)
 			{
 				int tentid = t.entityelement[i].bankindex;
-				if (tentid == 0 || tentid > t.entityprofile.size() || t.entityprofile[tentid].ismarker != 12)
+				if (tentid > 0)
 				{
-					//PE: Need to reload and remap.
-					extern int g_iAddEntitiesModeFrom;
-					g_iAddEntitiesModeFrom = g.entidmaster + 1;
-					cstr entProfileToAdd_s = "_markers\\BehaviorHidden.fpe";
-					
-					//PE: For now all systemwide_lua need to be hidden
-					//if (t.entityelement[i].y >= -9999) //PE: Hidden default = -999999
-					//	entProfileToAdd_s = "_markers\\Behavior.fpe";
+					if (tentid == 0 || tentid > t.entityprofile.size() || t.entityprofile[tentid].ismarker != 12)
+					{
+						//PE: Need to reload and remap.
+						extern int g_iAddEntitiesModeFrom;
+						g_iAddEntitiesModeFrom = g.entidmaster + 1;
+						cstr entProfileToAdd_s = "_markers\\BehaviorHidden.fpe";
 
-					int iFoundMatchEntID = 0;
-					for (int entid = 1; entid <= g.entidmaster; entid++)
-					{
-						if (stricmp(t.entitybank_s[entid].Get(), entProfileToAdd_s.Get()) == NULL)
+						//PE: For now all systemwide_lua need to be hidden
+						//if (t.entityelement[i].y >= -9999) //PE: Hidden default = -999999
+						//	entProfileToAdd_s = "_markers\\Behavior.fpe";
+
+						int iFoundMatchEntID = 0;
+						for (int entid = 1; entid <= g.entidmaster; entid++)
 						{
-							iFoundMatchEntID = entid;
-							break;
+							if (stricmp(t.entitybank_s[entid].Get(), entProfileToAdd_s.Get()) == NULL)
+							{
+								iFoundMatchEntID = entid;
+								break;
+							}
 						}
+						if (iFoundMatchEntID == 0)
+						{
+							g.entidmaster++;
+							entity_validatearraysize();
+							t.entitybank_s[g.entidmaster] = entProfileToAdd_s;
+							iFoundMatchEntID = g.entidmaster;
+							extern int g_iAddEntitiesMode;
+							g_iAddEntitiesMode = 1;
+							entity_loadentitiesnow();
+							g_iAddEntitiesMode = 0;
+						}
+						t.entityelement[i].bankindex = iFoundMatchEntID;
 					}
-					if (iFoundMatchEntID == 0)
-					{
-						g.entidmaster++;
-						entity_validatearraysize();
-						t.entitybank_s[g.entidmaster] = entProfileToAdd_s;
-						iFoundMatchEntID = g.entidmaster;
-						extern int g_iAddEntitiesMode;
-						g_iAddEntitiesMode = 1;
-						entity_loadentitiesnow();
-						g_iAddEntitiesMode = 0;
-					}
-					t.entityelement[i].bankindex = iFoundMatchEntID;
 				}
 			}
 		}
@@ -7980,7 +7986,7 @@ void entity_saveelementsdata (bool bForCollectionELE)
 					writer.WriteFloat(0.0f);
 					writer.WriteFloat(0.0f);
 					writer.WriteLong(t.entityelement[ent].eleprof.systemwide_lua);
-					writer.WriteLong(0);
+					writer.WriteLong(t.entityelement[ent].eleprof.isobjective_alwaysactive);
 					writer.WriteLong(0);
 					writer.WriteString("");
 					writer.WriteString("");
@@ -8570,8 +8576,11 @@ void entity_loadentitiesnow ( void )
 			extern int g_iAbortedAsEntityIsGroupFileModeStubOnly;
 			g_iAbortedAsEntityIsGroupFileModeStubOnly = 1;
 
+			extern uint32_t SetMasterObject;
+			SetMasterObject = g.entitybankoffset + t.entid;
 			// regular FPE entity
 			entity_load ( );
+			SetMasterObject = 0;
 
 			// only used for when loading entities
 			g_iAbortedAsEntityIsGroupFileModeStubOnly = 0;
@@ -8605,6 +8614,11 @@ void entity_deletebank ( void )
 			// delete parent entity object
 			t.entobj = g.entitybankoffset+t.entid;
 			if ( ObjectExist(t.entobj) == 1  ) DeleteObject (  t.entobj );
+
+			//PE: Delete all textures used by master object here.
+			//PE: TODO Perhaps use the .lst file from newly loaded level and do not delete those if they are used in the new level.
+			void WickedCall_FreeImage_By_MasterID(uint32_t masterid);
+			WickedCall_FreeImage_By_MasterID(t.entobj);
 
 			#ifdef VRTECH
 			#else

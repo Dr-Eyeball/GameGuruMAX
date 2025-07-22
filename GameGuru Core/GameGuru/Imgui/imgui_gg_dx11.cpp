@@ -1155,6 +1155,7 @@ static void ImGui_ImplDX11_CreateFontsTexture()
         srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
         srvDesc.Texture2D.MipLevels = desc.MipLevels;
         srvDesc.Texture2D.MostDetailedMip = 0;
+		if (g_pFontTextureView) { g_pFontTextureView->Release(); g_pFontTextureView = NULL; ImGui::GetIO().Fonts->TexID = NULL; }
         g_pd3dDevice->CreateShaderResourceView(pTexture, &srvDesc, &g_pFontTextureView);
         pTexture->Release();
     }
@@ -1174,6 +1175,7 @@ static void ImGui_ImplDX11_CreateFontsTexture()
         desc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
         desc.MinLOD = 0.f;
         desc.MaxLOD = 0.f;
+		if (g_pFontSampler) { g_pFontSampler->Release(); g_pFontSampler = NULL; }
         g_pd3dDevice->CreateSamplerState(&desc, &g_pFontSampler);
     }
 }
@@ -5196,18 +5198,23 @@ ImFont* customfont;
 ImFont* customfontlarge;
 ImFont* tmpfont;
 
+static const ImWchar Generic_ranges_all[] =
+{
+	0x0020, 0x00FF, // Basic Latin + Latin Supplement
+	0x0100, 0x017F,	//0100 — 017F  	Latin Extended-A
+	0x0180, 0x024F,	//0180 — 024F  	Latin Extended-B
+	0,
+};
+//PE: Optimize exclude Phonetic Extensions (1D00 — 1D7F) , phonetic lettering (japan,china), Greak/Latin Extended, block elements,Dingbats,...
+static const ImWchar Generic_ranges_everything[] =
+{
+   0x0020, 0x07FF, // unicode 0x800-0x900 not defined so exclude from here.
+   0,
+};
+
 void ChangeGGFont(const char *cpcustomfont, int iIDEFontSize)
 {
 	//MessageBoxA(NULL, "ChangeGGFont", "ChangeGGFont", 0);
-
-	
-	static const ImWchar Generic_ranges_all[] =
-	{
-		0x0020, 0x00FF, // Basic Latin + Latin Supplement
-		0x0100, 0x017F,	//0100 — 017F  	Latin Extended-A
-		0x0180, 0x024F,	//0180 — 024F  	Latin Extended-B
-		0,
-	};
 
 	//PE: Add all lang.
 //	static const ImWchar Generic_ranges_everything[] =
@@ -5215,14 +5222,6 @@ void ChangeGGFont(const char *cpcustomfont, int iIDEFontSize)
 //	   0x0020, 0xFFFF, // Everything test.
 //	   0,
 //	};
-
-	//PE: Optimize exclude Phonetic Extensions (1D00 — 1D7F) , phonetic lettering (japan,china), Greak/Latin Extended, block elements,Dingbats,...
-	static const ImWchar Generic_ranges_everything[] =
-	{
-	   0x0020, 0x07FF, // unicode 0x800-0x900 not defined so exclude from here.
-	   0,
-	};
-
 
 	float FONTUPSCALE = 2.0; //Font upscaling.
 
@@ -5277,6 +5276,7 @@ void ChangeGGFont(const char *cpcustomfont, int iIDEFontSize)
 	extern std::vector< std::pair<ImFont*, std::string>> StoryboardFonts;
 
 	LPSTR pOldDir = GetDir();
+
 	char destination[MAX_PATH];
 	strcpy(destination, "editors\\templates\\fonts\\");
 	SetDir(destination);
@@ -5313,6 +5313,76 @@ void ChangeGGFont(const char *cpcustomfont, int iIDEFontSize)
 
 	ImGui_ImplDX11_CreateDeviceObjects();
 
+}
+
+void AddRemoteProjectFonts(void)
+{
+	extern StoryboardStruct Storyboard;
+	extern std::vector< std::pair<ImFont*, std::string>> StoryboardFonts;
+	bool bAddedFonts = false;
+	//PE: Need projectfolder here.
+	if (strlen(Storyboard.gamename) > 0 && strlen(Storyboard.customprojectfolder) > 0)
+	{
+		ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+		LPSTR pOldDir = GetDir();
+		char destination[MAX_PATH];
+		strcpy(destination, Storyboard.customprojectfolder);
+		strcat(destination, Storyboard.gamename);
+		strcat(destination, "\\files\\editors\\templates\\fonts\\");
+		if (PathExist(destination))
+		{
+			SetDir(destination);
+			ChecklistForFiles();
+			SetDir(pOldDir);
+			DARKSDK LPSTR ChecklistString(int iIndex);
+			DARKSDK int ChecklistQuantity(void);
+			for (int c = 1; c <= ChecklistQuantity(); c++)
+			{
+				char* file = ChecklistString(c);
+				if (file)
+				{
+					if (strlen(file) > 4)
+					{
+						const char* pestrcasestr(const char* arg1, const char* arg2);
+						if (strnicmp(file + strlen(file) - 4, ".ttf", 4) == NULL || strnicmp(file + strlen(file) - 4, ".otf", 4) == NULL)
+						{
+							bool bAlreadyThere = false;
+							for (int i = 0; i < StoryboardFonts.size(); i++)
+							{
+								if (pestrcasestr(file, StoryboardFonts[i].second.c_str()))
+								{
+									bAlreadyThere = true;
+									break;
+								}
+							}
+							//Add font.
+							if (!bAlreadyThere)
+							{
+								char path[MAX_PATH];
+								strcpy(path, destination);
+								strcat(path, file);
+								if (pestrcasestr(file, "arial"))
+									tmpfont = io.Fonts->AddFontFromFileTTF(path, 60, NULL, &Generic_ranges_everything[0]); //Add font
+								else
+									tmpfont = io.Fonts->AddFontFromFileTTF(path, 60, NULL, &Generic_ranges_all[0]); //Add font
+								StoryboardFonts.push_back(std::make_pair(tmpfont, file));
+								bAddedFonts = true;
+							}
+						}
+					}
+				}
+			}
+			if (bAddedFonts)
+			{
+				//ImGui_ImplDX11_CreateDeviceObjects();
+				ImGui_ImplDX11_CreateFontsTexture();
+				//PE: old frame could have our old font texture , so disable it until newframe.
+				bBlockImGuiUntilNewFrame = true;
+			}
+		}
+		SetDir(pOldDir);
+	}
 }
 
 //struct case_insensitive_less //: public std::binary_function< char, char, bool >
@@ -6001,6 +6071,8 @@ cstr GetNameFinalCreditFromAbsPath (LPSTR pAbsFullFolderPath)
 	#endif
 	return sNameFinalCredit;
 }
+
+extern char szBeforeChangeWriteDir[MAX_PATH];
 
 void GetMainEntityList(char* folder_s, char* rel_s, void *pFolder, char* folder_name_start, bool bForceToTop, int foldertype)
 {
@@ -7212,9 +7284,10 @@ void ParseLuaScriptWithElementID(entityeleproftype *tmpeleprof, char * script, i
 									}
 
 									// can intercept label list here if special indicator that it is an animset or questlist list
-									if (labels.size()==2 && iObjID > 0 )
+									//PE: Allow more DLUA lists to work on zones.
+									if (labels.size()==2 ) // && iObjID > 0
 									{
-										if(stricmp(labels[1].c_str(),"animsetlist")==NULL)
+										if(iObjID > 0 && stricmp(labels[1].c_str(),"animsetlist")==NULL)
 										{
 											labels.clear();
 											labels.push_back(cVariable);
@@ -7321,8 +7394,6 @@ void ParseLuaScriptWithElementID(entityeleproftype *tmpeleprof, char * script, i
 									//PE: Let some lists work on zones also.
 									if (labels.size() == 2)
 									{
-
-										
 										if (stricmp(labels[1].c_str(), "armanimsetlist") == NULL)
 										{
 											labels.clear();

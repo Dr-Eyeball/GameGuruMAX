@@ -561,6 +561,10 @@ char g_pRenameHUDScreenError[256] = "\0";
 bool g_bMappingKeyWindow = false;
 int g_iMappingKeyToChange = -1;
 
+bool bIncludeDocumentFolderInRemoteProject = false;
+
+
+
 #ifdef ENABLEIMGUI
 void imgui_set_openproperty_flags(int iMasterID)
 {
@@ -17368,10 +17372,11 @@ bool DoTreeNodeSearch(int parentid, char *lookup)
 bool bDisplayProjectMedia = false;
 bool bDisplayFavorite = false;
 
-void process_gotopurchaedandrefreshtopurchases ( void )
+void process_gotopurchaedandrefreshtopurchases ( bool bForceSearch )
 {
 	seleted_tree_item = -1;
-	strcpy(cSearchAllEntities[0], "Purchased");
+	if(!bIncludeDocumentFolderInRemoteProject || bForceSearch)
+		strcpy(cSearchAllEntities[0], "Purchased");
 	bDisplayProjectMedia = false;
 	bDisplayFavorite = false;
 	bViewAllFolders = false;
@@ -19298,6 +19303,24 @@ void process_entity_library_v2(void)
 			bDisplayProjectMedia = false;
 		}
 
+		int selectable_items = 0;
+
+		extern char szBeforeChangeWriteDir[MAX_PATH];
+		char projectfolder[MAX_PATH];
+		strcpy(projectfolder, "");
+		if (strlen(szBeforeChangeWriteDir) > 0 && strlen(Storyboard.customprojectfolder) > 0)
+		{
+			strcpy(projectfolder, Storyboard.customprojectfolder);
+			strcat(projectfolder, Storyboard.gamename);
+			if (ImGui::Checkbox("Include Document Folder", &bIncludeDocumentFolderInRemoteProject))
+			{
+				//PE: Regular project update the library.
+				extern int g_iRefreshLibraryFoldersAfterDelay;
+				g_iRefreshLibraryFoldersAfterDelay = 10;
+			}
+			selectable_items++;
+		}
+
 		if (ImGui::Selectable("View All", bViewAllFolders) || bSelectLibraryViewAll )
 		{
 			bSelectLibraryViewAll = false;
@@ -19317,6 +19340,7 @@ void process_entity_library_v2(void)
 			bUpdateSearchSorting = true;
 			bUpdateSearchScrollbar = true;
 		}
+		selectable_items++;
 
 		// only show SHOWCASE and PURCHASED as relating to objects (for now)
 		if (iDisplayLibraryType == 0)
@@ -19331,8 +19355,9 @@ void process_entity_library_v2(void)
 				if (ImGui::Selectable("Purchased", &bViewPurchased, 0))
 				{
 					// force library to purchased view, and refresh too
-					process_gotopurchaedandrefreshtopurchases();
+					process_gotopurchaedandrefreshtopurchases(true);
 				}
+				selectable_items++;
 			}
 		}
 		else
@@ -19344,8 +19369,9 @@ void process_entity_library_v2(void)
 				if (ImGui::Selectable("Purchased", &bViewPurchased, 0))
 				{
 					// force library to purchased view, and refresh too
-					process_gotopurchaedandrefreshtopurchases();
+					process_gotopurchaedandrefreshtopurchases(true);
 				}
+				selectable_items++;
 			}
 		}
 
@@ -19369,6 +19395,7 @@ void process_entity_library_v2(void)
 				bUpdateSearchSorting = true;
 				bUpdateSearchScrollbar = true;
 			}
+			selectable_items++;
 		}
 
 		if (ImGui::Selectable("Favorites##favourites", &bDisplayFavorite, 0))
@@ -19382,8 +19409,16 @@ void process_entity_library_v2(void)
 			bUpdateSearchSorting = true;
 			bUpdateSearchScrollbar = true;
 		}
-
-		ImGui::BeginChild("##LeftPanelCategories", ImVec2(0, vWindowSize.y - 67.0f), false, iGenralWindowsFlags);
+		selectable_items++;
+		static float setadder = 0;
+		if(selectable_items <= 3)
+			ImGui::BeginChild("##LeftPanelCategories", ImVec2(0, vWindowSize.y - (67.0f + setadder)), false, iGenralWindowsFlags);
+		else if (selectable_items <= 4)
+			ImGui::BeginChild("##LeftPanelCategories", ImVec2(0, vWindowSize.y - (95.0f)), false, iGenralWindowsFlags);
+		else if (selectable_items <= 5)
+			ImGui::BeginChild("##LeftPanelCategories", ImVec2(0, vWindowSize.y - (113.0f)), false, iGenralWindowsFlags);
+		else
+			ImGui::BeginChild("##LeftPanelCategories", ImVec2(0, vWindowSize.y - (133.0f)), false, iGenralWindowsFlags);
 
 		if (iDisplayLibraryType == 0 && iDisplayLibrarySubType == 1)
 		{
@@ -19429,6 +19464,7 @@ void process_entity_library_v2(void)
 		if (1)
 		{
 			static std::vector< std::pair<std::string, cFolderItem::sFolderFiles *>> sorted_files;
+			static std::vector< std::pair<std::string, cFolderItem::sFolderFiles*>> remoteproject_files;
 			if (sorted_files.size() == 0)
 				bUpdateSearchSorting = true;
 
@@ -19479,6 +19515,8 @@ void process_entity_library_v2(void)
 			if ((bCheckGotoPreview || bUpdateSearchSorting || bUpdateSearchSortingNextFrame) && pNewFolder)
 			{
 				sorted_files.clear();
+				remoteproject_files.clear();
+
 				pNewFolder = pNewFolder->m_pNext;
 
 				cStr path_remove = pNewFolder->m_sFolderFullPath.Get();
@@ -19771,17 +19809,27 @@ void process_entity_library_v2(void)
 
 								if (i == 0 && strlen(cSearchAllEntities[i]) > 0) {
 
-									if (pestrcasestr(myfiles->m_sBetterSearch.Get(), cSearchAllEntities[i]))
-										bIsVisible = true;
-									if (!bIsVisible) // else current_sortby == 4)
+									if (iDisplayLibraryType == 4 && stricmp(cSearchAllEntities[i], "global") == 0 )
 									{
-										if (bAdvancedFPEFeatures && myfiles->m_sFPEKeywords.Len() > 0)
+										bDisplayEverythingHere = false;
+										if (pestrcasestr(dir_name.c_str(), "global"))
 										{
-											if (pestrcasestr(myfiles->m_sFPEKeywords.Get(), cSearchAllEntities[i]))
-												bIsVisible = true;
+											bIsVisible = true;
 										}
 									}
-
+									else
+									{
+										if (pestrcasestr(myfiles->m_sBetterSearch.Get(), cSearchAllEntities[i]))
+											bIsVisible = true;
+										if (!bIsVisible) // else current_sortby == 4)
+										{
+											if (bAdvancedFPEFeatures && myfiles->m_sFPEKeywords.Len() > 0)
+											{
+												if (pestrcasestr(myfiles->m_sFPEKeywords.Get(), cSearchAllEntities[i]))
+													bIsVisible = true;
+											}
+										}
+									}
 									if (!bIsVisible && bSearchGameElements)
 									{
 										if (pestrcasestr(cSearchAllEntities[i], "Game Elements"))
@@ -19927,7 +19975,52 @@ void process_entity_library_v2(void)
 										}
 									}
 
-									sorted_files.push_back(std::make_pair(SortBy, myfiles));
+									//PE: Remove dublicates here, if using 
+									bool bDuplicate = false;
+									bool bRemoteProject = false;
+									extern char szBeforeChangeWriteDir[MAX_PATH];
+ 									if (strlen(szBeforeChangeWriteDir) > 0 && strlen(projectfolder) > 0 )
+									{
+
+										//strcpy(projectfolder, Storyboard.customprojectfolder);
+										//strcat(projectfolder, Storyboard.gamename);
+
+										LPSTR pFileFolderToCheck = pNewFolder->m_sFolderFullPath.Get();
+										if (myfiles && strnicmp(pFileFolderToCheck, projectfolder, strlen(projectfolder)) == NULL)
+										{
+											bRemoteProject = true;
+										}
+										else
+										{
+											//PE: Check if we already added this to remoteproject_files.
+											for (int loop = 0; loop < remoteproject_files.size(); loop++)
+											{
+												if (remoteproject_files[loop].second->m_sName == myfiles->m_sName)
+												{
+													//PE: Check full folder.
+													char check[MAX_PATH];
+													strcpy(check, remoteproject_files[loop].second->m_sPath.Get());
+													const char* find = pestrcasestr(check, "\\files\\");
+													if (find)
+													{
+														if (pestrcasestr(myfiles->m_sPath.Get(),find))
+														{
+															//PE: Same path , mark as duplicate. and prefer remoteproject file.
+															bDuplicate = true;
+															break;
+														}
+													}
+												}
+											}
+										}
+									}
+									if (bRemoteProject)
+									{
+										remoteproject_files.push_back(std::make_pair(SortBy, myfiles));
+									}
+									if(!bDuplicate)
+										sorted_files.push_back(std::make_pair(SortBy, myfiles));
+
 									//Map pNewFolder to files entry.
 									myfiles->pNewFolder = pNewFolder;
 									//myfiles->bLoadedInNewFormat = bLoadedInNewFormat;
@@ -29670,7 +29763,13 @@ void DisplayFPEGeneral(bool readonly, int entid, entityeleproftype *edit_gridele
 		if (t.entityprofile[entid].ismarker == 3)
 			edit_grideleprof->isobjective = 2;
 		else
+		{
 			edit_grideleprof->isobjective = 1;
+		}
+		ImGui::SameLine();
+		bool bTmp = edit_grideleprof->isobjective_alwaysactive;
+		ImGui::Checkbox("Always Visible", &bTmp);
+		edit_grideleprof->isobjective_alwaysactive = bTmp;
 	}
 	else
 	{
@@ -36420,6 +36519,19 @@ void Welcome_Screen(void)
 			float fRatio = 288.0f / 512.0f;
 			float right_margin = 9.0;
 			ImVec2 vPreviewSize = { (fContentWidth - right_margin) , (fContentWidth - right_margin) * fRatio };
+
+			ImVec2 winsize = ImGui::GetWindowSize();
+			if (vPreviewSize.y >= winsize.y - 72.0f - 48.0f)
+			{
+				if (iCurrentOpenTab == 0 || iCurrentOpenTab == 1)
+				{
+					//PE: Must center image after this.
+					float fHRatio = 512.0f / 288.0f;
+					float maxheight = winsize.y - 72.0f - 48.0f; //buttons + new project bar + small description.
+					vPreviewSize = { maxheight * fHRatio , maxheight };
+				}
+			}
+
 			float fImageWidth = 460;
 			float fImageHeight = 215;
 			
@@ -36812,15 +36924,26 @@ void Welcome_Screen(void)
 
 				if (iTextureID > 0)
 				{
+					float missing = 0;
 					if (current_project_selected.length() > 0)
 					{
 						ImGuiWindow* window = ImGui::GetCurrentWindow();
 						ImVec4 tool_selected_col = ImGui::GetStyle().Colors[ImGuiCol_PlotHistogram];
 						ImVec2 padding = { 1.0, 1.0 };
-						const ImRect image_bb((window->DC.CursorPos - padding), window->DC.CursorPos + padding + vPreviewSize);
+						ImRect image_bb((window->DC.CursorPos - padding), window->DC.CursorPos + padding + vPreviewSize);
+						float width = ImGui::GetContentRegionAvailWidth();
+						ImVec2 winpos = ImGui::GetWindowPos();
+						if (image_bb.Max.x < winpos.x + width)
+						{
+							//PE: Center image.
+							missing = (winpos.x + width) - image_bb.Max.x;
+							missing *= 0.5f;
+							image_bb.Min.x += missing;
+							image_bb.Max.x += missing;
+						}
 						window->DrawList->AddRect(image_bb.Min, image_bb.Max, ImGui::GetColorU32(tool_selected_col), 0.0f, 15, 2.0f);
 					}
-
+					ImGui::SetCursorPosX(ImGui::GetCursorPosX() + missing);
 					if (ImGui::ImgBtn(iTextureID, vPreviewSize, ImColor(0, 0, 0, 0), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 200), 0, 0, 0, 0, false, false, false))
 					{
 						//Click ?
@@ -36935,14 +37058,29 @@ void Welcome_Screen(void)
 					int iTextureID = GetImageIDFilesListForLibrary(sCurrentGame);
 					if (iTextureID > 0)
 					{
+						float missing = 0;
+
 						if (current_project_selected.length() > 0)
 						{
 							ImGuiWindow* window = ImGui::GetCurrentWindow();
 							ImVec4 tool_selected_col = ImGui::GetStyle().Colors[ImGuiCol_PlotHistogram];
 							ImVec2 padding = { 1.0, 1.0 };
-							const ImRect image_bb((window->DC.CursorPos - padding), window->DC.CursorPos + padding + vPreviewSize);
+							ImRect image_bb((window->DC.CursorPos - padding), window->DC.CursorPos + padding + vPreviewSize);
+
+							float width = ImGui::GetContentRegionAvailWidth();
+							ImVec2 winpos = ImGui::GetWindowPos();
+							if (image_bb.Max.x < winpos.x + width)
+							{
+								//PE: Center image.
+								missing = (winpos.x + width) - image_bb.Max.x;
+								missing *= 0.5f;
+								image_bb.Min.x += missing;
+								image_bb.Max.x += missing;
+							}
+
 							window->DrawList->AddRect(image_bb.Min, image_bb.Max, ImGui::GetColorU32(tool_selected_col), 0.0f, 15, 2.0f);
 						}
+						ImGui::SetCursorPosX(ImGui::GetCursorPosX() + missing);
 
 						if (ImGui::ImgBtn(iTextureID, vPreviewSize, ImColor(0, 0, 0, 0), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 200), 0, 0, 0, 0, false, false, false))
 						{
@@ -45935,6 +46073,12 @@ int save_level_as( void )
 
 void switch_to_remote_project(LPSTR ProjectAsName)
 {
+	extern char szWriteDir[MAX_PATH];
+	extern char szBeforeChangeWriteDir[MAX_PATH];
+	extern char szAddWriteDirAdditional[MAX_PATH];
+
+	strcpy(szBeforeChangeWriteDir, szWriteDir);
+
 	// store writables folder
 	char pStoreWriteable[MAX_PATH];
 	strcpy(pStoreWriteable, pref.cCustomWriteFolder);
@@ -45954,6 +46098,19 @@ void switch_to_remote_project(LPSTR ProjectAsName)
 	SetUpdaterWritePathFile(pref.cCustomWriteFolder);
 	FileRedirectChangeWritableArea("");
 
+	//PE: Fix szAddWriteDirAdditional
+	if (!pestrcasestr(szAddWriteDirAdditional, "GameGuruApps"))
+	{
+		strcat(szAddWriteDirAdditional, "\\GameGuruApps\\GameGuruMAX\\");
+	}
+
+	//PE: We are using szWriteDir for remote project path, so set szAddWriteDirAdditional to normal document folder.
+	if (strlen(pStoreWriteable) > 0)
+	{
+		// override writables with known custom writables folder
+		strcpy_s(szAddWriteDirAdditional, MAX_PATH, pStoreWriteable);
+	}
+
 	// create remote project marker
 	OpenToWrite(1, pRemoteProject);
 	WriteString(1, Storyboard.customprojectfolder);
@@ -45965,6 +46122,19 @@ void switch_to_remote_project(LPSTR ProjectAsName)
 
 void switch_to_regular_projects(void)
 {
+	extern char szBeforeChangeWriteDir[MAX_PATH];
+	extern char szWriteDir[MAX_PATH];
+
+	//PE: Check if we change from a remote project to none.
+	if (strlen(szBeforeChangeWriteDir) > 0)
+	{
+		//PE: Regular project update the library.
+		extern int g_iRefreshLibraryFoldersAfterDelay;
+		g_iRefreshLibraryFoldersAfterDelay = 10;
+	}
+
+	strcpy(szBeforeChangeWriteDir, "");
+
 	// generate app folder using exe name
 	HMODULE hModule = GetModuleHandle(NULL);
 	char szModule[MAX_PATH] = "";
@@ -47801,6 +47971,11 @@ void load_storyboard(char *name)
 		strcat(pRemotePathToGrass, "\\Files\\");
 		GGGrass_Init_Textures(pRemotePathToGrass);
 		ReloadLensFlareImages();
+
+		//PE: Add custom fonts from remote project.
+		void AddRemoteProjectFonts(void);
+		AddRemoteProjectFonts();
+
 	}
 	else
 	{

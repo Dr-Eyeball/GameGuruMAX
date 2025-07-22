@@ -2145,7 +2145,12 @@ void mapfile_collectfoldersandfiles (cstr levelpathfolder)
 
 	addfoldertocollection("gamecore\\decals\\blood"); //PE: New particle effects.
 	addfoldertocollection("gamecore\\decals\\explosion"); //PE: New particle effects.
-
+	//PE: New added effects.
+	addfoldertocollection("gamecore\\decals\\explosion huge");
+	addfoldertocollection("gamecore\\decals\\explosion large");
+	addfoldertocollection("gamecore\\decals\\explosion medium");
+	addfoldertocollection("gamecore\\decals\\explosion small");
+	addfoldertocollection("gamecore\\decals\\explosion_blood");
 	addfoldertocollection("gamecore\\decals\\splat");
 	addfoldertocollection("gamecore\\decals\\bloodsplat");
 	addfoldertocollection("gamecore\\decals\\impact");
@@ -2158,6 +2163,11 @@ void mapfile_collectfoldersandfiles (cstr levelpathfolder)
 	addfoldertocollection("gamecore\\decals\\splash_misty");
 	addfoldertocollection("gamecore\\decals\\splash_ripple");
 	addfoldertocollection("gamecore\\decals\\splash_small");
+	addfoldertocollection("gamecore\\decals\\splinters");
+	addfoldertocollection("gamecore\\decals\\sparks");
+	addfoldertocollection("gamecore\\decals\\dust");
+
+
 	addfoldertocollection("gamecore\\vrcontroller");
 	addfoldertocollection("gamecore\\vrcontroller\\oculus");
 	addfoldertocollection("gamecore\\projectiletypes");
@@ -3181,6 +3191,44 @@ int mapfile_savestandalone_stage2c ( void )
 										addtocollection((char*)pMaterialComponent->textures[3].name.c_str());
 									}
 								}
+							}
+						}
+					}
+				}
+				//PE: And add any custom wematerial texture settings.
+				if (t.entityelement[t.e].eleprof.WEMaterial.MaterialActive)
+				{
+					//PE: Need relative path here.
+					cstr entpath = cstr("entitybank\\") + t.entitybank_s[t.entid];
+					for (t.n = Len(entpath.Get()); t.n >= 1; t.n += -1)
+					{
+						if (cstr(Mid(entpath.Get(), t.n)) == "\\" || cstr(Mid(entpath.Get(), t.n)) == "/")
+						{
+							entpath = Left(entpath.Get(), t.n);
+							break;
+						}
+					}
+
+					cstr texture;
+					for (int loop = 0; loop < MAXMESHMATERIALS; loop++)
+					{
+						for (int l = 0; l < 4; l++)
+						{
+							if (l == 0) texture = t.entityelement[t.e].eleprof.WEMaterial.baseColorMapName[loop];
+							if (l == 1) texture = t.entityelement[t.e].eleprof.WEMaterial.normalMapName[loop];
+							if (l == 2) texture = t.entityelement[t.e].eleprof.WEMaterial.surfaceMapName[loop];
+							if (l == 3) texture = t.entityelement[t.e].eleprof.WEMaterial.emissiveMapName[loop];
+
+							if (texture.Len() > 0)
+							{
+								if (!pestrcasestr(texture.Get(), "\\") &&
+									!pestrcasestr(texture.Get(), "/"))
+								{
+									cstr finalname = entpath + texture;
+									addtocollection((char*)finalname.Get());
+								}
+								else
+									addtocollection((char*)texture.Get());
 							}
 						}
 					}
