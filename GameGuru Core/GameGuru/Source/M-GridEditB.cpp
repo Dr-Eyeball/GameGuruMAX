@@ -37525,10 +37525,10 @@ void About_Screen(void)
 		ImGui::TextCenter("Art & Media Team");
 		ImGui::SetWindowFontScale(1.0);
 		ImGui::Text("");
-		ImGui::TextCenter("Mark Blosser & Peter Jovanovic");
+		ImGui::TextCenter("Mark Blosser aka BOND1 - 3D and Animation");
+		ImGui::TextCenter("Peter Jovanovic & Ugur Gokus");
 		ImGui::TextCenter("Martin Oliver & Glynn Taylor");
-		ImGui::TextCenter("Ugur Gokus & Ispas Gabriela Cristina");
-		ImGui::TextCenter("Volkov Studio");
+		ImGui::TextCenter("Ispas Gabriela Cristina & Volkov Studio");
 		ImGui::Text("");
 
 		ImGui::SetWindowFontScale(1.5);
