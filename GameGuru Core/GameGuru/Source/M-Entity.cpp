@@ -169,8 +169,23 @@ bool entity_copytoremoteifnotthere ( LPSTR pPathToFile )
 		{
 			// file not in local project, copy it over
 			strcpy(pPreferredProjectEntityFolder, pPathToFile);
-			GG_GetRealPath(pPreferredProjectEntityFolder, 1);
-			CopyFileA(fullRealPath, pPreferredProjectEntityFolder, TRUE);
+			int ret = GG_GetRealPath(pPreferredProjectEntityFolder, 1);
+			if( stricmp(pPreferredProjectEntityFolder, fullRealPath) != NULL )
+				CopyFileA(fullRealPath, pPreferredProjectEntityFolder, TRUE);
+			else if (ret == 0)
+			{
+				//PE: Remote project not found, use relative path.
+				char Relative[MAX_PATH];
+				const char* find = pestrcasestr(fullRealPath, "\\files\\");
+				if (find)
+				{
+					strcpy(Relative, find + 7);
+					int ret = GG_GetRealPath(Relative, 1);
+					if (stricmp(Relative, fullRealPath) != NULL)
+						CopyFileA(fullRealPath, Relative, TRUE);
+				}
+			}
+
 			bWeCopiedTheFileOver = true;
 		}
 	}
@@ -265,7 +280,10 @@ void entity_adduniqueentity ( bool bAllowDuplicates )
 		t.entid = g.entidmaster;
 		t.ent_s = t.entitybank_s[t.entid];
 		t.entpath_s = getpath(t.ent_s.Get());
+		extern uint32_t SetMasterObject;
+		SetMasterObject = g.entitybankoffset + t.entid;
 		entity_load ();
+		SetMasterObject = 0;
 
 		// copy over all related files if using a remote project
 		if (bAlsoCopyOverAllRelatedEntityFiles == true)
@@ -1135,13 +1153,15 @@ bool entity_load (bool bCalledFromLibrary)
 
 						if (FileExist( (char *) lodname.c_str()))
 						{
+							//PE: Make sure LOD use the correct fpe settings.
+							g_iWickedEntityId = t.entid;
 							LoadObject((char *) lodname.c_str(), t.entobj);
 							if (ObjectExist(t.entobj))
 							{
 								bLODLoaded = true;
 							}
+							g_iWickedEntityId = -1;
 						}
-
 					}
 					// load entity model
 					g_iWickedEntityId = t.entid;
@@ -2102,7 +2122,10 @@ void entity_loaddata ( void )
 
 			// per mesh colors
 			t.entityprofile[t.entid].WEMaterial.dwBaseColor[i] = -1;
-			t.entityprofile[t.entid].WEMaterial.dwEmmisiveColor[i] = -1;
+
+			//PE: Default to black, if old .fpe files do not have it set.
+			//t.entityprofile[t.entid].WEMaterial.dwEmmisiveColor[i] = -1;
+			t.entityprofile[t.entid].WEMaterial.dwEmmisiveColor[i] = 0;
 
 			// per mesh settings and flags
 			t.entityprofile[t.entid].WEMaterial.bCastShadows[i] = true;
@@ -2693,7 +2716,7 @@ void entity_loaddata ( void )
 							}
 						}
 
-						cmpNStrConst( t_field_s, "emissivestrengt" );
+						cmpNStrConst( t_field_s, "emissivestrengt" ); //PE: "emissivestrength"
 						if ( matched )
 						{
 							int index = atoi( t_field_s + 16 );
@@ -3961,7 +3984,8 @@ void entity_loaddata ( void )
 	//  V109 BETA5 - 250408 - flag material is being used
 	if (  t.entityprofile[t.entid].materialindex>0 ) 
 	{
-		t.mi=t.entityprofile[t.entid].materialindex-1;
+		//t.mi=t.entityprofile[t.entid].materialindex-1;
+		t.mi = t.entityprofile[t.entid].materialindex; //PE: We now use the correct materialindex -1 is from classic.
 		if (t.mi < t.material.size())
 		{
 			t.material[t.mi].usedinlevel = 1;
@@ -4444,6 +4468,7 @@ void entity_fillgrideleproffromprofile ( void )
 	// so we will make this false for default and fix any new issues that may arise, including the new demand
 	// that other users want if ON by default :)  Perhaps something in editor pref settings ;)
 	// LB: Additional - Preben notes doing the above breaks many things, including FPE material settings, so restore and rethink
+	// PE: Keep it as is , and now use bUseFPESettings to control what will get updated.
 	t.grideleprof.bCustomWickedMaterialActive = true;
 	//if (t.entityprofile[t.entid].WEMaterial.MaterialActive)
 	//	t.grideleprof.bCustomWickedMaterialActive = true;
@@ -5623,10 +5648,8 @@ void c_entity_loadelementsdata ( void )
 
 	// load entity element list
 	t.failedtoload=0;
-	t.versionnumbersupported = 338;
-	#ifdef CUSTOMSHADERS
-	t.versionnumbersupported = 340;
-	#endif
+	//t.versionnumbersupported = 338;
+	t.versionnumbersupported = 341;
 
 	if ( FileExist(t.elementsfilename_s.Get()) == 1 ) 
 	{
@@ -5666,7 +5689,7 @@ void c_entity_loadelementsdata ( void )
 					Dim2(t.entityshadervar, g.entityelementmax, g.globalselectedshadermax);
 					Dim (t.entitydebug_s, g.entityelementmax);
 				}
-				if (g_iAddEntityElementsMode == 1)
+				if (g_iAddEntityElementsMode == 1 || g_iAddEntityElementsMode == 2)
 				{
 					// ensure there are enough free slots
 					int iCount = 0;
@@ -5704,7 +5727,7 @@ void c_entity_loadelementsdata ( void )
 					{
 						t.e = n;
 					}
-					if (g_iAddEntityElementsMode == 1)
+					if (g_iAddEntityElementsMode == 1 || g_iAddEntityElementsMode == 2)
 					{
 						// find free slot in add mode
 						bool bFoundFreeSlot = false;
@@ -5734,7 +5757,8 @@ void c_entity_loadelementsdata ( void )
 						}
 
 						// special flag so can handle entity with collection list later
-						t.entityelement[t.e].specialentityloadflag = 123;
+						if(g_iAddEntityElementsMode == 1)
+							t.entityelement[t.e].specialentityloadflag = 123;
 					}
 					#ifdef VRTECH
 					if ( t.game.runasmultiplayer == 1 ) mp_refresh ( );
@@ -6347,14 +6371,20 @@ void c_entity_loadelementsdata ( void )
 						t.a = t.a_f = c_ReadFloat(1); fFiller = t.a_f;
 						t.a = t.a_f = c_ReadFloat(1); fFiller = t.a_f;
 						t.a = t.a_f = c_ReadFloat(1); fFiller = t.a_f;
-						t.a = c_ReadLong(1); iFiller = t.a;
-						t.a = c_ReadLong(1); iFiller = t.a;
+						t.a = c_ReadLong(1);
+						t.entityelement[t.e].eleprof.systemwide_lua = t.a;
+						if (t.entityelement[t.e].eleprof.systemwide_lua > 1)
+							t.entityelement[t.e].eleprof.systemwide_lua = 0;
+						t.a = c_ReadLong(1); t.entityelement[t.e].eleprof.isobjective_alwaysactive = t.a;
 						t.a = c_ReadLong(1); iFiller = t.a;
 						t.a_s = c_ReadString(1); sFiller = t.a_s;
 						t.a_s = c_ReadString(1); sFiller = t.a_s;
 						t.a_s = c_ReadString(1); sFiller = t.a_s;
 					}
-
+					if (t.versionnumberload >= 341)
+					{
+						t.a = c_ReadLong(1); t.entityelement[t.e].eleprof.bUseFPESettings = t.a;
+					}
 					#endif
 
 					// get the index of the entity profile
@@ -6491,7 +6521,15 @@ void c_entity_loadelementsdata ( void )
 					{
 						t.entityelement[t.e].eleprof.bAutoFlatten = false;
 					}
-
+					if (t.versionnumberload < 341)
+					{
+						//PE: Default to false on old levels , so we don't overwrite users custom settings.
+						//PE: if !bCustomWickedMaterialActive we can use bUseFPESettings.
+						if (t.entityelement[t.e].eleprof.bCustomWickedMaterialActive)
+							t.entityelement[t.e].eleprof.bUseFPESettings = false;
+						else
+							t.entityelement[t.e].eleprof.bUseFPESettings = true;
+					}
 					//t.entityelement[t.e].entitydammult_f=1.0; not used any more, reused field for iCanGoUnderwater and renamed entitydammult_f to reserved2
 					//t.entityelement[t.e].entityacc=1.0;
 
@@ -6676,6 +6714,10 @@ void c_entity_loadelementsdata ( void )
 			}
 		}
 
+		//PE: Users are relying on this feature so they can, set a polygon collision object to have "behaviour".
+		//PE: Used by many where polygon is needed with a "behaviour" , platforms ... explodeable ... isimmobile == 1 ... Is Collectable ...
+		//PE: https://github.com/TheGameCreators/GameGuruMAX/commit/a1929f0a832db7b799d53a01955837b15a8d2d5c
+		/*
 		// clean up for entityelement for impossible mode combinations!
 		if (g_iAddEntityElementsMode == 0)
 		{
@@ -6696,6 +6738,7 @@ void c_entity_loadelementsdata ( void )
 				}
 			}
 		}
+		*/
 	}
 }
 #endif
@@ -6712,6 +6755,71 @@ void entity_loadelementsdata(void)
 	c_entity_loadelementsdata();
 	char pLoadEntityDataAfter[MAX_PATH];
 	sprintf(pLoadEntityDataAfter, "c_entity_loadelementsdata after: %d", g.entityelementmax);
+	timestampactivity(0, pLoadEntityDataAfter);
+	
+	//PE: Add any systemwidelua.ele to end of current elements
+	extern StoryboardStruct Storyboard;
+	if (strlen(Storyboard.gamename) > 0)
+	{
+		timestampactivity(0, "loading in systemwidelua.ele");
+		cstr storeoldELEfile = t.elementsfilename_s;
+		char collectionELEfilename[MAX_PATH];
+		strcpy(collectionELEfilename, "projectbank\\");
+		strcat(collectionELEfilename, Storyboard.gamename);
+		strcat(collectionELEfilename, "\\systemwidelua.ele");
+		t.elementsfilename_s = collectionELEfilename;
+		extern int g_iAddEntityElementsMode;
+		g_iAddEntityElementsMode = 2;
+		c_entity_loadelementsdata();
+		t.elementsfilename_s = storeoldELEfile;
+		g_iAddEntityElementsMode = 0;
+
+		//PE: Need to load masterobject if not there.
+		for (int i = 1; i <= g.entityelementlist; i++)
+		{
+			if (t.entityelement[i].eleprof.systemwide_lua)
+			{
+				int tentid = t.entityelement[i].bankindex;
+				if (tentid > 0)
+				{
+					if (tentid == 0 || tentid > t.entityprofile.size() || t.entityprofile[tentid].ismarker != 12)
+					{
+						//PE: Need to reload and remap.
+						extern int g_iAddEntitiesModeFrom;
+						g_iAddEntitiesModeFrom = g.entidmaster + 1;
+						cstr entProfileToAdd_s = "_markers\\BehaviorHidden.fpe";
+
+						//PE: For now all systemwide_lua need to be hidden
+						//if (t.entityelement[i].y >= -9999) //PE: Hidden default = -999999
+						//	entProfileToAdd_s = "_markers\\Behavior.fpe";
+
+						int iFoundMatchEntID = 0;
+						for (int entid = 1; entid <= g.entidmaster; entid++)
+						{
+							if (stricmp(t.entitybank_s[entid].Get(), entProfileToAdd_s.Get()) == NULL)
+							{
+								iFoundMatchEntID = entid;
+								break;
+							}
+						}
+						if (iFoundMatchEntID == 0)
+						{
+							g.entidmaster++;
+							entity_validatearraysize();
+							t.entitybank_s[g.entidmaster] = entProfileToAdd_s;
+							iFoundMatchEntID = g.entidmaster;
+							extern int g_iAddEntitiesMode;
+							g_iAddEntitiesMode = 1;
+							entity_loadentitiesnow();
+							g_iAddEntitiesMode = 0;
+						}
+						t.entityelement[i].bankindex = iFoundMatchEntID;
+					}
+				}
+			}
+		}
+	}
+	sprintf(pLoadEntityDataAfter, "c_entity_loadelementsdata after systemwidelua.ele: %d", g.entityelementmax);
 	timestampactivity(0, pLoadEntityDataAfter);
 
 	// now entitybank and entityelement and vEntityGroupList are loaded, we need to refresh any smart objects (they may have changed externally, i.e BE)
@@ -7236,8 +7344,16 @@ public:
 		}
 	}
 
-	void WriteString( const char* str ) 
+	void WriteString( char* str ) 
 	{
+		for (int i = 0; i < strlen(str); i++)
+		{
+			//PE: Make sure we dont break the .ele file , seen some corrupt strings with \n\r.
+			if (*(str + i) == '\n' || *(str + i) == '\r')
+			{
+				*(str + i) = ' ';
+			}
+		}
 		unsigned int elementSize = strlen(str);
 		if ( !doWrite ) iDataSize += elementSize + 2;
 		else
@@ -7254,6 +7370,33 @@ public:
 			iDataSize += 2;
 		}
 	}
+	void WriteStringInclude0xa(char* str)
+	{
+		for (int i = 0; i < strlen(str); i++)
+		{
+			//PE: Make sure we dont break the .ele file , seen some corrupt strings with \n\r.
+			if ( *(str + i) == '\r')
+			{
+				*(str + i) = ' ';
+			}
+		}
+		unsigned int elementSize = strlen(str);
+		if (!doWrite) iDataSize += elementSize + 2;
+		else
+		{
+			if (elementSize)
+			{
+				assert((iDataSize + elementSize) <= iMaxDataSize);
+				memcpy(pData + iDataSize, str, elementSize);
+				iDataSize += elementSize;
+			}
+
+			pData[iDataSize] = 13;
+			pData[iDataSize + 1] = 10;
+			iDataSize += 2;
+		}
+	}
+
 };
 
 void entity_saveelementsdata (bool bForCollectionELE)
@@ -7270,10 +7413,8 @@ void entity_saveelementsdata (bool bForCollectionELE)
 	g.entityelementlist = temp;
 
 	//  Save entity element list
-	t.versionnumbersave = 338;
-	#ifdef CUSTOMSHADERS
-	t.versionnumbersave = 340;
-	#endif
+	//t.versionnumbersave = 338;
+	t.versionnumbersave = 341;
 
 	EntityWriter writer;
 
@@ -7531,7 +7672,7 @@ void entity_saveelementsdata (bool bForCollectionELE)
 					writer.WriteLong( t.entityelement[ent].eleprof.parentlimbindex );
 					writer.WriteString( t.entityelement[ent].eleprof.soundset2_s.Get() );
 					writer.WriteString( t.entityelement[ent].eleprof.soundset3_s.Get() );
-					writer.WriteString( t.entityelement[ent].eleprof.soundset4_s.Get() );
+					writer.WriteStringInclude0xa( t.entityelement[ent].eleprof.soundset4_s.Get() );
 				}
 				if ( t.versionnumbersave >= 311 )
 				{
@@ -7844,14 +7985,17 @@ void entity_saveelementsdata (bool bForCollectionELE)
 					writer.WriteFloat(0.0f);
 					writer.WriteFloat(0.0f);
 					writer.WriteFloat(0.0f);
-					writer.WriteLong(0);
-					writer.WriteLong(0);
+					writer.WriteLong(t.entityelement[ent].eleprof.systemwide_lua);
+					writer.WriteLong(t.entityelement[ent].eleprof.isobjective_alwaysactive);
 					writer.WriteLong(0);
 					writer.WriteString("");
 					writer.WriteString("");
 					writer.WriteString("");
 				}
-
+				if (t.versionnumbersave >= 341)
+				{
+					writer.WriteLong(t.entityelement[ent].eleprof.bUseFPESettings);
+				}
 				#endif
 			}
 		} 
@@ -8432,8 +8576,11 @@ void entity_loadentitiesnow ( void )
 			extern int g_iAbortedAsEntityIsGroupFileModeStubOnly;
 			g_iAbortedAsEntityIsGroupFileModeStubOnly = 1;
 
+			extern uint32_t SetMasterObject;
+			SetMasterObject = g.entitybankoffset + t.entid;
 			// regular FPE entity
 			entity_load ( );
+			SetMasterObject = 0;
 
 			// only used for when loading entities
 			g_iAbortedAsEntityIsGroupFileModeStubOnly = 0;
@@ -8467,6 +8614,11 @@ void entity_deletebank ( void )
 			// delete parent entity object
 			t.entobj = g.entitybankoffset+t.entid;
 			if ( ObjectExist(t.entobj) == 1  ) DeleteObject (  t.entobj );
+
+			//PE: Delete all textures used by master object here.
+			//PE: TODO Perhaps use the .lst file from newly loaded level and do not delete those if they are used in the new level.
+			void WickedCall_FreeImage_By_MasterID(uint32_t masterid);
+			WickedCall_FreeImage_By_MasterID(t.entobj);
 
 			#ifdef VRTECH
 			#else
@@ -8638,6 +8790,9 @@ void entity_addentitytomap_core ( void )
 	#ifdef WICKEDENGINE
 	t.entityelement[t.e].soundset5 = 0;
 	t.entityelement[t.e].soundset6 = 0;
+
+	//PE: Always false by default.
+	t.entityelement[t.e].eleprof.systemwide_lua = false;
 
 	// auto flatten system
 	t.entityelement[t.e].eleprof.iFlattenID = -1; // cannot carry this ID over
@@ -10128,9 +10283,11 @@ void WickedSetMeshNumber(int iMNumber)
 	}
 }
 
+cStr ReturnEmpty = "";
+
 cStr WickedGetBaseColorName( void )
 {
-	if (g_iWickedEntityId < 0) return "";
+	if (g_iWickedEntityId < 0) return ReturnEmpty;
 	if ( g_iWickedElementId > 0 && t.entityelement[g_iWickedElementId].eleprof.WEMaterial.MaterialActive)
 	{
 		if (t.entityelement[g_iWickedElementId].eleprof.WEMaterial.baseColorMapName[g_iWickedMeshNumber].Len() > 0) 
@@ -10147,12 +10304,12 @@ cStr WickedGetBaseColorName( void )
 	{
 		return t.entityprofile[g_iWickedEntityId].WEMaterial.baseColorMapName[g_iWickedMeshNumber];
 	}
-	return "";
+	return ReturnEmpty;
 }
 
 cStr WickedGetNormalName(void)
 {
-	if (g_iWickedEntityId < 0) return "";
+	if (g_iWickedEntityId < 0) return ReturnEmpty;
 	if (g_iWickedElementId > 0 && t.entityelement[g_iWickedElementId].eleprof.WEMaterial.MaterialActive)
 	{
 		if (t.entityelement[g_iWickedElementId].eleprof.WEMaterial.baseColorMapName[g_iWickedMeshNumber].Len() > 0) 
@@ -10169,12 +10326,12 @@ cStr WickedGetNormalName(void)
 	{
 		return t.entityprofile[g_iWickedEntityId].WEMaterial.normalMapName[g_iWickedMeshNumber];
 	}
-	return "";
+	return ReturnEmpty;
 }
 
 cStr WickedGetSurfaceName(void)
 {
-	if (g_iWickedEntityId < 0) return "";
+	if (g_iWickedEntityId < 0) return ReturnEmpty;
 	if (g_iWickedElementId > 0 && t.entityelement[g_iWickedElementId].eleprof.WEMaterial.MaterialActive)
 	{
 		if (t.entityelement[g_iWickedElementId].eleprof.WEMaterial.baseColorMapName[g_iWickedMeshNumber].Len() > 0) 
@@ -10191,12 +10348,12 @@ cStr WickedGetSurfaceName(void)
 	{
 		return t.entityprofile[g_iWickedEntityId].WEMaterial.surfaceMapName[g_iWickedMeshNumber];
 	}
-	return "";
+	return ReturnEmpty;
 }
 
 cStr WickedGetDisplacementName(void)
 {
-	if (g_iWickedEntityId < 0) return "";
+	if (g_iWickedEntityId < 0) return ReturnEmpty;
 	if (g_iWickedElementId > 0 && t.entityelement[g_iWickedElementId].eleprof.WEMaterial.MaterialActive)
 	{
 		if (t.entityelement[g_iWickedElementId].eleprof.WEMaterial.baseColorMapName[g_iWickedMeshNumber].Len() > 0) 
@@ -10213,12 +10370,12 @@ cStr WickedGetDisplacementName(void)
 	{
 		return t.entityprofile[g_iWickedEntityId].WEMaterial.displacementMapName[g_iWickedMeshNumber];
 	}
-	return "";
+	return ReturnEmpty;
 }
 
 cStr WickedGetEmissiveName(void)
 {
-	if (g_iWickedEntityId < 0) return "";
+	if (g_iWickedEntityId < 0) return ReturnEmpty;
 	if (g_iWickedElementId > 0 && t.entityelement[g_iWickedElementId].eleprof.WEMaterial.MaterialActive)
 	{
 		if (t.entityelement[g_iWickedElementId].eleprof.WEMaterial.baseColorMapName[g_iWickedMeshNumber].Len() > 0) 
@@ -10235,13 +10392,13 @@ cStr WickedGetEmissiveName(void)
 	{
 		return t.entityprofile[g_iWickedEntityId].WEMaterial.emissiveMapName[g_iWickedMeshNumber];
 	}
-	return "";
+	return ReturnEmpty;
 }
 
 cStr WickedGetOcclusionName(void)
 {
 	#ifdef DISABLEOCCLUSIONMAP
-	if (g_iWickedEntityId < 0) return "";
+	if (g_iWickedEntityId < 0) return ReturnEmpty;
 	if (t.entityprofile[g_iWickedEntityId].WEMaterial.baseColorMapName[g_iWickedMeshNumber].Len() > 0)
 	{
 		LPSTR pBaseTextureFilename = t.entityprofile[g_iWickedEntityId].WEMaterial.baseColorMapName[g_iWickedMeshNumber].Get();
@@ -10275,9 +10432,9 @@ cStr WickedGetOcclusionName(void)
 			return fullOcclusionFilename_s;
 		}
 	}
-	return "";
+	return ReturnEmpty;
 	#else
-	if (g_iWickedEntityId < 0) return "";
+	if (g_iWickedEntityId < 0) return ReturnEmpty;
 	if (g_iWickedElementId > 0 && t.entityelement[g_iWickedElementId].eleprof.WEMaterial.MaterialActive)
 	{
 		if (t.entityelement[g_iWickedElementId].eleprof.WEMaterial.baseColorMapName[g_iWickedMeshNumber].Len() > 0) 
@@ -10294,7 +10451,7 @@ cStr WickedGetOcclusionName(void)
 	{
 		return t.entityprofile[g_iWickedEntityId].WEMaterial.occlusionMapName[g_iWickedMeshNumber];
 	}
-	return "";
+	return ReturnEmpty;
 	#endif
 }
 
@@ -10670,6 +10827,8 @@ void Wicked_Highlight_LockedList(void)
 		for (int i = 0; i < (int)vEntityLockedList.size(); i++)
 		{
 			int e = vEntityLockedList[i].e;
+			if (e < 0 || e >= t.entityelement.size()) continue;
+
 			#ifdef ALLOWSELECTINGLOCKEDOBJECTS
 			//PE: Only diplay red on selected items.
 			bool bDisplayRed = false;

@@ -1163,8 +1163,17 @@ void charactercreatorplus_change(char *path, int part, char* tag)
 
 	// as character parts have no animations, wipe out ones they do have
 	// and replace with the latest animation set for this base mesh (pistol is default)
+
 	tmp = final_name + "default animations" + CCPMODELEXT;
-	if (FileExist(tmp.Get()))
+	
+	//PE: Was moved from "charactercreatorplus\parts\adult male\default animations.dbo" to "charactercreatorplus\\animations\\sets\\%s\\default animations.dbo"
+	char pPathToWeaponAnim[MAX_PATH];
+	sprintf(pPathToWeaponAnim, "charactercreatorplus\\animations\\sets\\%s\\default animations.dbo", CCP_Type);
+	if (FileExist(pPathToWeaponAnim) == 1)
+	{
+		AppendObject(pPathToWeaponAnim, iCharObj, 0);
+	}
+	else if (FileExist(tmp.Get()))
 	{
 		AppendObject(tmp.Get(), iCharObj, 0);
 	}

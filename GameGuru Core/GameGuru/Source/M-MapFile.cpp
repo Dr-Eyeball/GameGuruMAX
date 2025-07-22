@@ -869,10 +869,11 @@ void mapfile_emptyterrainfilesfromtestmapfolder ( void )
 void lm_emptylightmapandttsfilesfolder_wicked( void )
 {
 	//PE: lightmaps
-	LPSTR pOldDir = GetDir();
+	cstr pOldDir = GetDir();
+	//LPSTR pOldDir = GetDir();
 	char pRealWritableArea[MAX_PATH];
-	strcpy(pRealWritableArea, pOldDir);
-	if( pestrcasestr(pOldDir,"\\testmap"))
+	strcpy(pRealWritableArea, pOldDir.Get());
+	if( pestrcasestr(pOldDir.Get(), "\\testmap"))
 		strcat(pRealWritableArea, "\\lightmaps");
 	else
 		strcat(pRealWritableArea, "\\levelbank\\testmap\\lightmaps");
@@ -889,12 +890,12 @@ void lm_emptylightmapandttsfilesfolder_wicked( void )
 				if (FileExist(t.tfile_s.Get()) == 1)  DeleteAFile(t.tfile_s.Get());
 			}
 		}
-		SetDir(pOldDir);
+		SetDir(pOldDir.Get());
 		RemoveDirectoryA(pRealWritableArea);
 	}
 	//PE: ttsfiles
-	strcpy(pRealWritableArea, pOldDir);
-	if (pestrcasestr(pOldDir, "\\testmap"))
+	strcpy(pRealWritableArea, pOldDir.Get());
+	if (pestrcasestr(pOldDir.Get(), "\\testmap"))
 		strcat(pRealWritableArea, "\\ttsfiles");
 	else
 		strcat(pRealWritableArea, "\\levelbank\\testmap\\ttsfiles");
@@ -911,9 +912,11 @@ void lm_emptylightmapandttsfilesfolder_wicked( void )
 				if (FileExist(t.tfile_s.Get()) == 1)  DeleteAFile(t.tfile_s.Get());
 			}
 		}
-		SetDir(pOldDir);
+		SetDir(pOldDir.Get());
 		RemoveDirectoryA(pRealWritableArea);
 	}
+	//PE: Somehow it was not reverted, added here.
+	SetDir(pOldDir.Get());
 }
 
 void mapfile_loadproject_fpm ( void )
@@ -1376,12 +1379,13 @@ void mapfile_loadproject_fpm ( void )
 					}
 					CloseFile(1);
 				}
-				//LB: I think the above list could carry around corrupt references, might be an idea
-				//to scan and sanitise this agains the known entityelement and object list to ensure
-				//bad refernces will not cause out of bounds errors. This will happen for older levels
-				//that exploited a bug that caused objects to be changed to unlocked, but stayed in
-				//the locked list and not removed, later being adopted by new objects added to level.
-
+				// LB: The above list MAY carry around corrupt references, might be an idea
+				// to scan and sanitise this agains the known entityelement and object list to ensure
+				// bad refernces will not cause out of bounds errors. This will happen for older levels
+				// that exploited a bug that caused objects to be changed to unlocked, but stayed in
+				// the locked list and not removed, later being adopted by new objects added to level.
+				// done later when editlock flags being set and know final size of entityelement array
+				// search for gridedit_load_map with comment: "Restore locked state. from locked.cfg"
 			}
 		}
 
@@ -2141,7 +2145,12 @@ void mapfile_collectfoldersandfiles (cstr levelpathfolder)
 
 	addfoldertocollection("gamecore\\decals\\blood"); //PE: New particle effects.
 	addfoldertocollection("gamecore\\decals\\explosion"); //PE: New particle effects.
-
+	//PE: New added effects.
+	addfoldertocollection("gamecore\\decals\\explosion huge");
+	addfoldertocollection("gamecore\\decals\\explosion large");
+	addfoldertocollection("gamecore\\decals\\explosion medium");
+	addfoldertocollection("gamecore\\decals\\explosion small");
+	addfoldertocollection("gamecore\\decals\\explosion_blood");
 	addfoldertocollection("gamecore\\decals\\splat");
 	addfoldertocollection("gamecore\\decals\\bloodsplat");
 	addfoldertocollection("gamecore\\decals\\impact");
@@ -2154,6 +2163,11 @@ void mapfile_collectfoldersandfiles (cstr levelpathfolder)
 	addfoldertocollection("gamecore\\decals\\splash_misty");
 	addfoldertocollection("gamecore\\decals\\splash_ripple");
 	addfoldertocollection("gamecore\\decals\\splash_small");
+	addfoldertocollection("gamecore\\decals\\splinters");
+	addfoldertocollection("gamecore\\decals\\sparks");
+	addfoldertocollection("gamecore\\decals\\dust");
+
+
 	addfoldertocollection("gamecore\\vrcontroller");
 	addfoldertocollection("gamecore\\vrcontroller\\oculus");
 	addfoldertocollection("gamecore\\projectiletypes");
@@ -2417,9 +2431,16 @@ void mapfile_collectfoldersandfiles (cstr levelpathfolder)
 							{
 								addtocollection(Storyboard.Nodes[nodeid].widget_selected_thumb[i]);
 							}
-							if (strlen(Storyboard.Nodes[nodeid].widget_click_sound[i]) > 0)
+							//PE: We are going to reuse for widget_click_sound for default value for "Text Globals"
+							if (Storyboard.Nodes[nodeid].widget_type[i] == STORYBOARD_WIDGET_BUTTON
+								|| Storyboard.Nodes[nodeid].widget_type[i] == STORYBOARD_WIDGET_RADIOTYPE
+								|| Storyboard.Nodes[nodeid].widget_type[i] == STORYBOARD_WIDGET_TICKBOX)
 							{
-								addtocollection(Storyboard.Nodes[nodeid].widget_click_sound[i]);
+
+								if (strlen(Storyboard.Nodes[nodeid].widget_click_sound[i]) > 0)
+								{
+									addtocollection(Storyboard.Nodes[nodeid].widget_click_sound[i]);
+								}
 							}
 						}
 					}
@@ -3144,7 +3165,8 @@ int mapfile_savestandalone_stage2c ( void )
 			mapfile_addallentityrelatedfiles(t.entid, &t.entityelement[t.e].eleprof);
 
 			// and purey entity element related files
-			if (t.entityelement[t.e].eleprof.bCustomWickedMaterialActive)
+			//if (t.entityelement[t.e].eleprof.bCustomWickedMaterialActive)
+			if (!t.entityelement[t.e].eleprof.bUseFPESettings)
 			{
 				// Also add any custom material textures
 				sObject* pObject = GetObjectData(t.entityelement[t.e].obj);
@@ -3169,6 +3191,44 @@ int mapfile_savestandalone_stage2c ( void )
 										addtocollection((char*)pMaterialComponent->textures[3].name.c_str());
 									}
 								}
+							}
+						}
+					}
+				}
+				//PE: And add any custom wematerial texture settings.
+				if (t.entityelement[t.e].eleprof.WEMaterial.MaterialActive)
+				{
+					//PE: Need relative path here.
+					cstr entpath = cstr("entitybank\\") + t.entitybank_s[t.entid];
+					for (t.n = Len(entpath.Get()); t.n >= 1; t.n += -1)
+					{
+						if (cstr(Mid(entpath.Get(), t.n)) == "\\" || cstr(Mid(entpath.Get(), t.n)) == "/")
+						{
+							entpath = Left(entpath.Get(), t.n);
+							break;
+						}
+					}
+
+					cstr texture;
+					for (int loop = 0; loop < MAXMESHMATERIALS; loop++)
+					{
+						for (int l = 0; l < 4; l++)
+						{
+							if (l == 0) texture = t.entityelement[t.e].eleprof.WEMaterial.baseColorMapName[loop];
+							if (l == 1) texture = t.entityelement[t.e].eleprof.WEMaterial.normalMapName[loop];
+							if (l == 2) texture = t.entityelement[t.e].eleprof.WEMaterial.surfaceMapName[loop];
+							if (l == 3) texture = t.entityelement[t.e].eleprof.WEMaterial.emissiveMapName[loop];
+
+							if (texture.Len() > 0)
+							{
+								if (!pestrcasestr(texture.Get(), "\\") &&
+									!pestrcasestr(texture.Get(), "/"))
+								{
+									cstr finalname = entpath + texture;
+									addtocollection((char*)finalname.Get());
+								}
+								else
+									addtocollection((char*)texture.Get());
 							}
 						}
 					}
@@ -3674,7 +3734,7 @@ void mapfile_savestandalone_stage4 ( void )
 	t.setuparr_s[t.i] = ""; t.setuparr_s[t.i] = t.setuparr_s[t.i] + "" ; ++t.i;
 	t.setuparr_s[t.i] = ""; t.setuparr_s[t.i] = t.setuparr_s[t.i] + "[CUSTOMIZATIONS]" ; ++t.i;
 	t.setuparr_s[t.i] = ""; t.setuparr_s[t.i] = t.setuparr_s[t.i] + "switchtoalt="+Str(g.ggunaltswapkey1) ; ++t.i;
-	t.setuparr_s[t.i] = ""; t.setuparr_s[t.i] = t.setuparr_s[t.i] + "melee key="+Str(g.ggunmeleekey) ; ++t.i;
+	t.setuparr_s[t.i] = ""; t.setuparr_s[t.i] = t.setuparr_s[t.i] + "melee key=" + Str(g.ggunmeleekey); ++t.i;
 	t.setuparr_s[t.i] = ""; t.setuparr_s[t.i] = t.setuparr_s[t.i] + "zoomholdbreath="+Str(g.gzoomholdbreath) ; ++t.i;
 	t.setuparr_s[t.i] = ""; t.setuparr_s[t.i] = t.setuparr_s[t.i] + "keyUP="+Str(t.listkey[1]) ; ++t.i;
 	t.setuparr_s[t.i] = ""; t.setuparr_s[t.i] = t.setuparr_s[t.i] + "keyDOWN="+Str(t.listkey[2]) ; ++t.i;

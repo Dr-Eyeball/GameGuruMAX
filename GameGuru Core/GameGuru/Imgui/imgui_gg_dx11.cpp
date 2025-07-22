@@ -1155,6 +1155,7 @@ static void ImGui_ImplDX11_CreateFontsTexture()
         srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
         srvDesc.Texture2D.MipLevels = desc.MipLevels;
         srvDesc.Texture2D.MostDetailedMip = 0;
+		if (g_pFontTextureView) { g_pFontTextureView->Release(); g_pFontTextureView = NULL; ImGui::GetIO().Fonts->TexID = NULL; }
         g_pd3dDevice->CreateShaderResourceView(pTexture, &srvDesc, &g_pFontTextureView);
         pTexture->Release();
     }
@@ -1174,6 +1175,7 @@ static void ImGui_ImplDX11_CreateFontsTexture()
         desc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
         desc.MinLOD = 0.f;
         desc.MaxLOD = 0.f;
+		if (g_pFontSampler) { g_pFontSampler->Release(); g_pFontSampler = NULL; }
         g_pd3dDevice->CreateSamplerState(&desc, &g_pFontSampler);
     }
 }
@@ -2481,6 +2483,52 @@ void DebugInfo(char * text, const char *heading)
 #include "CImageC.h"
 
 namespace ImGui {
+
+	bool MenuItem2(const char* label, const char* shortcut, bool selected, bool enabled)
+	{
+		ImGuiWindow* window = GetCurrentWindow();
+		if (window->SkipItems)
+			return false;
+
+		ImGuiContext& g = *GImGui;
+		ImGuiStyle& style = g.Style;
+		ImVec2 pos = window->DC.CursorPos;
+		ImVec2 label_size = CalcTextSize(label, NULL, true);
+
+		// We've been using the equivalent of ImGuiSelectableFlags_SetNavIdOnHover on all Selectable() since early Nav system days (commit 43ee5d73),
+		// but I am unsure whether this should be kept at all. For now moved it to be an opt-in feature used by menus only.
+		ImGuiSelectableFlags flags = ImGuiSelectableFlags_PressedOnRelease | ImGuiSelectableFlags_SetNavIdOnHover | (enabled ? 0 : ImGuiSelectableFlags_Disabled);
+		bool pressed;
+		if (window->DC.LayoutType == ImGuiLayoutType_Horizontal)
+		{
+			// Mimic the exact layout spacing of BeginMenu() to allow MenuItem() inside a menu bar, which is a little misleading but may be useful
+			// Note that in this situation we render neither the shortcut neither the selected tick mark
+			float w = label_size.x;
+			window->DC.CursorPos.x += (float)(int)(style.ItemSpacing.x * 0.5f);
+			PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(style.ItemSpacing.x * 2.0f, style.ItemSpacing.y));
+			pressed = Selectable(label, selected, flags, ImVec2(w, 0.0f));
+			PopStyleVar();
+			window->DC.CursorPos.x += (float)(int)(style.ItemSpacing.x * (-1.0f + 0.5f)); // -1 spacing to compensate the spacing added when Selectable() did a SameLine(). It would also work to call SameLine() ourselves after the PopStyleVar().
+		}
+		else
+		{
+			ImVec2 shortcut_size = shortcut ? CalcTextSize(shortcut, NULL) : ImVec2(0.0f, 0.0f);
+			float w = window->MenuColumns.DeclColumns(label_size.x, shortcut_size.x, (float)(int)(g.FontSize * 1.20f)); // Feedback for next frame
+			float extra_w = ImMax(0.0f, GetContentRegionAvail().x - w);
+			pressed = Selectable(label, selected, flags | ImGuiSelectableFlags_DrawFillAvailWidth, ImVec2(w, 0.0f));
+			if (shortcut_size.x > 0.0f)
+			{
+				PushStyleColor(ImGuiCol_Text, g.Style.Colors[ImGuiCol_TextDisabled]);
+				RenderText(pos + ImVec2(window->MenuColumns.Pos[1] + extra_w, 0.0f), shortcut, NULL, false);
+				PopStyleColor();
+			}
+			if (selected)
+				RenderCheckMark(pos + ImVec2(window->MenuColumns.Pos[2] + extra_w + g.FontSize * 0.40f, g.FontSize * 0.134f * 0.5f), GetColorU32(enabled ? ImGuiCol_Text : ImGuiCol_TextDisabled), g.FontSize * 0.866f);
+		}
+
+		IMGUI_TEST_ENGINE_ITEM_INFO(window->DC.LastItemId, label, window->DC.ItemFlags | ImGuiItemStatusFlags_Checkable | (selected ? ImGuiItemStatusFlags_Checked : 0));
+		return pressed;
+	}
 
 	const char* CalcWordWrapPositionB(float scale, const char* textorig, const char* text_end, float wrap_width, float line_start)
 	{
@@ -4456,6 +4504,15 @@ namespace ImGui {
 
 }
 
+void myDefaultStyles(void)
+{
+	ImGui::GetStyle().TabRounding = 4;
+	ImGui::GetStyle().ChildRounding = 3.0f;
+	ImGui::GetStyle().FrameRounding = 3.0f;
+	ImGui::GetStyle().ItemSpacing = ImVec2(8.0f, 4.0f);
+	ImGui::GetStyle().ScrollbarRounding = 9.0f;
+	ImGui::GetStyle().WindowBorderSize = 2.0f;
+}
 
 //PE: Styles from AGKS
 void myDarkStyle(ImGuiStyle* dst)
@@ -4634,6 +4691,79 @@ void myStyleBlue(ImGuiStyle* dst)
 
 }
 
+void DarkColorsNoTransparent(void)
+{
+	ImVec4* colors = ImGui::GetStyle().Colors;
+	//colors[ImGuiCol_Text] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
+	colors[ImGuiCol_Text] = ImVec4(0.82f, 0.82f, 0.82f, 1.00f);
+	colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
+	//colors[ImGuiCol_WindowBg] = ImVec4(0.06f, 0.06f, 0.06f, 0.94f);
+	colors[ImGuiCol_WindowBg] = ImVec4(0.16f, 0.16f, 0.16f, 0.98f);
+	colors[ImGuiCol_ChildBg] = ImVec4(1.00f, 1.00f, 1.00f, 0.00f);
+	//colors[ImGuiCol_PopupBg] = ImVec4(0.08f, 0.08f, 0.08f, 0.94f);
+	colors[ImGuiCol_PopupBg] = ImVec4(0.18f, 0.18f, 0.18f, 0.94f);
+	//colors[ImGuiCol_Border] = ImVec4(0.43f, 0.43f, 0.50f, 0.50f);
+	colors[ImGuiCol_Border] = ImVec4(0.25f, 0.25f, 0.25f, 1.0f);
+	colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+	colors[ImGuiCol_FrameBg] = ImVec4(0.20f, 0.21f, 0.22f, 0.54f);
+	colors[ImGuiCol_FrameBgHovered] = ImVec4(0.40f, 0.40f, 0.40f, 0.40f);
+	colors[ImGuiCol_FrameBgActive] = ImVec4(0.18f, 0.18f, 0.18f, 0.67f);
+	//colors[ImGuiCol_TitleBg] = ImVec4(0.04f, 0.04f, 0.04f, 1.00f);
+
+	colors[ImGuiCol_TitleBg] = ImVec4(0.12f, 0.12f, 0.12f, 1.00f);
+	colors[ImGuiCol_TitleBgActive] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+
+	colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.00f, 0.00f, 0.00f, 0.51f);
+	colors[ImGuiCol_MenuBarBg] = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
+	colors[ImGuiCol_ScrollbarBg] = ImVec4(0.02f, 0.02f, 0.02f, 0.53f);
+	colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.31f, 0.31f, 0.31f, 1.00f);
+	colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.41f, 0.41f, 0.41f, 1.00f);
+	colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.51f, 0.51f, 0.51f, 1.00f);
+	colors[ImGuiCol_CheckMark] = ImVec4(0.94f, 0.94f, 0.94f, 1.00f);
+	colors[ImGuiCol_SliderGrab] = ImVec4(0.51f, 0.51f, 0.51f, 1.00f);
+	colors[ImGuiCol_SliderGrabActive] = ImVec4(0.86f, 0.86f, 0.86f, 1.00f);
+	colors[ImGuiCol_Button] = ImVec4(0.44f, 0.44f, 0.44f, 0.40f);
+	colors[ImGuiCol_ButtonHovered] = ImVec4(0.46f, 0.47f, 0.48f, 1.00f);
+	colors[ImGuiCol_ButtonActive] = ImVec4(0.42f, 0.42f, 0.42f, 1.00f);
+//	colors[ImGuiCol_Header] = ImVec4(0.70f, 0.70f, 0.70f, 0.31f);
+	colors[ImGuiCol_Header] = ImVec4(0.70f, 0.70f, 0.70f, 0.25f);
+//	colors[ImGuiCol_HeaderHovered] = ImVec4(0.70f, 0.70f, 0.70f, 0.80f);
+	colors[ImGuiCol_HeaderHovered] = ImVec4(0.70f, 0.70f, 0.70f, 0.40f);
+	colors[ImGuiCol_HeaderActive] = ImVec4(0.48f, 0.50f, 0.52f, 1.00f);
+	//colors[ImGuiCol_Separator] = ImVec4(0.43f, 0.43f, 0.50f, 0.50f);
+	colors[ImGuiCol_Separator] = ImVec4(0.25f, 0.25f, 0.25f, 1.0f);
+	//colors[ImGuiCol_SeparatorHovered] = ImVec4(0.72f, 0.72f, 0.72f, 0.78f);
+	colors[ImGuiCol_SeparatorHovered] = ImVec4(0.52f, 0.52f, 0.52f, 0.78f);
+
+	colors[ImGuiCol_SeparatorActive] = ImVec4(0.51f, 0.51f, 0.51f, 1.00f);
+	colors[ImGuiCol_ResizeGrip] = ImVec4(0.91f, 0.91f, 0.91f, 0.25f);
+	colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.81f, 0.81f, 0.81f, 0.67f);
+	colors[ImGuiCol_ResizeGripActive] = ImVec4(0.46f, 0.46f, 0.46f, 0.95f);
+	colors[ImGuiCol_PlotLines] = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
+	//PE: VS2022 style
+	const float r = pref.status_bar_color.x; // (1.0f / 255.0f) * 14;
+	const float g = pref.status_bar_color.y; // (1.0f / 255.0f) * 99;
+	const float b = pref.status_bar_color.z; // (1.0f / 255.0f) * 156;
+
+	colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
+	colors[ImGuiCol_PlotHistogram] = ImVec4(r, g, b, 1.00f);
+	colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
+	colors[ImGuiCol_TextSelectedBg] = ImVec4(0.87f, 0.87f, 0.87f, 0.35f);
+	colors[ImGuiCol_ModalWindowDarkening] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
+	colors[ImGuiCol_DragDropTarget] = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
+	colors[ImGuiCol_NavHighlight] = ImVec4(0.60f, 0.60f, 0.60f, 1.00f);
+	colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
+
+	auto* style = &ImGui::GetStyle();
+	style->ItemSpacing.y = 3.0f;
+	style->TabRounding = 0;
+	style->ChildRounding = 0;
+	style->FrameRounding = 3;
+	style->ScrollbarRounding = 1;
+	style->WindowBorderSize = 0;
+
+	TintCurrentStyle();
+}
 
 void myStyle2(ImGuiStyle* dst)
 {
@@ -4717,6 +4847,7 @@ void myStyle2(ImGuiStyle* dst)
 
 
 	style->Colors[ImGuiCol_DragDropTarget] = ImVec4(0.58f, 0.58f, 0.58f, 0.90f);
+
 	TintCurrentStyle();
 }
 
@@ -5067,18 +5198,23 @@ ImFont* customfont;
 ImFont* customfontlarge;
 ImFont* tmpfont;
 
+static const ImWchar Generic_ranges_all[] =
+{
+	0x0020, 0x00FF, // Basic Latin + Latin Supplement
+	0x0100, 0x017F,	//0100 — 017F  	Latin Extended-A
+	0x0180, 0x024F,	//0180 — 024F  	Latin Extended-B
+	0,
+};
+//PE: Optimize exclude Phonetic Extensions (1D00 — 1D7F) , phonetic lettering (japan,china), Greak/Latin Extended, block elements,Dingbats,...
+static const ImWchar Generic_ranges_everything[] =
+{
+   0x0020, 0x07FF, // unicode 0x800-0x900 not defined so exclude from here.
+   0,
+};
+
 void ChangeGGFont(const char *cpcustomfont, int iIDEFontSize)
 {
 	//MessageBoxA(NULL, "ChangeGGFont", "ChangeGGFont", 0);
-
-	
-	static const ImWchar Generic_ranges_all[] =
-	{
-		0x0020, 0x00FF, // Basic Latin + Latin Supplement
-		0x0100, 0x017F,	//0100 — 017F  	Latin Extended-A
-		0x0180, 0x024F,	//0180 — 024F  	Latin Extended-B
-		0,
-	};
 
 	//PE: Add all lang.
 //	static const ImWchar Generic_ranges_everything[] =
@@ -5086,14 +5222,6 @@ void ChangeGGFont(const char *cpcustomfont, int iIDEFontSize)
 //	   0x0020, 0xFFFF, // Everything test.
 //	   0,
 //	};
-
-	//PE: Optimize exclude Phonetic Extensions (1D00 — 1D7F) , phonetic lettering (japan,china), Greak/Latin Extended, block elements,Dingbats,...
-	static const ImWchar Generic_ranges_everything[] =
-	{
-	   0x0020, 0x07FF, // unicode 0x800-0x900 not defined so exclude from here.
-	   0,
-	};
-
 
 	float FONTUPSCALE = 2.0; //Font upscaling.
 
@@ -5148,6 +5276,7 @@ void ChangeGGFont(const char *cpcustomfont, int iIDEFontSize)
 	extern std::vector< std::pair<ImFont*, std::string>> StoryboardFonts;
 
 	LPSTR pOldDir = GetDir();
+
 	char destination[MAX_PATH];
 	strcpy(destination, "editors\\templates\\fonts\\");
 	SetDir(destination);
@@ -5184,6 +5313,76 @@ void ChangeGGFont(const char *cpcustomfont, int iIDEFontSize)
 
 	ImGui_ImplDX11_CreateDeviceObjects();
 
+}
+
+void AddRemoteProjectFonts(void)
+{
+	extern StoryboardStruct Storyboard;
+	extern std::vector< std::pair<ImFont*, std::string>> StoryboardFonts;
+	bool bAddedFonts = false;
+	//PE: Need projectfolder here.
+	if (strlen(Storyboard.gamename) > 0 && strlen(Storyboard.customprojectfolder) > 0)
+	{
+		ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+		LPSTR pOldDir = GetDir();
+		char destination[MAX_PATH];
+		strcpy(destination, Storyboard.customprojectfolder);
+		strcat(destination, Storyboard.gamename);
+		strcat(destination, "\\files\\editors\\templates\\fonts\\");
+		if (PathExist(destination))
+		{
+			SetDir(destination);
+			ChecklistForFiles();
+			SetDir(pOldDir);
+			DARKSDK LPSTR ChecklistString(int iIndex);
+			DARKSDK int ChecklistQuantity(void);
+			for (int c = 1; c <= ChecklistQuantity(); c++)
+			{
+				char* file = ChecklistString(c);
+				if (file)
+				{
+					if (strlen(file) > 4)
+					{
+						const char* pestrcasestr(const char* arg1, const char* arg2);
+						if (strnicmp(file + strlen(file) - 4, ".ttf", 4) == NULL || strnicmp(file + strlen(file) - 4, ".otf", 4) == NULL)
+						{
+							bool bAlreadyThere = false;
+							for (int i = 0; i < StoryboardFonts.size(); i++)
+							{
+								if (pestrcasestr(file, StoryboardFonts[i].second.c_str()))
+								{
+									bAlreadyThere = true;
+									break;
+								}
+							}
+							//Add font.
+							if (!bAlreadyThere)
+							{
+								char path[MAX_PATH];
+								strcpy(path, destination);
+								strcat(path, file);
+								if (pestrcasestr(file, "arial"))
+									tmpfont = io.Fonts->AddFontFromFileTTF(path, 60, NULL, &Generic_ranges_everything[0]); //Add font
+								else
+									tmpfont = io.Fonts->AddFontFromFileTTF(path, 60, NULL, &Generic_ranges_all[0]); //Add font
+								StoryboardFonts.push_back(std::make_pair(tmpfont, file));
+								bAddedFonts = true;
+							}
+						}
+					}
+				}
+			}
+			if (bAddedFonts)
+			{
+				//ImGui_ImplDX11_CreateDeviceObjects();
+				ImGui_ImplDX11_CreateFontsTexture();
+				//PE: old frame could have our old font texture , so disable it until newframe.
+				bBlockImGuiUntilNewFrame = true;
+			}
+		}
+		SetDir(pOldDir);
+	}
 }
 
 //struct case_insensitive_less //: public std::binary_function< char, char, bool >
@@ -5872,6 +6071,8 @@ cstr GetNameFinalCreditFromAbsPath (LPSTR pAbsFullFolderPath)
 	#endif
 	return sNameFinalCredit;
 }
+
+extern char szBeforeChangeWriteDir[MAX_PATH];
 
 void GetMainEntityList(char* folder_s, char* rel_s, void *pFolder, char* folder_name_start, bool bForceToTop, int foldertype)
 {
@@ -6816,6 +7017,7 @@ void FindAWriteablefolder( void )
 }
 
 #include "Types.h"
+#include <set>
 
 void InitParseLuaScript(entityeleproftype *tmpeleprof)
 {
@@ -7082,9 +7284,10 @@ void ParseLuaScriptWithElementID(entityeleproftype *tmpeleprof, char * script, i
 									}
 
 									// can intercept label list here if special indicator that it is an animset or questlist list
-									if (labels.size()==2 && iObjID > 0 )
+									//PE: Allow more DLUA lists to work on zones.
+									if (labels.size()==2 ) // && iObjID > 0
 									{
-										if(stricmp(labels[1].c_str(),"animsetlist")==NULL)
+										if(iObjID > 0 && stricmp(labels[1].c_str(),"animsetlist")==NULL)
 										{
 											labels.clear();
 											labels.push_back(cVariable);
@@ -7191,6 +7394,125 @@ void ParseLuaScriptWithElementID(entityeleproftype *tmpeleprof, char * script, i
 									//PE: Let some lists work on zones also.
 									if (labels.size() == 2)
 									{
+										if (stricmp(labels[1].c_str(), "armanimsetlist") == NULL)
+										{
+											labels.clear();
+											labels.push_back(cVariable);
+											labels.push_back("None");
+
+											char animlist[MAX_PATH];
+											//strcpy(animlist, "gamecore\\interactive_anims.txt");
+											strcpy(animlist, "gamecore\\guns\\interactive\\interactive_anims.txt");
+											GG_GetRealPath(animlist, 0);
+											if (FileExist(animlist) == 1)
+											{
+												FILE* fAnimList = GG_fopen(animlist, "r");
+												if (fAnimList)
+												{
+													char ctmp[MAX_PATH];
+													while (!feof(fAnimList))
+													{
+														strcpy(ctmp, "");
+														fgets(ctmp, MAX_PATH - 1, fAnimList);
+														if (strlen(ctmp) > 0 && ctmp[strlen(ctmp) - 1] == '\n')
+															ctmp[strlen(ctmp) - 1] = 0;
+														if (strlen(ctmp) > 0)
+															labels.push_back(&ctmp[0]);
+													}
+													fclose(fAnimList);
+												}
+											}
+											if (labels.size() > 1)
+											{
+												tmpeleprof->PropertiesVariable.VariableValueFrom[tmpeleprof->PropertiesVariable.iVariables] = 1;
+												tmpeleprof->PropertiesVariable.VariableValueTo[tmpeleprof->PropertiesVariable.iVariables] = labels.size();
+											}
+											else
+											{
+												tmpeleprof->PropertiesVariable.VariableValueFrom[tmpeleprof->PropertiesVariable.iVariables] = 0;
+												tmpeleprof->PropertiesVariable.VariableValueTo[tmpeleprof->PropertiesVariable.iVariables] = 0;
+											}
+
+										}
+										
+
+										if (stricmp(labels[1].c_str(), "effectlist") == NULL)
+										{
+											labels.clear();
+											labels.push_back(cVariable);
+											labels.push_back("None");
+
+											char writePath[MAX_PATH];
+											extern const char* GG_GetWritePath();
+											strcpy(writePath, GG_GetWritePath());
+
+											std::vector<std::string> effectFilesWrite, effectFilesDoc;
+											effectFilesWrite.clear();
+											effectFilesDoc.clear();
+											char writableEffect[MAX_PATH];
+											strcpy(writableEffect, writePath);
+											strcat(writableEffect, "Files\\particlesbank\\wpe");
+											CollectFilesWithExtension(".pe", writableEffect, &effectFilesWrite);
+
+											extern char szRootDir[MAX_PATH];
+											char docEffect[MAX_PATH];
+											strcpy(docEffect, szRootDir);
+											strcat(docEffect, "\\Files\\particlesbank\\wpe");
+											CollectFilesWithExtension(".pe", docEffect, &effectFilesDoc);
+
+											std::set<std::string> uniqueEffectFiles;
+											for (const std::string& file : effectFilesWrite) {
+												uniqueEffectFiles.insert(&file[strlen(writableEffect)-17]);
+											}
+											for (const std::string& file : effectFilesDoc) {
+												uniqueEffectFiles.insert(file);
+											}
+											for (const std::string& file : uniqueEffectFiles) {
+												labels.push_back(&file[strlen(docEffect)-17]);
+											}
+											uniqueEffectFiles.clear();
+											effectFilesWrite.clear();
+											effectFilesDoc.clear();
+
+											if (labels.size() > 1)
+											{
+												tmpeleprof->PropertiesVariable.VariableValueFrom[tmpeleprof->PropertiesVariable.iVariables] = 1;
+												tmpeleprof->PropertiesVariable.VariableValueTo[tmpeleprof->PropertiesVariable.iVariables] = labels.size();
+											}
+											else
+											{
+												tmpeleprof->PropertiesVariable.VariableValueFrom[tmpeleprof->PropertiesVariable.iVariables] = 0;
+												tmpeleprof->PropertiesVariable.VariableValueTo[tmpeleprof->PropertiesVariable.iVariables] = 0;
+											}
+										}
+										if (stricmp(labels[1].c_str(), "decallist") == NULL)
+										{
+											labels.clear();
+											labels.push_back(cVariable);
+											labels.push_back("None");
+											std::vector <cstr> mydecals;
+											int fillgloballistwithdecals(std::vector <cstr>& list_s);
+											int listmax = fillgloballistwithdecals(mydecals);
+											for (int n = 1; n < listmax; n++)
+											{
+												if (mydecals[n].Len() > 0)
+												{
+													std::string name = mydecals[n].Get();
+													labels.push_back(name);
+												}
+											}
+											if (labels.size() > 1)
+											{
+												tmpeleprof->PropertiesVariable.VariableValueFrom[tmpeleprof->PropertiesVariable.iVariables] = 1;
+												tmpeleprof->PropertiesVariable.VariableValueTo[tmpeleprof->PropertiesVariable.iVariables] = labels.size();
+											}
+											else
+											{
+												tmpeleprof->PropertiesVariable.VariableValueFrom[tmpeleprof->PropertiesVariable.iVariables] = 0;
+												tmpeleprof->PropertiesVariable.VariableValueTo[tmpeleprof->PropertiesVariable.iVariables] = 0;
+											}
+										}
+
 										if (stricmp(labels[1].c_str(), "hudscreenlist") == NULL)
 										{
 											static std::vector<std::string> globallist_labels;
@@ -7237,6 +7559,11 @@ void ParseLuaScriptWithElementID(entityeleproftype *tmpeleprof, char * script, i
 												globallist_labels.clear();
 												globallist_labels.push_back(cVariable);
 												globallist_labels.push_back("None");
+												//PE: Need to push these to g_UserGlobal[''].
+												globallist_labels.push_back("Gun Ammo Remaining");
+												globallist_labels.push_back("Health Remaining");
+												globallist_labels.push_back("Lives Remaining");
+
 												for (int allhudscreensnodeid = 0; allhudscreensnodeid < STORYBOARD_MAXNODES; allhudscreensnodeid++)
 												{
 													//PE: Need custom ? stricmp(readout.c_str(), "User Defined Global Statusbar") == NULL
@@ -7704,6 +8031,11 @@ int DisplayLuaDescription(entityeleproftype *tmpeleprof)
 							float ImgW = ImageWidth(imgfile_preview_id[iImgFileIndex]);
 							float ImgH = ImageHeight(imgfile_preview_id[iImgFileIndex]);
 							float fHighRatio = ImgH / ImgW;
+							if (ImgW < (iwidth - 18.0f))
+							{
+								//PE: Fit to width.
+								iwidth = ImgW + 18.0f;
+							}
 							ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2((w*0.5) - (iwidth*0.5), 0.0f));
 							ImGui::ImgBtn(imgfile_preview_id[iImgFileIndex], ImVec2( iwidth-18.0f, (iwidth - 18.0f) * fHighRatio), drawCol_back, drawCol_normal, drawCol_normal, drawCol_normal, -1, 0, 0, 0, true);
 						}
@@ -9023,7 +9355,7 @@ void coreResetIMGUIFunctionalityPrefs(void)
 	pref.iSetColumnsEntityLib = 3;
 	pref.iTerrainAdvanced = 0;
 	pref.iStoryboardAdvanced = 0;
-	pref.iTerrainDebugMode = 0;
+	pref.iAdvancedGridModeSettings = 0;// iTerrainDebugMode = 0;
 	pref.iEnableAdvancedCharacterCreator = 0;
 	pref.iDisableProjectAutoSave = 0;
 	pref.iDisableLevelAutoSave = 0;
@@ -9053,13 +9385,13 @@ void coreResetIMGUIFunctionalityPrefs(void)
 	pref.fEditorGridOffsetY = 0.0f;
 	pref.fEditorGridOffsetZ = 50.0f;
 	pref.fEditorGridSizeX = 100.0f;
-	pref.fEditorGridSizeY = 100.0f;
+	pref.fEditorGridSizeY = 10.0f;
 	pref.fEditorGridSizeZ = 100.0f;
 	pref.iDevToolsOpen = 0;
 	extern int g_iDevToolsOpen;
 	g_iDevToolsOpen = 0;
 	pref.iCheckFilesModifiedOnFocus = 1;
-
+	pref.status_bar_color = ImVec4((1.0f / 255.0f) * 14, (1.0f / 255.0f) * 99, (1.0f / 255.0f) * 156, 1.0);
 	#endif
 }
 

@@ -33,6 +33,7 @@ int fileRedirectSetup = 0;
 FILE *pLogFile = 0;
 char szRootDir[ MAX_PATH ];
 char szWriteDir[ MAX_PATH ];
+char szBeforeChangeWriteDir[MAX_PATH] = "\0";
 char szAddWriteDirAdditional[MAX_PATH];
 
 // separate writabkes for root/global writing and rest for remote project location (or can also be in global if no remote set)
@@ -245,7 +246,7 @@ void FileRedirectSetup()
 }
 
 // returns 1 if file was found or created, 2 if directory was found or created, 0 if not known
-int GG_GetRealPath( char* fullPath, int create )
+int GG_GetRealPath( char* fullPath, int create, bool bIgnoreAdditional)
 {
 	// should only be called once pref structure filled (with custom writables folder location)
 	FileRedirectSetup();
@@ -321,7 +322,7 @@ int GG_GetRealPath( char* fullPath, int create )
 			//PE: If using custom docwrite folder, try to read from original /USER/ folder.
 			//PE: if user did not copy over all media after changing to a custom docwrite folder.
 			//PE: szAddWriteDirAdditional is a readonly folder.
-			if (bUseRootAsWriteArea == false)
+			if (bUseRootAsWriteArea == false && !bIgnoreAdditional)
 			{
 				if (!create && strlen(szAddWriteDirAdditional) > 0)
 				{

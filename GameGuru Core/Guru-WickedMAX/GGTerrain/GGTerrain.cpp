@@ -146,6 +146,8 @@ extern bool bEnableTerrainChunkCulling;
 void GGTerrain_CreateUndoRedoAction(int type, int eList, bool bUserAction = true, void* pEventData = nullptr);
 int Get_Spray_Mode_On(void);
 void DrawDot(char* text, float x, float y, float z);
+const char* pestrcasestr(const char* arg1, const char* arg2);
+void GetConvertSettings(int* maxwidth, int* active);
 
 #ifdef CUSTOMTEXTURES
 extern int ConvertDDSCompressedFormat(ID3D11Device* device, char* sourceFile, DXGI_FORMAT newFormat, int newWidth, int newHeight, char* outputFile);
@@ -4882,6 +4884,170 @@ void GGTerrain_CompressAO( LPSTR aoFilename, LPSTR dstFilename )
 	compressedSurface.Release();
 }
 
+
+extern "C" bool GGTerrain_ConvertToDDS(uint8_t* ImageData, int width, int height, int channels, Texture* pTexture, const std::string& name)
+{
+	int maxwidth, active;
+	GetConvertSettings( &maxwidth, &active);
+
+	if (active == 0)
+	{
+		return false;
+	}
+	if (maxwidth > 4096)
+		maxwidth = 4096;
+	if (maxwidth < 16)
+		maxwidth = 16;
+
+	//PE: Only entitybank for now.
+	if (!pestrcasestr(name.c_str(), "entitybank"))
+	{
+		return false;
+	}
+	//PE: And no decals.
+	if (pestrcasestr(name.c_str(), "decal"))
+	{
+		return false;
+	}
+
+	HRESULT hr;
+	GraphicsDevice* device = wiRenderer::GetDevice();
+	DirectX::ScratchImage srcImage;
+	hr = srcImage.Initialize2D(DXGI_FORMAT_R8G8B8A8_UNORM, width, height, 1, 1, DirectX::DDS_FLAGS_NONE);
+
+	bool bPureAlpha = true;
+	//PE: copy to texture
+	uint8_t* pDstPtr = srcImage.GetPixels();
+	for (int y = 0; y < height; y++)
+	{
+		for (int x = 0; x < width; x++)
+		{
+			int index = y * width + x;
+
+			//PE: Always RGBA
+			*(pDstPtr + 0) = ImageData[4 * index + 0];
+			*(pDstPtr + 1) = ImageData[4 * index + 1];
+			*(pDstPtr + 2) = ImageData[4 * index + 2];
+			*(pDstPtr + 3) = ImageData[4 * index + 3];
+			if(ImageData[4 * index + 3] < 252)
+				bPureAlpha = false;
+			pDstPtr += 4;
+		}
+	}
+
+	DirectX::ScratchImage *finalimage = &srcImage;
+	DirectX::ScratchImage resizedImage;
+	bool bResized = false;
+	if(width > maxwidth)
+	{
+		hr = DirectX::Resize(srcImage.GetImages(), srcImage.GetImageCount(), srcImage.GetMetadata(), maxwidth, maxwidth, DirectX::TEX_FILTER_DEFAULT, resizedImage);
+		if(!FAILED(hr))
+		{
+			bResized = true;
+			finalimage = &resizedImage;
+			width = maxwidth;
+			height = maxwidth;
+		}
+	}
+
+	//PE: Mipmaps
+	DirectX::ScratchImage mipChain;
+	hr = DirectX::GenerateMipMaps(finalimage->GetImages()[0], TEX_FILTER_WRAP | TEX_FILTER_SEPARATE_ALPHA | TEX_FILTER_FORCE_NON_WIC, 0, mipChain);
+	if (hr != S_OK)
+	{
+		if (bResized)
+			resizedImage.Release();
+		srcImage.Release();
+		assert(0);
+		return false;
+	}
+
+	if (bResized)
+		resizedImage.Release();
+	srcImage.Release();
+
+	//PE: Compress - TODO add BC5 normal map support in setup.ini
+	DirectX::ScratchImage compressedSurface;
+	if (bPureAlpha)
+		hr = DirectX::Compress(mipChain.GetImages(), mipChain.GetImageCount(), mipChain.GetMetadata(), DXGI_FORMAT_BC1_UNORM, TEX_COMPRESS_PARALLEL, DirectX::TEX_THRESHOLD_DEFAULT, compressedSurface);
+	else
+		hr = DirectX::Compress(mipChain.GetImages(), mipChain.GetImageCount(), mipChain.GetMetadata(), DXGI_FORMAT_BC3_UNORM, TEX_COMPRESS_PARALLEL, DirectX::TEX_THRESHOLD_DEFAULT, compressedSurface);
+	if (hr != S_OK)
+	{
+		mipChain.Release();
+		assert(0);
+		return false;
+	}
+
+	mipChain.Release();
+
+	//PE: Later save a .dds version so we can use that later, and not have this "slow" setup.
+	//wchar_t wDstFilename[MAX_PATH];
+	//MultiByteToWideChar(CP_ACP, 0, dstFilename, -1, wDstFilename, sizeof(wDstFilename));
+	//hr = DirectX::SaveToDDSFile(compressedSurface.GetImages(), compressedSurface.GetImageCount(), compressedSurface.GetMetadata(), DirectX::DDS_FLAGS_NONE, wDstFilename);
+	//if (hr != S_OK)
+	//{
+	//	assert(0);
+	//	return;
+	//}
+
+	TextureDesc desc;
+	desc.CPUAccessFlags = 0;
+	desc.ArraySize = 1;
+	desc.Depth = 1;
+
+	desc.Height = uint32_t(height);
+	desc.Width = uint32_t(width);
+	desc.layout = IMAGE_LAYOUT_SHADER_RESOURCE;
+	desc.BindFlags = BIND_SHADER_RESOURCE;
+	desc.CPUAccessFlags = 0;
+	if (bPureAlpha)
+		desc.Format = FORMAT_BC1_UNORM;
+	else
+		desc.Format = FORMAT_BC3_UNORM;
+	size_t mipLevelCount = compressedSurface.GetImageCount();
+	desc.MipLevels = mipLevelCount;
+	desc.MiscFlags = 0;
+	desc.Usage = USAGE_IMMUTABLE;
+	desc.layout = IMAGE_LAYOUT_SHADER_RESOURCE;
+
+	desc.type = TextureDesc::TEXTURE_2D;
+
+	//PE: Lowest size if block compression. already set above in maxwidth.
+	if (desc.Width < 4)
+		desc.Width = 4;
+	if (desc.Height < 4)
+		desc.Height = 4;
+
+
+	std::vector<SubresourceData> initialData;
+	initialData.reserve(compressedSurface.GetImageCount());
+
+	for (size_t i = 0; i < compressedSurface.GetImageCount(); ++i)
+	{
+		const DirectX::Image* img = compressedSurface.GetImage(i, 0, 0);
+		if (img)
+		{
+			SubresourceData subData;
+			subData.pSysMem = img->pixels;
+			subData.SysMemPitch = (uint32_t)img->rowPitch;
+			subData.SysMemSlicePitch = (uint32_t)img->slicePitch;
+			initialData.push_back(subData);
+		}
+		else
+		{
+			//PE: This should not happen if GenerateMipMaps and Compress is ok.
+			compressedSurface.Release();
+			return false;
+		}
+	}
+
+	bool success = device->CreateTexture(&desc, initialData.data(), pTexture);
+
+	compressedSurface.Release();
+	return success;
+}
+
 void GGTerrain_DecompressImage( LPSTR srcFilename, LPSTR dstFilename )
 {
 	HRESULT hr;
@@ -9371,6 +9537,7 @@ void GGTerrain_Update( float playerX, float playerY, float playerZ, wiGraphics::
 		GGTerrain_CheckKeys();
 
 		if (GGTerrain_GetKeyPressed(GGKEY_ESCAPE)) GGTerrain_CancelRamp();
+		/* hidden key functionality and undocumented feature
 		if (pref.iTerrainDebugMode)
 		{
 			if ( GGTerrain_GetKeyPressed( GGKEY_Q ) ) ggtrees_global_params.draw_enabled = 1 - ggtrees_global_params.draw_enabled;
@@ -9379,7 +9546,6 @@ void GGTerrain_Update( float playerX, float playerY, float playerZ, wiGraphics::
 			if ( GGTerrain_GetKeyPressed( GGKEY_Y ) && !GGTerrain_GetKeyPressed(GGKEY_CONTROL)) ggterrain_render_debug = 1 - ggterrain_render_debug;
 			if ( GGTerrain_GetKeyPressed( GGKEY_U ) ) ggterrain_update_enabled = 1 - ggterrain_update_enabled;
 			//if ( GGTerrain_GetKeyPressed( GGKEY_E ) ) wiRenderer::SetToDrawDebugEnvProbes( !wiRenderer::GetToDrawDebugEnvProbes() );
-
 			// increase/decrease LOD
 			if (GGTerrain_GetKeyPressed(GGKEY_O))
 			{
@@ -9395,7 +9561,6 @@ void GGTerrain_Update( float playerX, float playerY, float playerZ, wiGraphics::
 					ggterrain_global_params.lod_levels--;
 				}
 			}
-
 			// increase/decrease num segments
 			if (GGTerrain_GetKeyPressed(GGKEY_I))
 			{
@@ -9410,9 +9575,9 @@ void GGTerrain_Update( float playerX, float playerY, float playerZ, wiGraphics::
 				{
 					ggterrain_global_params.segments_per_chunk /= 2;
 				}
-
 			}
 		}
+		*/
 	}
 
 	// Environmental Light Probe System

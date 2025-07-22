@@ -93,6 +93,10 @@ g_masterinterpreter_cond_ifimmune = 73 -- If Immune (Is true when currently immu
 g_masterinterpreter_cond_iftargetonfloor = 74 -- If Target On Floor (Is true when the target is on the floor and vulnerable)
 g_masterinterpreter_cond_iftargetplaying = 75 -- If Target Playing (Is true when the target is animating specified keyword)
 g_masterinterpreter_cond_navmeshclear = 76 -- Navmesh Clear (Is true if the object stands within a wide area of navmesh for strafe animations)
+g_masterinterpreter_cond_pathcompletionistance = 77 -- Path Completion Distance (Is true if the object within specified distance from completion)
+g_masterinterpreter_cond_claimedcoverzone = 78 -- Claimed Cover Zone (Is true if this object has claimed closest cover zone)
+g_masterinterpreter_cond_ifseeducked = 79 -- If See Ducked (Is true when see the target position when while ducked down)
+g_masterinterpreter_cond_iscovertype = 80 -- Is Cover Type (Current cover matches specified cover type 0-all 1-low 2-highleft 3-highright)
 
 -- Actions
 g_masterinterpreter_act_gotostate = 0 -- Go To State (Jumps immediately to the specified state if the state)
@@ -213,11 +217,110 @@ g_masterinterpreter_act_resetdamagecheck = 114 -- Reset Damage Check (Reset dama
 g_masterinterpreter_act_pushifplayer = 115 -- Push If Player (If target player, forces player back with suitable animation)
 g_masterinterpreter_act_disablecharacter = 116 -- Disable Character (Disables object as a character, shutting down basic character logic)
 g_masterinterpreter_act_enablecharacter = 117 -- Enable Character (Restores the object as a regular character)
+g_masterinterpreter_act_claimcoverzone = 118 -- Claim Cover Zone (Registers this object as using the nearest cover zone)
+g_masterinterpreter_act_clearcoverzone = 119 -- Clear Cover Zone (Removes this object from the nearest cover zone)
+g_masterinterpreter_act_forgetcoverzones = 120 -- Forget Cover Zones (Wipe all memory of last cover zones so can search afresh)
 
 -- special callout manager to avoid insane chatter for characters
 g_calloutmanager = {}
 g_calloutmanagertime = {}
 g_coverzone = {}
+
+function masterinterpreter_findclosestcoverzone ( e, output_e, mindistance, rangedetection )
+ local havecoveree = nil
+ if e ~= nil then
+  local closestdist = 9999999
+  local allowformoredistantandbettercover = 1.5
+  local closestdisttotarget = GetPlayerDistance(e) * allowformoredistantandbettercover -- assuming target is player for now
+  local mindistanceforsanity = 250 -- otherwise finding over under players NOSE!
+  local lastzoneoccupiedbye = output_e['lastcoverzoneoccupied']
+  if g_coverzone ~= nil then
+   for twoattempts = 0, 2, 1 do
+    for ee = 1, g_EntityElementMax, 1 do
+     if g_Entity[ee] ~= nil then
+      if GetEntityMarkerMode(ee) == 3 then
+	   if g_coverzone[ee] ~= nil then
+	    if g_coverzone[ee].status ~= nil then
+	     if g_coverzone[ee].status == "normal" then
+ 	      if lastzoneoccupiedbye ~= ee then
+           local thisdistance = math.abs(GetDistanceTo(e,g_Entity[ee]['x'],g_Entity[ee]['y'],g_Entity[ee]['z']))
+           if thisdistance >= mindistance and thisdistance < closestdist and thisdistance < rangedetection then 
+	        local thisdistancetotarget = GetPlayerDistance(ee)
+	        if thisdistancetotarget > mindistanceforsanity and thisdistancetotarget < closestdisttotarget then
+             closestdisttotarget = thisdistancetotarget
+	         closestdist = thisdistance 
+	         havecoveree = ee
+		    end
+		   end
+		  end
+		 end
+		end
+	   end
+	  end
+	 end
+    end
+	if twoattempts == 0 then
+     if havecoveree == nil then
+	  lastzoneoccupiedbye = 0
+	  closestdisttotarget = 9999
+	 else
+      return havecoveree
+	 end
+	end
+   end --twoattempts
+  end
+ end
+ return havecoveree
+end
+
+function masterinterpreter_findbestpositionwithincoverzone ( coverzoneee, defendangle, preferavoidii )
+ local bestx = g_Entity[ coverzoneee ]['x']
+ local besty = g_Entity[ coverzoneee ]['y']
+ local bestz = g_Entity[ coverzoneee ]['z']
+ local bestii = -1
+ local bestblocktype = -1
+ local bestnearestangle = 99999
+ if g_coverzone ~= nil then
+  local ee = coverzoneee
+  if g_coverzone[ee] ~= nil then
+   if g_coverzone[ee].status ~= nil then
+    if g_coverzone[ee].status == "normal" then
+	 if g_coverzone[ee].defendermap ~= nil then
+	  if g_coverzone[ee].defendermapmax ~= nil then
+       for ii = 1, g_coverzone[ee].defendermapmax, 1 do
+	    if g_coverzone[ee].defendermap[ii] ~= nil then
+         local thisangle = g_coverzone[ee].defendermap[ii].a
+		 if thisangle > 180 then thisangle=thisangle-360 end
+		 local nearestangle = math.abs(thisangle - defendangle)
+		 if ii == preferavoidii then nearestangle=9999 end
+		 if nearestangle < bestnearestangle then
+		  -- final check if this IS the BEST
+		  local fromx = g_coverzone[ee].defendermap[ii].x
+		  local fromy = g_coverzone[ee].defendermap[ii].y
+		  local fromz = g_coverzone[ee].defendermap[ii].z
+		  local tox = g_PlayerPosX
+		  local toy = g_PlayerPosY
+		  local toz = g_PlayerPosZ
+		  hit = IntersectStaticPerformant(fromx,fromy,fromz,tox,toy,toz,0,0,0,0)
+		  if hit > 0 then
+		   bestnearestangle = nearestangle
+		   bestx = g_coverzone[ee].defendermap[ii].x
+		   besty = g_coverzone[ee].defendermap[ii].y
+		   bestz = g_coverzone[ee].defendermap[ii].z
+		   bestblocktype = g_coverzone[ee].defendermap[ii].blocktype
+		   bestii = ii
+		  end
+		 end
+		end
+	   end
+	  end
+	 end
+	end
+   end
+  end
+ end
+ return bestx, besty, bestz, bestii, bestblocktype
+end
 
 function masterinterpreter_scanforenemy ( e, output_e, anywilldo )
  local bestdistance = 99999
@@ -438,6 +541,7 @@ function masterinterpreter_getconditiontarget ( e, output_e, conditiontype )
  if conditiontype == g_masterinterpreter_cond_targetangletoleft then usestarget = 1 end
  if conditiontype == g_masterinterpreter_cond_targetangletoright then usestarget = 1 end
  if conditiontype == g_masterinterpreter_cond_ifseetarget then usestarget = 1 end
+ if conditiontype == g_masterinterpreter_cond_ifseeducked then usestarget = 1 end
  if conditiontype == g_masterinterpreter_cond_ifseeenemy then usestarget = 2 end
  if conditiontype == g_masterinterpreter_cond_withinattackrange then usestarget = 1 end
  if conditiontype == g_masterinterpreter_cond_targetdestwithin then usestarget = 1 end
@@ -712,14 +816,27 @@ function masterinterpreter_getconditionresult ( e, output_e, conditiontype, cond
    end
   end
  end
- if conditiontype == g_masterinterpreter_cond_ifseetarget then 
+ if conditiontype == g_masterinterpreter_cond_ifseetarget or conditiontype == g_masterinterpreter_cond_ifseeducked then 
+  if conditionparam1value == nil then conditionparam1value = 0 end
   if g_Entity[ e ]['active'] == 0 then return 0 end
-  -- locally record result from XYZ to XYZ, and refer to that instead of expensive raycast (grid of say 10x10x10)
   local TargetX, TargetY, TargetZ = masterinterpreter_gettargetxyz ( e, output_e )
   local fromx = g_Entity[ e ]['x']
   local fromy = g_Entity[ e ]['y']+60
   local fromz = g_Entity[ e ]['z']
-  local hit = masterinterpreter_rayscan(e, output_e, fromx,fromy,fromz,TargetX,TargetY+60,TargetZ,g_Entity[e]['obj'], 1)
+  local targetscanprofile_instant = 0
+  if conditionparam1value == 1 then targetscanprofile_instant = 1 end
+  local targetscanprofile_ducked = 0
+  if conditiontype == g_masterinterpreter_cond_ifseeducked then
+   targetscanprofile_ducked = 1
+  end
+  local hit = 0
+  if targetscanprofile_instant == 1 then 
+   if targetscanprofile_ducked == 1 then fromy = fromy - 30 end
+   masterinterpreter_resetscan(e)
+   hit = IntersectStaticPerformant(fromx,fromy,fromz,TargetX,TargetY+60,TargetZ,g_Entity[e]['obj'],-1,0,1)
+  else
+   hit = masterinterpreter_rayscan(e, output_e, fromx,fromy,fromz, TargetX,TargetY+60,TargetZ, g_Entity[e]['obj'], 1)
+  end
   if hit == 0 then return 1 end
  end
  if conditiontype == g_masterinterpreter_cond_ifally then 
@@ -955,35 +1072,12 @@ function masterinterpreter_getconditionresult ( e, output_e, conditiontype, cond
  end  
  if conditiontype == g_masterinterpreter_cond_coverzonewithin then 
   if conditionparam1value == nil then conditionparam1value = 1000 end
-  local closestdist = 9999999
-  local closestdisttotarget = GetPlayerDistance(e)
   local rangedetection = conditionparam1value
-  local havecovere = 0
-  if g_coverzone ~= nil then
-   for ee = 1, g_EntityElementMax, 1 do
-    if g_Entity[ee] ~= nil then
-     if GetEntityMarkerMode(ee) == 3 then
-	  if g_coverzone[ee] ~= nil then
-	   if g_coverzone[ee].status ~= nil then
-	    if g_coverzone[ee].status == "normal" then
-         local thisdistance = GetDistanceTo(e,g_Entity[ee]['x'],g_Entity[ee]['y'],g_Entity[ee]['z'])
-         if thisdistance > 100 and thisdistance < closestdist and thisdistance < rangedetection then 
-	      local thisdistancetotarget = GetPlayerDistance(ee)
-	      if thisdistancetotarget < closestdisttotarget then
-           closestdisttotarget = thisdistancetotarget
-	       closestdist = thisdistance 
-	       havecovere = ee
-		  end
-		 end
-		end
-	   end
-	  end
-	 end
-    end
+  local ee = masterinterpreter_findclosestcoverzone(e,output_e,0,rangedetection)
+  if ee ~= nil then
+   if ee > 0 then
+    return 1
    end
-  end
-  if havecovere > 0 then
-   return 1
   end
  end
  if conditiontype == g_masterinterpreter_cond_ifseeplayer then
@@ -1083,6 +1177,38 @@ function masterinterpreter_getconditionresult ( e, output_e, conditiontype, cond
   if math.abs(diff3y) > 40 then mustpassalltests = 0 end
   if math.abs(diff4y) > 40 then mustpassalltests = 0 end
   return mustpassalltests
+ end
+ if conditiontype == g_masterinterpreter_cond_pathcompletionistance then
+  if conditionparam1value == nil then conditionparam1value = 10 end
+  masterinterpreter_followtarget ( e, output_e, -1 )
+  local dx = output_e['goodtargetdestinationx'] - g_Entity[ e ]['x']
+  local dz = output_e['goodtargetdestinationz'] - g_Entity[ e ]['z']
+  local tdist = math.sqrt(math.abs(dx*dx)+math.abs(dz*dz)) 
+  if tdist <= conditionparam1value then 
+   return 1 
+  end
+ end
+ if conditiontype == g_masterinterpreter_cond_claimedcoverzone then
+  if conditionparam1value == nil then conditionparam1value = 1500 end  
+  if g_coverzone ~= nil then
+   local ee = masterinterpreter_findclosestcoverzone(e,output_e,0,conditionparam1value)
+   if ee ~= nil then
+    if g_coverzone[ee].status == "normal" then
+	 if g_coverzone[ee][e] ~= nil then
+	  if g_coverzone[ee][e] == 1 then
+	   return 1
+	  end
+	 end
+    end
+   end
+  end
+ end
+ if conditiontype == g_masterinterpreter_cond_iscovertype then
+  if conditionparam1value == nil then conditionparam1value = 0 end  
+  if output_e['lastcoverzoneblocktype'] ~= nil then
+   if conditionparam1value==0 and output_e['lastcoverzoneblocktype'] ~= -1 then return 1 end
+   if conditionparam1value>0 and output_e['lastcoverzoneblocktype'] == conditionparam1value then return 1 end
+  end
  end
  
  -- Condition is false
@@ -2364,40 +2490,35 @@ function masterinterpreter_doaction ( e, output_e, actiontype, actionparam1, act
  
  -- Go To Cover Zone
  if actiontype == g_masterinterpreter_act_gotocoverzone then
-  if actionparam1value == nil then actionparam1value = 1000 end  
-  local closestdist = 9999999
-  local closestdisttotarget = GetPlayerDistance(e)
-  local havecovere = 0
-  local rangedetection = actionparam1value
-  if g_coverzone ~= nil then
-   for ee = 1, g_EntityElementMax, 1 do
-    if g_Entity[ee] ~= nil then
-     if GetEntityMarkerMode(ee) == 3 then
-	  if g_coverzone[ee] ~= nil then
-	   if g_coverzone[ee].status ~= nil then
-	    if g_coverzone[ee].status == "normal" then
-         local thisdistance = GetDistanceTo(e,g_Entity[ee]['x'],g_Entity[ee]['y'],g_Entity[ee]['z'])
-         if thisdistance > 100 and thisdistance < closestdist and thisdistance < rangedetection then 
-	      local thisdistancetotarget = GetPlayerDistance(ee)
-	      if thisdistancetotarget < closestdisttotarget then
-           closestdisttotarget = thisdistancetotarget
-	       closestdist = thisdistance 
-	       havecovere = ee
-		  end
-		 end
-		end
-	   end
-	  end
+  if actionparam1value == nil then actionparam1value = 1500 end  
+  if g_Time > output_e['recalctimer'] + 5000 then
+   output_e['recalctimer'] = g_Time 
+   local rangedetection = actionparam1value
+   local ee = masterinterpreter_findclosestcoverzone(e,output_e,0,rangedetection)
+   if ee ~= nil then
+    if ee > 0 then
+     local tdx = g_PlayerPosX - g_Entity[ ee ]['x']
+     local tdz = g_PlayerPosZ - g_Entity[ ee ]['z']
+     local tda = (math.atan2(tdx,tdz)/6.28)*360.0
+     if tda < -180 then tda=tda+360 end
+     if tda >  180 then tda=tda-360 end
+	 local defendangle = tda
+	 local preferavoidii = output_e['lastcoverzoneslotii']
+	 local goodDefenceX, goodDefenceY, goodDefenceZ, goodChosenII, goodBlockType = masterinterpreter_findbestpositionwithincoverzone(ee,defendangle,preferavoidii)
+	 if goodChosenII == -1 then
+	  -- forces different cover zone choice next time
+	  output_e['lastcoverzoneoccupied'] = ee
+	 else
+      masterinterpreter_setnewtarget ( e, output_e, goodDefenceX, goodDefenceY, goodDefenceZ, 0 )
+	  output_e['lastcoverzoneslotii'] = goodChosenII
+	  output_e['lastcoverzoneblocktype'] = goodBlockType
 	 end
     end
    end
   end
-  if havecovere > 0 then
-   nearTargetX = g_Entity[havecovere]['x']
-   nearTargetY = g_Entity[havecovere]['y']
-   nearTargetZ = g_Entity[havecovere]['z']
-   masterinterpreter_setnewtarget ( e, output_e, nearTargetX, nearTargetY, nearTargetZ, 0 )   
-  end
+  if output_e['goodtargetpointindex'] > 0 then
+   masterinterpreter_followtarget ( e, output_e, -1 )
+  end  
  end 
   
  -- Allow Zero Health
@@ -2456,6 +2577,44 @@ function masterinterpreter_doaction ( e, output_e, actiontype, actionparam1, act
   SetCharacterMode(e,1)
  end
  
+ -- Claim Cover Zone
+ if actiontype == g_masterinterpreter_act_claimcoverzone then
+  if actionparam1value == nil then actionparam1value = 1500 end  
+  if g_coverzone ~= nil then
+   local ee = masterinterpreter_findclosestcoverzone(e,output_e,0,actionparam1value)
+   if ee ~= nil then
+    if g_coverzone[ee] ~= nil then
+     if g_coverzone[ee].status == "normal" then
+	  output_e['lastcoverzoneoccupied'] = ee
+      g_coverzone[ee][e] = 1
+     end
+	end
+   end
+  end
+ end
+ 
+ -- Clear Cover Zone
+ if actiontype == g_masterinterpreter_act_clearcoverzone then
+  if actionparam1value == nil then actionparam1value = 1500 end  
+  if g_coverzone ~= nil then
+   local ee = masterinterpreter_findclosestcoverzone(e,output_e,0,actionparam1value)
+   if ee ~= nil then
+    if g_coverzone[ee] ~= nil then
+     if g_coverzone[ee].status == "normal" then
+      g_coverzone[ee][e] = 0
+     end
+	end
+   end
+  end
+ end
+ 
+ -- Forget Cover Zones
+ if actiontype == g_masterinterpreter_act_forgetcoverzones then
+  output_e['lastcoverzoneoccupied'] = -1
+  output_e['lastcoverzoneslotii'] = -1
+  output_e['lastcoverzoneblocktype'] = -1
+ end
+ 
 end
 
 function master_interpreter_core.masterinterpreter_restart( output_e, entity_e )
@@ -2493,6 +2652,9 @@ function master_interpreter_core.masterinterpreter_restart( output_e, entity_e )
  output_e['goalstarttime'] = Timer()
  output_e['lastanimtriggerindex'] = 0
  output_e['ammo'] = -1
+ output_e['lastcoverzoneoccupied'] = 0
+ output_e['lastcoverzoneslotii'] = -1
+ output_e['lastcoverzoneblocktype'] = -1
 
  -- will persist script switches 
  if output_e['wholastactivated'] == nil then output_e['wholastactivated'] = -1 end

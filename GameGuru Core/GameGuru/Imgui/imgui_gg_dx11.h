@@ -284,6 +284,7 @@ IMGUI_IMPL_API bool     ImGui_ImplDX11_CreateDeviceObjects();
 
 #define ENTITY_PROBE UIV3IMAGES+198
 #define ENTITY_COVER UIV3IMAGES+199
+#define ENTITY_BEHAVIOR UIV3IMAGES+211
 
 #define CCP_HAT UIV3IMAGES+200
 #define CCP_FEET UIV3IMAGES+201
@@ -380,6 +381,17 @@ IMGUI_IMPL_API bool     ImGui_ImplDX11_CreateDeviceObjects();
 #define SCREENEDITOR_TEXTAREA UIV3IMAGES+287
 #define SCREENEDITOR_VIDEO UIV3IMAGES+288
 
+#define TOOLBAR_POSITION UIV3IMAGES+289
+#define TOOLBAR_SCALE UIV3IMAGES+290
+#define TOOLBAR_ROTATE UIV3IMAGES+291
+#define TOOLBAR_GRID UIV3IMAGES+292
+#define TOOLBAR_SNAP UIV3IMAGES+293
+#define TOOLBAR_SURFACE UIV3IMAGES+294
+#define TOOLBAR_VERT UIV3IMAGES+295
+#define TOOLBAR_HORI UIV3IMAGES+296
+#define TOOLBAR_GRIDSETTINGS UIV3IMAGES+297
+
+
 //PE: 02-09-2021 moved range.
 //298,297 also used in backdrop.
 #define BACKDROPMAGE UIV3IMAGES+299
@@ -428,6 +440,7 @@ const char *noc_file_dialog_open(int flags,
 	const char* pTitle = NULL);
 
 namespace ImGui {
+	bool MenuItem2(const char* label, const char* shortcut, bool selected, bool enabled);
 	bool BeginPopupContextItemAGK(const char* str_id = NULL, int mouse_button = 1);
 	const char* CalcWordWrapPositionB(float scale, const char* text, const char* text_end, float wrap_width, float line_start);
 	void TextCenter(const char* fmt, ...);
@@ -591,7 +604,7 @@ struct preferences {
 	int iCheckboxFilters[10] = { 1,1,1,1,1,1,1,1,1,1 };
 	
 	int iTerrainAdvanced = 0;
-	int iTerrainDebugMode = 0;
+	int iAdvancedGridModeSettings = 0;// iTerrainDebugMode = 0;
 	int iEnableAdvancedCharacterCreator = 0;
 
 	char cDefaultStandalonePath[260] = { "\0" };
@@ -646,6 +659,8 @@ struct preferences {
 	float fEditorGridSizeZ = 100.0f;
 	int iDevToolsOpen = 0;
 	int iCheckFilesModifiedOnFocus = 1;
+	int iSmallToolbar = 0;
+	ImVec4 status_bar_color = ImVec4((1.0f / 255.0f) * 14, (1.0f / 255.0f) * 99, (1.0f / 255.0f) * 156, 1.0);
 };
 
 // can be moved to preferences (Lee needs to know the sequence to add to prefs properly, and the consequences) :)
@@ -654,6 +669,7 @@ extern bool g_bEnableAutoFlattenSystem;
 void coreResetIMGUIFunctionalityPrefs(void);
 
 void myDarkStyle(ImGuiStyle* dst);
+void myDefaultStyles(void);
 void myLightStyle(ImGuiStyle* dst);
 void myStyle(ImGuiStyle* dst);
 void myStyle2(ImGuiStyle* dst);
@@ -919,6 +935,7 @@ struct StoryboardStruct
 
 	char customprojectfolder[256];
 
+	int project_inactive;
 	//PE: To add new variables add them here, always add to botton of list.
 
 };
