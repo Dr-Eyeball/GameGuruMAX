@@ -831,7 +831,7 @@ function MoveUp(e,v)
  SendMessageF_moveup(e,v)
 end
 function MoveDown( e, v )
-MoveUp( e, -v )
+ MoveUp( e, -v )
 end
 function MoveForward(e,v)
  SendMessageF_moveforward(e,v)
