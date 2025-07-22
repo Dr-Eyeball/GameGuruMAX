@@ -188,7 +188,7 @@ function flashlight_main(e)
 		if CurrentlyHeldWeaponID ~= GetWeaponID(flashlight[e].useage_weapon) then 
 			if status[e] == 'ON' then
 				SetGamePlayerStateFlashlightControl(0.0)
-				status[e] == 'OFF'
+				status[e] = 'OFF'
 			end
 			can_use[e] = 0
 			SetFlashLightKeyEnabled(0)
