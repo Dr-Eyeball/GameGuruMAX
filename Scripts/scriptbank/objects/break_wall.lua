@@ -1,5 +1,5 @@
 -- LUA Script - precede every function and global member with lowercase name of script + '_main'
--- Break Wall v1
+-- Break Wall v2
 -- DESCRIPTION: Player can break an animated wall object when within range.
 -- DESCRIPTION: Attach to an object. Set Always Active ON
 -- DESCRIPTION: [RANGE=100(1,500)] 
@@ -8,6 +8,7 @@
 -- DESCRIPTION: [CLEANUP_DELAY=3(0,10)] Seconds
 -- DESCRIPTION: <Sound0> Break sound
 
+local U = require "scriptbank\\utillib"
 local break_wall 		= {}
 local range 			= {}
 local prompt 			= {}
@@ -43,10 +44,19 @@ function break_wall_main(e)
     if wall_destroyed[e] == 0 and GetPlayerDistance(e) < break_wall[e].range then
 		Prompt(break_wall[e].prompt)
         if g_KeyPressE == 1 then
-            PlayAnimation(e,break_wall[e].break_animation)
-			PlaySound(e,0) 
+			SetAnimationName(e,break_wall.break_animation)
+            PlayAnimation(e,break_wall.break_animation)
+			PlaySound(e,0)
+			GravityOn(e)
+			CollisionOff(e)			
             wall_destroyed[e] = 1
 			cleanup[e] = g_Time + (break_wall[e].cleanup_delay * 1000)
+			for n = 1, g_EntityElementMax do
+				if n ~= nil and g_Entity[n] ~= nil then
+					local objid = g_Entity[n]['obj']
+					PushObject(objid,0,0,0,0,0,0)
+				end
+			end			
         end
     end
 

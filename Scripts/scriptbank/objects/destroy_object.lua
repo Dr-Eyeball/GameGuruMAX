@@ -1,4 +1,4 @@
--- Destroy Object v9 by Necrym59
+-- Destroy Object v10 by Necrym59
 -- DESCRIPTION: Attached object can monitor a Named Objects health or destroy instantly when triggered by a linked switch or zone.
 -- DESCRIPTION: [MESSAGE$="Destroyed"]
 -- DESCRIPTION: [OBJECT_NAME$=""]
@@ -9,7 +9,7 @@
 -- DESCRIPTION: [@AFFECT_TYPE=1(1=Add, 2=Deduct)]
 -- DESCRIPTION: [AFFECT_VALUE=1(1,100)] Value to add/deduct to User Global when destroyed.
 
-
+local U = require "scriptbank\\utillib"
 local lower = string.lower
 local desobject				= {}
 local message				= {}
@@ -134,6 +134,12 @@ function destroy_object_main(e)
 							Hide(desobject[e].particle_no)
 							Destroy(desobject[e].particle_no)
 						end	
+					end
+					for n = 1, g_EntityElementMax do
+						if n ~= nil and g_Entity[n] ~= nil then
+							local objid = g_Entity[n]['obj']
+							PushObject(objid,0,0,0,0,0,0)
+						end
 					end
 					SwitchScript(e,"no_behavior_selected.lua")
 				end

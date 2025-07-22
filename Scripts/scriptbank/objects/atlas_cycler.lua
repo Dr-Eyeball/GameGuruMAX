@@ -88,9 +88,10 @@ function atlas_cycler_main(e)
 				frame_time[e] = g_Time + atlasobject[e].display_speed
 				doonce[e] = 2
 			end
-			if string.len(atlasobject[e].imagefile)>0 then 							
+			if string.len(atlasobject[e].imagefile)>0 then
 				SetEntityTexture(e,atlasobject[e].imagefileid)
-				SetEntityEmissiveStrength(e,atlasobject[e].emissive_strength)				
+				--SetEntityEmmisiveTexture(e,atlasobject[e].imagefileid)
+				SetEntityEmissiveStrength(e,atlasobject[e].emissive_strength)
 			end
 			if g_Time > frame_time[e] then
 				frame_time[e] = g_Time + atlasobject[e].display_speed

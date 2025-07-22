@@ -1,6 +1,5 @@
 -- Crosshair v12 by Necrym59
--- DESCRIPTION: Will allow for an adaptive crosshair/hitmarker in gameplay. 
--- DESCRIPTION: Apply to an object, set Always Active ON
+-- DESCRIPTION: A global behavior to allow for an adaptive crosshair/hitmarker in gameplay. 
 -- DESCRIPTION: [VIEW_RANGE=1000(0,3000)]
 -- DESCRIPTION: [CROSSHAIR_IMAGEFILE$="imagebank\\crosshairs\\crosshair.dds"]
 -- DESCRIPTION: [HITMARKER_IMAGEFILE$="imagebank\\crosshairs\\hitmarker.dds"]

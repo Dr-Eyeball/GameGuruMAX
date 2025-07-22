@@ -1,4 +1,4 @@
--- Security Cam Monitor v32  by Necrym59
+-- Security Cam Monitor v33  by Necrym59
 -- DESCRIPTION: Will give the player access to a Security Camera Monitor? Always active ON
 -- DESCRIPTION: [@MONITOR_MODE=1(1=Static, 2=Mobile)]
 -- DESCRIPTION: [ATTACHED_TO$=""]
@@ -14,11 +14,16 @@
 -- DESCRIPTION: [CAMERA_NAME$="Security Camera"]
 -- DESCRIPTION: [CAMERA_TARGET_NAME$=""]
 -- DESCRIPTION: [#CAMERA_TARGET_Z=0(-1000,1000)]
+-- DESCRIPTION: [@PROMPT_DISPLAY=1(1=Local,2=Screen)]
+-- DESCRIPTION: [@ITEM_HIGHLIGHT=0(0=None,1=Shape,2=Outline,3=Icon)]
+-- DESCRIPTION: [HIGHLIGHT_ICON_IMAGEFILE$="imagebank\\icons\\hand.png"]
 -- DESCRIPTION: Play <Sound0> when turned on/off.
 
+local module_misclib = require "scriptbank\\module_misclib"
 local U = require "scriptbank\\utillib"
 local P = require "scriptbank\\physlib"
 local V = require "scriptbank\\vectlib"
+g_tEnt = {}
 
 local lower = string.lower
 local upper = string.upper
@@ -26,8 +31,15 @@ local upper = string.upper
 local secmons = {}
 local hud_image = "imagebank\\misc\\testimages\\camerahud01.png"
 local startangy = {}
+local prompt_display = {}
+local item_highlight = {}
+local highlight_icon = {}
+local hl_icon = {}
+local hl_imgwidth = {}
+local hl_imgheight = {}
+local hl_setonce = {}
 
-function secmon_properties(e, monitor_mode, attached_to, activation_text, useage_text, useage_range, camera_hud, hud_screen, imagefile, camera_feed_angle, angle_cycle_key, camera_feed_y, camera_name, camera_target_name, camera_target_z, camera_target_no, camera_number, attached_to_number)
+function secmon_properties(e, monitor_mode, attached_to, activation_text, useage_text, useage_range, camera_hud, hud_screen, imagefile, camera_feed_angle, angle_cycle_key, camera_feed_y, camera_name, camera_target_name, camera_target_z, prompt_display, item_highlight, highlight_icon_imagefile)
 	local secmon = secmons[e]
 	secmon.monitor_mode			= monitor_mode
 	secmon.attached_to			= lower(attached_to)
@@ -43,9 +55,13 @@ function secmon_properties(e, monitor_mode, attached_to, activation_text, useage
 	secmon.camera_name 			= lower(camera_name)
 	secmon.camera_target_name 	= lower(camera_target_name)
 	secmon.camera_target_z 		= camera_target_z	
+	secmon.prompt_display 		= prompt_display
+	secmon.item_highlight 		= item_highlight
+	secmon.highlight_icon 		= highlight_icon_imagefile
+	
 	secmon.camera_target_no		= camera_target_no or 0
 	secmon.camera_number 		= camera_number or 0
-	secmon.attached_to_number	= attached_to_number or 0	
+	secmon.attached_to_number	= attached_to_number or 0
 	if imagefile ~= hud_image then secmon.hud_image = imagefile	end
 end
 
@@ -64,8 +80,11 @@ function secmon_init(e)
 		camera_feed_y		= -1,
 		camera_name			= "Security Camera",
 		camera_target_name	= "",
-		camera_target_no	= 0,
 		camera_target_z		= 0,		
+		prompt_display 		= 1,
+		item_highlight 		= 0,
+		highlight_icon 		= "imagebank\\icons\\hand.png",		
+		camera_target_no	= 0,
 		camera_number 		= 0,
 		attached_to_number	= 0,		
 		cam_feed 			= 0,
@@ -81,18 +100,33 @@ function secmon_init(e)
 		mod 				= 0,
 		fov 				= g_PlayerFOV,
 		doonce              = true
-	  }
+	  }	  
 	startangy[e] = 0 
 	StartTimer(e)
+	g_tEnt = 0
+	hl_icon[e] = ""
+	hl_imgwidth[e] = 0
+	hl_imgheight[e] = 0	
+	hl_setonce[e] = 0
 end
 
 function secmon_main(e)
 	local secmon = secmons[e]
 	if secmon == nil then return end
-	
+
 	if secmon.status == "init" then
 		secmon.fov = g_PlayerFOV
 		
+		if secmon.item_highlight == 3 and secmon.highlight_icon ~= "" and hl_setonce[e] == 0 then
+			hl_icon[e] = CreateSprite(LoadImage(secmon.highlight_icon))
+			hl_imgwidth[e] = GetImageWidth(LoadImage(secmon.highlight_icon))
+			hl_imgheight[e] = GetImageHeight(LoadImage(secmon.highlight_icon))
+			SetSpriteSize(hl_icon[e],-1,-1)
+			SetSpriteDepth(hl_icon[e],100)
+			SetSpriteOffset(hl_icon[e],hl_imgwidth[e]/2.0, hl_imgheight[e]/2.0)
+			SetSpritePosition(hl_icon[e],500,500)
+			hl_setonce[e] = 1
+		end		
 		if secmon.camera_hud == 2 then
 			secmon.overlaysp = CreateSprite( LoadImage(secmon.hud_image))
 			SetSpriteSize(secmon.overlaysp,100,100)
@@ -135,7 +169,7 @@ function secmon_main(e)
 		end		
 		secmon.status = "monitor"
 	end
-
+	
 	if secmon.status == "monitor" then
 		--- reposition with with entity
 		if secmon.monitor_mode == 2 and secmon.attached_to_number ~= 0 then 
@@ -146,13 +180,20 @@ function secmon_main(e)
 		end	
 		-------------------------------		
 		if U.PlayerCloserThan(e,secmon.useage_range) and secmon.monitor_mode == 1 then
+			--pinpoint select object--
+			module_misclib.pinpoint(e,secmon.useage_range,secmon.item_highlight,hl_icon[e])
+			--end pinpoint select object-		
 			local LookingAt = GetPlrLookingAtEx(e,1)
-			if LookingAt == 1 then
-				Prompt( secmon.activation_text )				
+			if LookingAt == 1 and g_tEnt == e then
+				if secmon.prompt_display == 1 then TextCenterOnX(50,54,1,secmon.activation_text) end
+				if secmon.prompt_display == 2 then Prompt(secmon.activation_text) end	
 				if g_KeyPressE == 1 then
 					SetGamePlayerStateFlashlightControl(0.0)
 					startangy[e] = g_PlayerAngY
-					if secmon.camera_number == 0 then Prompt("No camera connected") end
+					if secmon.camera_number == 0 then
+						if secmon.prompt_display == 1 then TextCenterOnX(50,56,1,"NO CAMERA CONNECTED") end
+						if secmon.prompt_display == 2 then Prompt("NO CAMERA CONNECTED") end
+					end	
 					if secmon.camera_number > 0 then
 						PlaySound( e, 0 )
 						secmon.wait = g_Time + 1000
@@ -163,9 +204,11 @@ function secmon_main(e)
 			end
 		end
 		if GetPlayerDistance(e) < secmon.useage_range and secmon.monitor_mode == 2 then
-			TextCenterOnX(50,5,3,"[Mobile Monitor Detected, Press INS to use]")
+			Prompt("[Mobile Monitor Detected, Press INS to use]")
 			if GetScancode() == 82 or GetScancode() == 210 then				
-				if secmon.camera_number == 0 then Prompt("No camera connected") end
+				if secmon.camera_number == 0 then
+					Prompt("NO CAMERA CONNECTED")
+				end		
 				if secmon.camera_number > 0 then
 					PlaySound( e, 0 )
 					secmon.wait = g_Time + 1000
@@ -181,6 +224,7 @@ function secmon_main(e)
 		if secmon.monitor_mode == 2 and secmon.angle_cycle_key == 1 and secmon.camera_target_no > 0 then TextCenterOnX(50,5,3,"[Press DEL to exit monitor view]") end
 		if secmon.camera_hud == 3 then
 			ScreenToggle(secmon.hud_screen)	--HUDSCREEN
+			g_liveHudScreen = 1		
 		end
 		secmon.last_gun = g_PlayerGunName
 		if g_PlayerGunID > 0 then
@@ -266,6 +310,7 @@ function secmon_main(e)
 			if GetInKey() == "q" or GetInKey() == "Q" then
 				secmon.status = "init"
 				ScreenToggle("")
+				g_liveHudScreen = 0
 				g_PlayerAngY = startangy[e]
 				SetCameraPosition(0,g_PlayerPosX,g_PlayerPosY+35,g_PlayerPosZ)
 				SetCameraAngle(0,g_PlayerAngX,g_PlayerAngY,g_PlayerAngZ)
@@ -294,6 +339,7 @@ function secmon_main(e)
 			if GetScancode() == 83 or GetScancode() == 211 then
 				secmon.status = "init"
 				ScreenToggle("")
+				g_liveHudScreen = 0
 				g_PlayerAngY = startangy[e]
 				SetCameraPosition(0,g_PlayerPosX,g_PlayerPosY+35,g_PlayerPosZ)
 				SetCameraAngle(0,g_PlayerAngX,g_PlayerAngY,g_PlayerAngZ)

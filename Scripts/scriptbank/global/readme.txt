@@ -1,1 +1,1 @@
-All Global Behaviors Scripts Should Be Moved Here.
+All Global Behavior scripts Should Be placed here.
