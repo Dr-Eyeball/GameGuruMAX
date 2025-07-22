@@ -85,11 +85,15 @@ void timestampactivity ( int i, char* desc_s )
 			Sync();
 		}
 		mem = DMEMAvailable();
-		float GetVramUsage(void);
-		float vram = GetVramUsage();
+		//PE: Always show dedicated VRAM + system RAM GPU use.
+		//float GetVramUsage(void);
+		//float vram = GetVramUsage();
+		float GetTotalVramUsage(void);
+		float tvram = GetTotalVramUsage();
+
 		videomemdesc_s = Str((mem - g.timestampactivityvideomemthen)); videomemdesc_s = videomemdesc_s + "MB";
 		g.timestampactivityvideomemthen = mem;
-		videomemsofardesc_s = " ("; videomemsofardesc_s = videomemsofardesc_s + Str(smem / 1024) + "," + Str((int)vram) + ")";
+		videomemsofardesc_s = " ("; videomemsofardesc_s = videomemsofardesc_s + Str(smem / 1024) + "," + Str((int)tvram) + ")";
 		tpart1_s = Str(Timer()); tpart1_s = tpart1_s + " : " + desc_s + " ";
 		tpart2_s = "S:"; tpart2_s = tpart2_s + memdesc_s;
 		tpart3_s = "V:"; tpart3_s = tpart3_s + videomemsofardesc_s;
@@ -103,6 +107,7 @@ void timestampactivity ( int i, char* desc_s )
 		{
 			FILE * pFile;
 			GG_SetWritablesToRoot(true);
+			SetWriteAsRootTemp(true);
 			pFile = GG_fopen(file_s.Get(), "a+");
 			if (pFile != NULL)
 			{
@@ -120,6 +125,7 @@ void timestampactivity ( int i, char* desc_s )
 				fclose(pFile);
 			}
 			GG_SetWritablesToRoot(false);
+			SetWriteAsRootTemp(false);
 		}
 		else
 		{

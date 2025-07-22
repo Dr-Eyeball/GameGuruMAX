@@ -73,6 +73,7 @@ extern char g_Storyboard_Current_Loading_Page[256];
 extern std::vector<std::string> projectbank_list;
 extern std::vector<std::string> projectbank_image;
 extern std::vector<int> projectbank_imageid;
+extern std::vector<int> projectbank_active;
 extern StoryboardStruct Storyboard;
 extern StoryboardStruct checkproject;
 extern StoryboardStruct202 updateproject202;
@@ -280,12 +281,6 @@ extern bool bTrashcanIconActive, bTrashcanIconActive2;
 extern int current_sort_order;
 extern int iWidgetSelection;
 extern bool bRotScaleAlreadyUpdated;
-//extern float fEditorGridOffsetX;
-//extern float fEditorGridOffsetY;
-//extern float fEditorGridOffsetZ;
-//extern float fEditorGridSizeX;
-//extern float fEditorGridSizeY;
-//extern float fEditorGridSizeZ;
 extern int old_iMSAASampleCount;
 extern int old_iFSRMode;
 extern int old_iMSAO;
@@ -553,6 +548,7 @@ bool g_bRefreshGlobalList = false;
 std::vector<int> g_gameGlobalListNodeId;
 std::vector<int> g_gameGlobalListIndex;
 std::vector<int> g_gameGlobalListValue;
+std::vector<std::string> g_gameGlobalListValueString;
 
 // storyboard screen animation control
 int g_iStoryboardScreenVideoID = 0;
@@ -564,6 +560,10 @@ char g_pRenameHUDScreenError[256] = "\0";
 
 bool g_bMappingKeyWindow = false;
 int g_iMappingKeyToChange = -1;
+
+bool bIncludeDocumentFolderInRemoteProject = false;
+
+
 
 #ifdef ENABLEIMGUI
 void imgui_set_openproperty_flags(int iMasterID)
@@ -2962,20 +2962,31 @@ int fillgloballistwithcollectables (void)
 	return retvalue;
 }
 
-int fillgloballistwithdecals(void)
+int fillgloballistwithdecals(std::vector <cstr> & list_s)
 {
-	Dim(t.list_s, g.decalmax);
-	t.list_s[0] = "None";
+	Dim(list_s, g.decalmax);
+	list_s[0] = "None";
 	int retvalue = 1;
 	for (int i = 1; i <= g.decalmax; i++)
 	{
 		if (t.decal[i].name_s.Len() > 0)
 		{
-			t.list_s[retvalue] = t.decal[i].name_s;
+			list_s[retvalue] = t.decal[i].name_s;
 			retvalue++;
 		}
 	}
 	return retvalue;
+}
+
+int fillgloballistwithvoices(std::vector <cstr>& list_s)
+{
+	Dim(list_s, 4);
+	list_s[0] = "player";
+	int retvalue = 1;
+	list_s[retvalue] = "male"; retvalue++;
+	list_s[retvalue] = "female"; retvalue++;
+	list_s[retvalue] = "custom"; retvalue++;
+	return retvalue - 1;
 }
 
 void setpropertylist ( int group, int controlindex, char* data_s, char* field_s, char* desc_s, int listtype )
@@ -7910,7 +7921,271 @@ void tab_tab_visuals(int iPage, int iMode)
 				ImGui::Indent(-10);
 			}
 		}
+		if (iMode == 0)
+		{
+			if (ImGui::StyleCollapsingHeader("Global Behaviors", wflags))
+			{
+				static int iSelectecElement = -1;
 
+				ImGui::Indent(10);
+				float buttonwide = ImGui::GetContentRegionAvail().x * 0.5 - 10.0f;
+				static std::string myscript = "";
+				ImGuiWindow* window = ImGui::GetCurrentWindow();
+				if (iSelectedLibraryStingReturnID == window->GetID("ScriptSelector##+"))
+				{
+					//Update Script.
+					if (sSelectedLibrarySting != "")
+					{
+						myscript = sSelectedLibrarySting.Get();
+						sSelectedLibrarySting = "";
+						iSelectedLibraryStingReturnID = -1; //disable.
+						fpe_current_loaded_script = -1; //Reload image and DLUA.
+						CloseDownEditorProperties();
+						t.inputsys.constructselection = 0;
+						iLastEntityOnCursor = 0;
+
+						t.addentityfile_s = "_markers\\BehaviorHidden.fpe";
+						if (t.addentityfile_s != "")
+						{
+							entity_adduniqueentity(false);
+							t.tasset = t.entid;
+							if (t.talreadyloaded == 0)
+							{
+								editor_filllibrary();
+								iRestoreEntidMaster = -1;
+							}
+						}
+						t.tentid = t.entid;
+						t.sourceobj = g.entitybankoffset + t.tentid;
+
+						t.gridentity = t.entid;
+
+						//PE: all t.gridentity... need to be set for this to work correctly.
+						t.gridentitystaticmode = t.entityprofile[t.entid].defaultstatic;
+						t.gridentityposx_f = 0;
+						t.gridentityposy_f = -999999;
+						t.gridentityposz_f = 0;
+						t.gridentityrotatex_f = 0;
+						t.gridentityrotatey_f = 0;
+						t.gridentityrotatez_f = 0;
+						t.gridentityrotatequatmode = 0;
+						t.gridentityrotatequatx_f = 0;
+						t.gridentityrotatequaty_f = 0;
+						t.gridentityrotatequatz_f = 0;
+						t.gridentityrotatequatw_f = 1;
+						t.gridentityscalex_f = 10;
+						t.gridentityscaley_f = 10;
+						t.gridentityscalez_f = 10;
+						entity_fillgrideleproffromprofile();
+
+						//PE: InstanceObject - Cursor,Object Tools - objects must always be real clones.
+						extern bool bNextObjectMustBeClone;
+						bNextObjectMustBeClone = true;
+						t.e = 0;
+						gridedit_addentitytomap(); //Add it to map set t.e
+						bNextObjectMustBeClone = false;
+
+						t.entityelement[t.e].eleprof.aimain_s = myscript.c_str();
+						t.entityelement[t.e].eleprof.thumb_aimain_s = "";
+
+						PositionObject(t.entityelement[t.e].obj, t.entityelement[t.e].x, t.entityelement[t.e].y, t.entityelement[t.e].z);
+						RotateObject(t.entityelement[t.e].obj, t.entityelement[t.e].rx, t.entityelement[t.e].ry, t.entityelement[t.e].rz);
+						HideObject(t.entityelement[t.e].obj);
+
+						// Show elements when placing a new one down, prevents half being hidden and half not.
+						t.showeditorelements = 1;
+						editor_toggle_element_vis(t.showeditorelements);
+
+						editor_refresheditmarkers();
+
+						t.refreshgrideditcursor = 1;
+						current_selected_group = -1;
+						t.gridentity = 0;
+						t.gridentityposoffground = 0;
+						t.gridentityusingsoftauto = 0;
+						t.gridentityautofind = 0;
+						t.gridentityobj = 0;
+						editor_refreshentitycursor();
+						t.widget.pickedObject = 0;
+						t.gridentityextractedindex = 0;
+
+						t.widget.pickedObject = 0; widget_updatewidgetobject();
+						iSelectecElement = t.e - 1;
+					}
+				}
+
+				if (ImGui::StyleButton("Add", ImVec2(buttonwide, 0)))
+				{
+					//Select script.
+					sStartLibrarySearchString = "global";
+					iLastDisplayLibraryType = -1;
+					bExternal_Entities_Window = true;
+					iDisplayLibraryType = 4;
+					iLibraryStingReturnToID = window->GetID("ScriptSelector##+");
+				}
+				ImGui::SameLine();
+				int iDeleteIfFound = 0;
+				if (ImGui::StyleButton("Delete", ImVec2(buttonwide, 0)))
+				{
+					if (iSelectecElement >= 0)
+					{
+						//PE: Delete.
+						int iAction = askBoxCancel("This will delete all your visual changes, are you sure?", "Confirmation"); //1==Yes 2=Cancel 0=No
+						if (iAction == 1)
+						{
+							iDeleteIfFound = iSelectecElement;
+						}
+					}
+				}
+
+				uint32_t uniqueId = 4000;
+				uniqueId += 28000; //PE: from lib uniqueId += 24000;
+
+				int iDefaultTexture = FILETYPE_SCRIPT;
+				float w = ImGui::GetContentRegionAvailWidth();
+				ImGui::Columns(2, "GlobalBehaviors2elements", false);  //false no border
+				ImGui::SetColumnWidth(0, w * 0.5f);
+				ImGui::SetColumnWidth(1, w * 0.5f);
+				bool bFoundSelected = false;
+				for (t.e = 1; t.e <= g.entityelementlist; t.e++)
+				{
+					t.entid = t.entityelement[t.e].bankindex;
+					if (t.entid > 0 && t.entityprofile[t.entid].ismarker == 12)
+					{
+						int image = FILETYPE_SCRIPT;
+						if (t.entityelement[t.e].eleprof.aimain_s.Len() > 0)
+						{
+							//PE: check if we need to update icons.
+							if (t.entityelement[t.e].eleprof.aimain_s != t.entityelement[t.e].eleprof.thumb_aimain_s ||
+								t.entityelement[t.e].eleprof.thumb_id != uniqueId)
+							{
+								//PE: Load image.
+								std::string sFile = Left(t.entityelement[t.e].eleprof.aimain_s.Get(), Len(t.entityelement[t.e].eleprof.aimain_s.Get()) - 4);
+								std::string sImgName = "scriptbank\\" + sFile;
+								if (pref.current_style == 25 || pref.current_style == 3)
+									sImgName += ".png";
+								else
+									sImgName += "2.png";
+
+								if (ImageExist(uniqueId) == 1) DeleteImage(uniqueId);
+								image_setlegacyimageloading(true);
+								LoadImage((char*)sImgName.c_str(), uniqueId);
+								image_setlegacyimageloading(false);
+								t.entityelement[t.e].eleprof.thumb_aimain_s = t.entityelement[t.e].eleprof.aimain_s;
+								t.entityelement[t.e].eleprof.thumb_id = uniqueId;
+							}
+							if (ImageExist(uniqueId))
+							{
+								image = uniqueId;
+							}
+							uniqueId++;
+						}
+
+
+						int iTextureID = image;
+
+						ImVec2 ImageSize = ImVec2(buttonwide, ImGui::GetFontSize());
+						if (!(ImGui::GetColumnIndex() % 2))
+							ImageSize.x -= 2;
+
+						ID3D11ShaderResourceView* lpTexture = GetImagePointerView(iTextureID);
+						if (lpTexture)
+						{
+							float img_w = ImageWidth(iTextureID);
+							float img_h = ImageHeight(iTextureID);
+							ImageSize.y = img_h * (ImageSize.x / img_w);
+						}
+						ImVec2 vImagePos = ImGui::GetCursorPos();
+						ImGui::Dummy(ImageSize);
+						ImVec4 color = ImVec4(1.0, 1.0, 1.0, 1.0);
+						ImVec4 back_color = ImVec4(0.2, 0.2, 0.2, 0.75);
+
+						if (ImGui::IsItemHovered())
+						{
+							color.w = 0.75;
+							if (ImGui::IsMouseReleased(0))
+							{
+								iSelectecElement = t.e;
+								fpe_current_loaded_script = -1; //Reload image and DLUA.
+
+							}
+						}
+
+						ImVec2 img_pos = ImGui::GetWindowPos() + vImagePos;
+						img_pos.x -= 3; //PE: Fit under buttons.
+						if ((ImGui::GetColumnIndex() % 2))
+							img_pos.x -= 3;
+						img_pos.y -= ImGui::GetScrollY();
+						window->DrawList->AddRectFilled(img_pos, img_pos + ImageSize, ImGui::GetColorU32(back_color));
+						if (lpTexture)
+						{
+							window->DrawList->AddImage((ImTextureID)lpTexture, img_pos, img_pos + ImageSize, ImVec2(0, 0), ImVec2(1, 1), ImGui::GetColorU32(color));
+						}
+						if (iSelectecElement == t.e)
+						{
+							bFoundSelected = true;
+							ImVec4 bg_col = ImGui::GetStyle().Colors[ImGuiCol_PlotHistogram]; // { 0.0, 0.0, 0.0, 1.0 };
+							window->DrawList->AddRect(img_pos, img_pos + ImageSize - ImVec2(0, 0), ImGui::GetColorU32(bg_col), 0, 15, 3.0f);
+						}
+
+						std::string name = t.entityelement[t.e].eleprof.aimain_s.Get();
+						std::size_t slash = name.find_last_of("/\\");
+						if (slash > 0)
+						{
+							name = name.substr(slash + 1);
+						}
+						ImGui::TextCenter(" %s", name.c_str());
+
+						ImGui::NextColumn();
+
+					}
+				}
+				ImGui::Columns(1);
+
+				ImGui::Separator();
+				if (bFoundSelected && iSelectecElement >= 0)
+				{
+					int iEntityIndex = iSelectecElement;
+					int iMasterID = t.entityelement[iEntityIndex].bankindex;
+					if (iMasterID > 0)
+					{
+						DisplayFPEBehavior(false, iMasterID, &t.entityelement[iEntityIndex].eleprof, iEntityIndex, true);
+						ImGui::Separator();
+						bool btmp = t.entityelement[iEntityIndex].eleprof.systemwide_lua;
+
+						float fPropertiesColoumWidth = ImGui::GetCursorPosX() + 110.0f;
+						ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX(), ImGui::GetCursorPosY() + 3));
+						ImGui::Text("Active All Levels");
+						ImGui::SameLine();
+						ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX(), ImGui::GetCursorPosY() - 3));
+						ImGui::SetCursorPos(ImVec2(fPropertiesColoumWidth, ImGui::GetCursorPosY()));
+						if (ImGui::Checkbox("##Active All Levels", &btmp))
+						{
+							t.entityelement[iEntityIndex].eleprof.systemwide_lua = btmp;
+						}
+					}
+				}
+
+				if (bFoundSelected && iDeleteIfFound > 0)
+				{
+					t.obj = t.entityelement[iDeleteIfFound].obj;
+					if (t.obj > 0)
+					{
+						if (ObjectExist(t.obj) == 1)
+						{
+							DeleteObject(t.obj);
+						}
+					}
+					t.entityelement[iDeleteIfFound].obj = 0;
+					t.entityelement[iDeleteIfFound].maintype = 0;
+					t.entityelement[iDeleteIfFound].bankindex = 0;
+					fpe_current_loaded_script = -1; //Reload image and DLUA.
+					iSelectecElement = -1;
+				}
+
+				ImGui::Indent(-10);
+			}
+		}
 		// Control all in-game debugging options 
 		if (pref.iEnableDeveloperProperties)
 		{
@@ -9248,7 +9523,7 @@ void Wicked_Update_Visibles(void* voidvisual)
 #endif
 
 //PE: Using t.gridentityposx_f,t.gridentityposy_f,t.gridentityposz_f,t.gridentity,t.gridentityobj
-void Add_Grid_Snap_To_Position(void)
+void Add_Grid_Snap_To_Position ( bool bFromWidgetMode )
 {
 	// no snapping at all until move
 	if (g_bHoldGridEntityPosWhenManaged == true)
@@ -9427,23 +9702,74 @@ void Add_Grid_Snap_To_Position(void)
 		else
 		{
 			//LB: apply grid alignment with custom offset for full end user control
-			fHitOffsetX = 0; fHitOffsetZ = 0; // allows more intuitive placement of chosen object
-			float fGripX = t.gridentityposx_f + fHitOffsetX + (pref.fEditorGridSizeX / 2);
-			float fGripZ = t.gridentityposz_f + fHitOffsetZ + (pref.fEditorGridSizeZ / 2);
+			float fGripX, fGripY, fGripZ;
+			if (bFromWidgetMode == true)
+			{
+				// widget mode uses its own drag offset system
+				fHitOffsetX = 0; 
+				fHitOffsetZ = 0;
+				fHitOffsetY = 0;
+				fGripX = t.gridentityposx_f + fHitOffsetX + (pref.fEditorGridSizeX / 2);
+				fGripY = t.gridentityposy_f + fHitOffsetY + (pref.fEditorGridSizeY / 2);
+				fGripZ = t.gridentityposz_f + fHitOffsetZ + (pref.fEditorGridSizeZ / 2);
+			}
+			else
+			{
+				// smart mode needs retains fHitOffsetXYZ to know the initial click offset to allow fine placement
+				// and not the old legacy snap to from anchor in center of object (was a nice idea but not how most users expect it to work)
+				fGripX = t.gridentityposx_f + (pref.fEditorGridSizeX / 2);
+				fGripY = t.gridentityposy_f + (pref.fEditorGridSizeY / 2);
+				fGripZ = t.gridentityposz_f + (pref.fEditorGridSizeZ / 2);
+			}
+
 			fGripX -= pref.fEditorGridOffsetX;
 			if (fGripX < 0)
 				fGripX = ((int(fGripX / pref.fEditorGridSizeX) - 1) * pref.fEditorGridSizeX);
 			else
 				fGripX = (int(fGripX / pref.fEditorGridSizeX) * pref.fEditorGridSizeX);
 			fGripX += pref.fEditorGridOffsetX;
+
+			// new for 2025
+			if (pref.fEditorGridSizeY > 0)
+			{
+				fGripY -= pref.fEditorGridOffsetY;
+				if (fGripY < 0)
+					fGripY = ((int(fGripY / pref.fEditorGridSizeY) - 1) * pref.fEditorGridSizeY);
+				else
+					fGripY = (int(fGripY / pref.fEditorGridSizeY) * pref.fEditorGridSizeY);
+				fGripY += pref.fEditorGridOffsetY;
+			}
+
 			fGripZ -= pref.fEditorGridOffsetZ;
 			if (fGripZ < 0)
 				fGripZ = ((int(fGripZ / pref.fEditorGridSizeZ) - 1) * pref.fEditorGridSizeZ);
 			else
 				fGripZ = (int(fGripZ / pref.fEditorGridSizeZ) * pref.fEditorGridSizeZ);
 			fGripZ += pref.fEditorGridOffsetZ;
+
 			t.gridentityposx_f = fGripX;
 			t.gridentityposz_f = fGripZ;
+			if (pref.fEditorGridSizeY > 0)
+			{
+				//PE: Allow object to go 80% below terrain.
+				int GetActiveEditorObject(void);
+				int iActiveObj = GetActiveEditorObject();
+
+				// only if above or on terrain
+				float fTerrainAtThisPoint = BT_GetGroundHeight (0, t.gridentityposx_f, t.gridentityposz_f);
+				if (iActiveObj > 0)
+				{
+					//PE: Object can go under terrain by 80%.
+					float fAllowBelowTerrainMax = (ObjectSizeY(iActiveObj, 1) * 0.80f);
+					fTerrainAtThisPoint -= fAllowBelowTerrainMax;
+				}
+
+				if (fGripY < fTerrainAtThisPoint)
+				{
+					fGripY = fTerrainAtThisPoint;
+				}
+				t.gridentityposy_f = fGripY;
+			}
 		}
 
 		// 130517 - new EBE entity offset to align with 0,0,0 cornered entities from Aslum level and Store (Martin)
@@ -10635,184 +10961,300 @@ void ProcessPreferences(void)
 			//	}
 			//}
 			//if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select interface style");
-const char* style_combo[] = { 
-											"Blue Style", //0->1
-											"Dark Style",//1->12
-											"Darker Style",//2->13 
-											"Evening Blue",//3->9
-											"Green Tea",//4->2
-											"Light Style",//5->14 
-											"Moody Red",//6->8
-											"Purple Haze",//7->4
-											"Racing Green",//8->10
-											"Red Lines",//9->7
-											"Retro Green",//10->11
-											"Sea Blue",//11->0
-											"Smart Purple",//12->5
-											"Striking Yellow",//13->6
-											"Sunset Red",//14->3
-											"Tango",//15->3
-											};
+			const char* style_combo[] = { 
+						"Blue Style", //0->1
+						"Dark Style",//1->12
+						#ifdef PENEWLAYOUT
+						"Modern Dark",//2->13 
+						#else
+						"Darker Style",//2->13 
+						#endif
+						"Evening Blue",//3->9
+						"Green Tea",//4->2
+						"Light Style",//5->14 
+						"Moody Red",//6->8
+						"Purple Haze",//7->4
+						"Racing Green",//8->10
+						"Red Lines",//9->7
+						"Retro Green",//10->11
+						"Sea Blue",//11->0
+						"Smart Purple",//12->5
+						"Striking Yellow",//13->6
+						"Sunset Red",//14->3
+						"Tango",//15->3
+						"Darker Style",//16->9
+			};
 
-int style_current_type_selection;
-if (pref.current_style == 0) style_current_type_selection = 1;
-if (pref.current_style == 1) style_current_type_selection = 2;
-if (pref.current_style == 3) style_current_type_selection = 5;
-if (pref.current_style >= 10) style_current_type_selection = pref.current_style - 9;
-if (pref.current_style == 25) style_current_type_selection = 0; // ZJ: Moved blue to top of list, so pref.current_style - 10 no longer works.
+			int style_current_type_selection;
+			if (pref.current_style == 0) style_current_type_selection = 1;
+			if (pref.current_style == 1) style_current_type_selection = 2;
+			if (pref.current_style == 3) style_current_type_selection = 5;
+			if (pref.current_style >= 10) style_current_type_selection = pref.current_style - 9;
+			if (pref.current_style == 25) style_current_type_selection = 0; // ZJ: Moved blue to top of list, so pref.current_style - 10 no longer works.
+			if (pref.current_style == 9) style_current_type_selection = 16;
 
-if (ImGui::Combo("##BehavioursSimpleInput", &style_current_type_selection, style_combo, IM_ARRAYSIZE(style_combo)))
-{
-	if (style_current_type_selection == 0) {
-		//Blue
-		pref.tint_style = ImVec4(1.0, 1.0, 1.0, 1.0);
-		pref.shade_style = ImVec4(0.0, 0.0, 0.0, 0.0);
-		pref.title_style = ImVec4(0.0, 0.0, 0.0, 0.0);
-		pref.current_style = 25;
-		myStyleBlue(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 1) {
-		// dark
-		pref.tint_style = ImVec4(1.0, 1.0, 1.0, 1.0);
-		pref.shade_style = ImVec4(0.0, 0.0, 0.0, 0.0);
-		pref.title_style = ImVec4(0.0, 0.0, 0.0, 0.0);
-		pref.current_style = 0;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 2) {
-		// darker
-		pref.tint_style = ImVec4(1.0, 1.0, 1.0, 1.0);
-		pref.shade_style = ImVec4(0.0, 0.0, 0.0, 0.0);
-		pref.title_style = ImVec4(0.0, 0.0, 0.0, 0.0);
-		pref.current_style = 1;
-		myDarkStyle(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 3) {
-		//Evening blue
-		pref.tint_style = ImVec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.0);
-		pref.shade_style = ImVec4(0, 0, 0, 1.0);
-		pref.title_style = ImVec4(1 / 255.0, 36 / 255.0, 73 / 255.0, 0.0);
-		pref.current_style = 12;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 4) {
-		//Green tea
-		pref.tint_style = ImVec4(0, 0, 0, 1.0);
-		pref.shade_style = ImVec4(4 / 255.0, 124 / 255.0, 10 / 255.0, 0.0);
-		pref.title_style = ImVec4(89 / 255.0, 160 / 255.0, 93 / 255.0, 0.0);
-		pref.current_style = 13;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 5) {
-		// Light style
-		pref.tint_style = ImVec4(0.0, 0.0, 0.0, 0.0);
-		pref.shade_style = ImVec4(1.0, 1.0, 1.0, 1.0);
-		pref.title_style = ImVec4(1.0, 1.0, 1.0, 1.0);
-		pref.current_style = 3;
-		myLightStyle(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 6) {
-		//Moody red
-		pref.tint_style = ImVec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.0);
-		pref.shade_style = ImVec4(14 / 255.0, 12 / 255.0, 29 / 255.0, 0.0);
-		pref.title_style = ImVec4(131 / 255.0, 16 / 255.0, 6 / 255.0, 0.0);
-		pref.current_style = 15;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 7) {
-		//Purple haze
-		pref.tint_style = ImVec4(0, 0, 0, 1.0);
-		pref.shade_style = ImVec4(163 / 255.0, 43 / 255.0, 179 / 255.0, 0.0);
-		pref.title_style = ImVec4(251 / 255.0, 251 / 255.0, 251 / 255.0, 0.0);
-		pref.current_style = 16;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 8) {
-		//Racing green
-		pref.tint_style = ImVec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.0);
-		pref.shade_style = ImVec4(0, 0, 0, 1.0);
-		pref.title_style = ImVec4(18 / 255.0, 62 / 255.0, 0 / 255.0, 0.0);
-		pref.current_style = 17;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 9) {
-		//Red Lines
-		pref.tint_style = ImVec4(0, 0, 0, 1.0);
-		pref.shade_style = ImVec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.0);
-		pref.title_style = ImVec4(230 / 255.0, 56 / 255.0, 56 / 255.0, 0.0);
-		pref.current_style = 18;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 10) {
-		//Retro green
-		pref.tint_style = ImVec4(11 / 255.0, 248 / 255.0, 25 / 255.0, 0.0);
-		pref.shade_style = ImVec4(0, 0, 0, 1.0);
-		pref.title_style = ImVec4(0, 0, 0, 1.0);
-		pref.current_style = 19;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 11) {
-		//Sea blue
-		pref.tint_style = ImVec4(7 / 255.0, 7 / 255.0, 7 / 255.0, 1.0);
-		pref.shade_style = ImVec4(12 / 255.0, 100 / 255.0, 168 / 255.0, 0.0);
-		pref.title_style = ImVec4(28 / 255.0, 77 / 255.0, 244 / 255.0, 0.0);
-		pref.current_style = 20;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 12) {
-		//Smart purple
-		pref.tint_style = ImVec4(0, 0, 0, 1.0);
-		pref.shade_style = ImVec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.0);
-		pref.title_style = ImVec4(172 / 255.0, 96 / 255.0, 182 / 255.0, 0.0);
-		pref.current_style = 21;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 13) {
-		//Striking yellow
-		pref.tint_style = ImVec4(0, 0, 0, 1.0);
-		pref.shade_style = ImVec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.0);
-		pref.title_style = ImVec4(200 / 255.0, 191 / 255.0, 34 / 255.0, 0.0);
-		pref.current_style = 22;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 14) {
-		//Sunset red
-		pref.tint_style = ImVec4(0, 0, 0, 1.0);
-		pref.shade_style = ImVec4(164 / 255.0, 70 / 255.0, 70 / 255.0, 0.0);
-		pref.title_style = ImVec4(204 / 255.0, 63 / 255.0, 50 / 255.0, 0.0);
-		pref.current_style = 23;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	if (style_current_type_selection == 15) {
-		//Tango
-		pref.tint_style = ImVec4(0, 0, 0, 1.0);
-		pref.shade_style = ImVec4(244 / 255.0, 251 / 255.0, 0, 0.0);
-		pref.title_style = ImVec4(237 / 255.0, 86 / 255.0, 7 / 255.0, 0.0);
-		pref.current_style = 24;
-		myStyle2(NULL);
-		SetIconSet();
-	}
-	
-}
-if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select your preferred user interface style");
+			if (ImGui::Combo("##BehavioursSimpleInput", &style_current_type_selection, style_combo, IM_ARRAYSIZE(style_combo)))
+			{
+				myDefaultStyles();
+				if (style_current_type_selection == 0) {
+					//Blue
+					pref.tint_style = ImVec4(1.0, 1.0, 1.0, 1.0);
+					pref.shade_style = ImVec4(0.0, 0.0, 0.0, 0.0);
+					pref.title_style = ImVec4(0.0, 0.0, 0.0, 0.0);
+					pref.current_style = 25;
+					myStyleBlue(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 1) {
+					// dark
+					pref.tint_style = ImVec4(1.0, 1.0, 1.0, 1.0);
+					pref.shade_style = ImVec4(0.0, 0.0, 0.0, 0.0);
+					pref.title_style = ImVec4(0.0, 0.0, 0.0, 0.0);
+					pref.current_style = 0;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 2) {
+					// darker
+					pref.tint_style = ImVec4(1.0, 1.0, 1.0, 1.0);
+					pref.shade_style = ImVec4(0.0, 0.0, 0.0, 0.0);
+					pref.title_style = ImVec4(0.0, 0.0, 0.0, 0.0);
+					pref.current_style = 1;
+					#ifdef PENEWLAYOUT
+					void DarkColorsNoTransparent(void);
+					myStyle2(NULL);
+					DarkColorsNoTransparent();
+					#else
+					myDarkStyle(NULL);
+					#endif
+					SetIconSet();
+				}
+				if (style_current_type_selection == 3) {
+					//Evening blue
+					pref.tint_style = ImVec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.0);
+					pref.shade_style = ImVec4(0, 0, 0, 1.0);
+					pref.title_style = ImVec4(1 / 255.0, 36 / 255.0, 73 / 255.0, 0.0);
+					pref.current_style = 12;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 4) {
+					//Green tea
+					pref.tint_style = ImVec4(0, 0, 0, 1.0);
+					pref.shade_style = ImVec4(4 / 255.0, 124 / 255.0, 10 / 255.0, 0.0);
+					pref.title_style = ImVec4(89 / 255.0, 160 / 255.0, 93 / 255.0, 0.0);
+					pref.current_style = 13;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 5) {
+					// Light style
+					pref.tint_style = ImVec4(0.0, 0.0, 0.0, 0.0);
+					pref.shade_style = ImVec4(1.0, 1.0, 1.0, 1.0);
+					pref.title_style = ImVec4(1.0, 1.0, 1.0, 1.0);
+					pref.current_style = 3;
+					myLightStyle(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 6) {
+					//Moody red
+					pref.tint_style = ImVec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.0);
+					pref.shade_style = ImVec4(14 / 255.0, 12 / 255.0, 29 / 255.0, 0.0);
+					pref.title_style = ImVec4(131 / 255.0, 16 / 255.0, 6 / 255.0, 0.0);
+					pref.current_style = 15;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 7) {
+					//Purple haze
+					pref.tint_style = ImVec4(0, 0, 0, 1.0);
+					pref.shade_style = ImVec4(163 / 255.0, 43 / 255.0, 179 / 255.0, 0.0);
+					pref.title_style = ImVec4(251 / 255.0, 251 / 255.0, 251 / 255.0, 0.0);
+					pref.current_style = 16;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 8) {
+					//Racing green
+					pref.tint_style = ImVec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.0);
+					pref.shade_style = ImVec4(0, 0, 0, 1.0);
+					pref.title_style = ImVec4(18 / 255.0, 62 / 255.0, 0 / 255.0, 0.0);
+					pref.current_style = 17;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 9) {
+					//Red Lines
+					pref.tint_style = ImVec4(0, 0, 0, 1.0);
+					pref.shade_style = ImVec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.0);
+					pref.title_style = ImVec4(230 / 255.0, 56 / 255.0, 56 / 255.0, 0.0);
+					pref.current_style = 18;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 10) {
+					//Retro green
+					pref.tint_style = ImVec4(11 / 255.0, 248 / 255.0, 25 / 255.0, 0.0);
+					pref.shade_style = ImVec4(0, 0, 0, 1.0);
+					pref.title_style = ImVec4(0, 0, 0, 1.0);
+					pref.current_style = 19;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 11) {
+					//Sea blue
+					pref.tint_style = ImVec4(7 / 255.0, 7 / 255.0, 7 / 255.0, 1.0);
+					pref.shade_style = ImVec4(12 / 255.0, 100 / 255.0, 168 / 255.0, 0.0);
+					pref.title_style = ImVec4(28 / 255.0, 77 / 255.0, 244 / 255.0, 0.0);
+					pref.current_style = 20;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 12) {
+					//Smart purple
+					pref.tint_style = ImVec4(0, 0, 0, 1.0);
+					pref.shade_style = ImVec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.0);
+					pref.title_style = ImVec4(172 / 255.0, 96 / 255.0, 182 / 255.0, 0.0);
+					pref.current_style = 21;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 13) {
+					//Striking yellow
+					pref.tint_style = ImVec4(0, 0, 0, 1.0);
+					pref.shade_style = ImVec4(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0, 0.0);
+					pref.title_style = ImVec4(200 / 255.0, 191 / 255.0, 34 / 255.0, 0.0);
+					pref.current_style = 22;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 14) {
+					//Sunset red
+					pref.tint_style = ImVec4(0, 0, 0, 1.0);
+					pref.shade_style = ImVec4(164 / 255.0, 70 / 255.0, 70 / 255.0, 0.0);
+					pref.title_style = ImVec4(204 / 255.0, 63 / 255.0, 50 / 255.0, 0.0);
+					pref.current_style = 23;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 15) {
+					//Tango
+					pref.tint_style = ImVec4(0, 0, 0, 1.0);
+					pref.shade_style = ImVec4(244 / 255.0, 251 / 255.0, 0, 0.0);
+					pref.title_style = ImVec4(237 / 255.0, 86 / 255.0, 7 / 255.0, 0.0);
+					pref.current_style = 24;
+					myStyle2(NULL);
+					SetIconSet();
+				}
+				if (style_current_type_selection == 16) {
+					pref.tint_style = ImVec4(1.0, 1.0, 1.0, 1.0);
+					pref.shade_style = ImVec4(0.0, 0.0, 0.0, 0.0);
+					pref.title_style = ImVec4(0.0, 0.0, 0.0, 0.0);
+					pref.current_style = 9;
+					myDarkStyle(NULL);
+					SetIconSet();
+				}
+
+			}
+
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select your preferred user interface style");
 			
 			ImGui::PopItemWidth();		
 
+			if (pref.current_style == 1)
+			{
+				//VS2022 colors.
+				//pref.status_bar_color
+				float ChangeColor[4];
+				ChangeColor[0] = pref.status_bar_color.x;
+				ChangeColor[1] = pref.status_bar_color.y;
+				ChangeColor[2] = pref.status_bar_color.z;
+				ChangeColor[3] = 1.0f;
+
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
+				ImGui::Text("Statusbar and highlight color: ");
+				ImGui::SameLine();
+
+				ImGui::PushItemWidth(32);
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 1);
+				bool open_popup = ImGui::ColorButton("##statusbarHighlight", pref.status_bar_color , 0, ImVec2(32, 18));
+				if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Change the status bar and highlight colors");
+				ImGui::PopItemWidth();
+				if (open_popup) ImGui::OpenPopup("##statusbarHighlight");
+				if (ImGui::BeginPopup("##statusbarHighlight", ImGuiWindowFlags_NoMove))
+				{
+					if (ImGui::ColorPicker4("##statusbarHighlight", &ChangeColor[0], ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview))
+					{
+						pref.status_bar_color.x = ChangeColor[0];
+						pref.status_bar_color.y = ChangeColor[1];
+						pref.status_bar_color.z = ChangeColor[2];
+						change_colors = true;
+					}
+					ImGui::EndPopup();
+				}
+
+				ImGui::SameLine();
+
+				ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 8);
+
+				ImVec4 colorselect = ImVec4((1.0f / 255.0f) * 14, (1.0f / 255.0f) * 99, (1.0f / 255.0f) * 156, 1.0);
+				if (ImGui::ColorButton("##statusbarHighlightdefault1", colorselect, 0, ImVec2(18, 18)))
+				{
+					pref.status_bar_color = colorselect;
+					change_colors = true;
+				}
+
+				ImGui::SameLine();
+				colorselect = ImVec4((1.0f / 255.0f) * 202, (1.0f / 255.0f) * 81, 0 , 1.0);
+				if (ImGui::ColorButton("##statusbarHighlightdefault2", colorselect, 0, ImVec2(18, 18)))
+				{
+					pref.status_bar_color = colorselect;
+					change_colors = true;
+				}
+
+				ImGui::SameLine();
+				colorselect = ImVec4((1.0f / 255.0f) * 18, (1.0f / 255.0f) * 117, (1.0f / 255.0f) * 58, 1.0);
+				if (ImGui::ColorButton("##statusbarHighlightdefault3", colorselect, 0, ImVec2(18, 18)))
+				{
+					pref.status_bar_color = colorselect;
+					change_colors = true;
+				}
+
+				ImGui::SameLine();
+				colorselect = ImVec4((1.0f / 255.0f) * 92, (1.0f / 255.0f) * 53, (1.0f / 255.0f) * 174, 1.0);
+				if (ImGui::ColorButton("##statusbarHighlightdefault4", colorselect, 0, ImVec2(18, 18)))
+				{
+					pref.status_bar_color = colorselect;
+					change_colors = true;
+				}
+
+				ImGui::SameLine();
+				colorselect = ImVec4((1.0f / 255.0f) * 166, (1.0f / 255.0f) * 45, (1.0f / 255.0f) * 25, 1.0);
+				if (ImGui::ColorButton("##statusbarHighlightdefault6", colorselect, 0, ImVec2(18, 18)))
+				{
+					pref.status_bar_color = colorselect;
+					change_colors = true;
+				}
+
+				ImGui::SameLine();
+				colorselect = ImVec4((1.0f / 255.0f) * 79, (1.0f / 255.0f) * 79, (1.0f / 255.0f) * 79, 1.0);
+				if (ImGui::ColorButton("##statusbarHighlightdefault5", colorselect, 0, ImVec2(18, 18)))
+				{
+					pref.status_bar_color = colorselect;
+					change_colors = true;
+				}
+
+				ImGui::SameLine();
+				colorselect = ImVec4( 0, 0, 0, 1.0);
+				if (ImGui::ColorButton("##statusbarHighlightdefault7", colorselect, 0, ImVec2(18, 18)))
+				{
+					pref.status_bar_color = colorselect;
+					change_colors = true;
+				}
+
+
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
+			}
 			bTmp = pref.iEnableCustomColors;
 			if (ImGui::Checkbox("Enable Custom Colors", &bTmp)) 
 			{
@@ -10891,8 +11333,21 @@ if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select your preferred user 
 					myStyle2(NULL);
 				}
 				if (pref.current_style == 1) {
+					#ifdef PENEWLAYOUT
+					void DarkColorsNoTransparent(void);
+					myStyle2(NULL);
+					DarkColorsNoTransparent();
+					#else
+					myDarkStyle(NULL);
+					#endif
+				}
+				#ifdef PENEWLAYOUT
+				if(pref.current_style == 9)
+				{
 					myDarkStyle(NULL);
 				}
+				#endif
+
 				if (pref.current_style == 3) {
 					myLightStyle(NULL);
 				}
@@ -10901,6 +11356,49 @@ if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select your preferred user 
 				}
 				SetIconSet();
 			}
+
+
+			#ifdef PENEWLAYOUT
+			ImGui::PushItemWidth(-10);
+			ImGui::Text("");
+			ImGui::Text("Grid and Alignment Gadget");
+
+			if (pref.iSmallToolbar < 0 || pref.iSmallToolbar > 3)//4)
+				pref.iSmallToolbar = 0;
+			const char* smalltoolbar_combo[] = {
+											"None",
+											"Titlebar",
+											"Floating Large",
+											"Floating",
+											//"Toolbar Large",
+			};
+			int smalltoolbar_selection;
+			if (ImGui::Combo("##SmallToolbarSetup", &pref.iSmallToolbar, smalltoolbar_combo, IM_ARRAYSIZE(smalltoolbar_combo)))
+			{
+				if (pref.iSmallToolbar > 0)
+				{
+					//PE: Set new grid system defaults.
+					pref.fEditorGridOffsetX = 0;
+					pref.fEditorGridOffsetY = 0;
+					pref.fEditorGridOffsetZ = 0;
+					pref.fEditorGridSizeX = 10.0f;
+					pref.fEditorGridSizeY = pref.fEditorGridSizeX;
+					pref.fEditorGridSizeZ = pref.fEditorGridSizeX;
+				}
+				else
+				{
+					//PE: Old defaults.
+					pref.fEditorGridOffsetY = 0;
+					pref.fEditorGridSizeY = 0;
+					pref.fEditorGridOffsetX = 50.0f;
+					pref.fEditorGridOffsetZ = 50.0f;
+					pref.fEditorGridSizeX = 100.0f;
+					pref.fEditorGridSizeZ = 100.0f;
+				}
+			}
+			ImGui::PopItemWidth();
+			#endif
+
 
 			ImGui::PushItemWidth(-10);
 			ImGui::Indent(-10);
@@ -11558,15 +12056,15 @@ if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select your preferred user 
 			#ifdef PROCEDURALTERRAINWINDOW
 			if (g_iDevToolsOpen)
 			{
-				bTmp = pref.iTerrainDebugMode;
-				if (ImGui::Checkbox("Display Terrain Debug Mode", &bTmp)) {
-					pref.iTerrainDebugMode = bTmp;
+				bTmp = pref.iAdvancedGridModeSettings;// iTerrainDebugMode;
+				if (ImGui::Checkbox("Enable Advanced Grid Mode", &bTmp)) {
+					pref.iAdvancedGridModeSettings = bTmp;// iTerrainDebugMode = bTmp;
 				}
-				if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Reveals the terrain debugging mode in the terrain panel in the level editor");
+				if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Enables advanced functions and multi-axis settings in grid mode");
 			}
 			else
 			{
-				pref.iTerrainDebugMode = 0;
+				pref.iAdvancedGridModeSettings = 0;// iTerrainDebugMode = 0;
 			}
 			#endif
 
@@ -11649,7 +12147,7 @@ if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select your preferred user 
 			pref.iDisplayIntroScreen = 1;
 			pref.iImporterDome = 1;
 			pref.iTerrainAdvanced = 0;
-			pref.iTerrainDebugMode = 0;
+			pref.iAdvancedGridModeSettings = 0;// iTerrainDebugMode = 0;
 			pref.iEnableAdvancedCharacterCreator = 0;
 			pref.iStoryboardAdvanced = 0;
 			pref.iDisableProjectAutoSave = 0;
@@ -11720,8 +12218,21 @@ if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select your preferred user 
 				myStyle2(NULL);
 			}
 			if (pref.current_style == 1) {
+				#ifdef PENEWLAYOUT
+				void DarkColorsNoTransparent(void);
+				myStyle2(NULL);
+				DarkColorsNoTransparent();
+				#else
+				myDarkStyle(NULL);
+				#endif
+			}
+			#ifdef PENEWLAYOUT
+			if (pref.current_style == 9)
+			{
 				myDarkStyle(NULL);
 			}
+			#endif
+
 			if (pref.current_style == 3) {
 				myLightStyle(NULL);
 			}
@@ -16861,10 +17372,11 @@ bool DoTreeNodeSearch(int parentid, char *lookup)
 bool bDisplayProjectMedia = false;
 bool bDisplayFavorite = false;
 
-void process_gotopurchaedandrefreshtopurchases ( void )
+void process_gotopurchaedandrefreshtopurchases ( bool bForceSearch )
 {
 	seleted_tree_item = -1;
-	strcpy(cSearchAllEntities[0], "Purchased");
+	if(!bIncludeDocumentFolderInRemoteProject || bForceSearch)
+		strcpy(cSearchAllEntities[0], "Purchased");
 	bDisplayProjectMedia = false;
 	bDisplayFavorite = false;
 	bViewAllFolders = false;
@@ -18791,6 +19303,24 @@ void process_entity_library_v2(void)
 			bDisplayProjectMedia = false;
 		}
 
+		int selectable_items = 0;
+
+		extern char szBeforeChangeWriteDir[MAX_PATH];
+		char projectfolder[MAX_PATH];
+		strcpy(projectfolder, "");
+		if (strlen(szBeforeChangeWriteDir) > 0 && strlen(Storyboard.customprojectfolder) > 0)
+		{
+			strcpy(projectfolder, Storyboard.customprojectfolder);
+			strcat(projectfolder, Storyboard.gamename);
+			if (ImGui::Checkbox("Include Document Folder", &bIncludeDocumentFolderInRemoteProject))
+			{
+				//PE: Regular project update the library.
+				extern int g_iRefreshLibraryFoldersAfterDelay;
+				g_iRefreshLibraryFoldersAfterDelay = 10;
+			}
+			selectable_items++;
+		}
+
 		if (ImGui::Selectable("View All", bViewAllFolders) || bSelectLibraryViewAll )
 		{
 			bSelectLibraryViewAll = false;
@@ -18810,6 +19340,7 @@ void process_entity_library_v2(void)
 			bUpdateSearchSorting = true;
 			bUpdateSearchScrollbar = true;
 		}
+		selectable_items++;
 
 		// only show SHOWCASE and PURCHASED as relating to objects (for now)
 		if (iDisplayLibraryType == 0)
@@ -18824,8 +19355,9 @@ void process_entity_library_v2(void)
 				if (ImGui::Selectable("Purchased", &bViewPurchased, 0))
 				{
 					// force library to purchased view, and refresh too
-					process_gotopurchaedandrefreshtopurchases();
+					process_gotopurchaedandrefreshtopurchases(true);
 				}
+				selectable_items++;
 			}
 		}
 		else
@@ -18837,8 +19369,9 @@ void process_entity_library_v2(void)
 				if (ImGui::Selectable("Purchased", &bViewPurchased, 0))
 				{
 					// force library to purchased view, and refresh too
-					process_gotopurchaedandrefreshtopurchases();
+					process_gotopurchaedandrefreshtopurchases(true);
 				}
+				selectable_items++;
 			}
 		}
 
@@ -18862,6 +19395,7 @@ void process_entity_library_v2(void)
 				bUpdateSearchSorting = true;
 				bUpdateSearchScrollbar = true;
 			}
+			selectable_items++;
 		}
 
 		if (ImGui::Selectable("Favorites##favourites", &bDisplayFavorite, 0))
@@ -18875,8 +19409,16 @@ void process_entity_library_v2(void)
 			bUpdateSearchSorting = true;
 			bUpdateSearchScrollbar = true;
 		}
-
-		ImGui::BeginChild("##LeftPanelCategories", ImVec2(0, vWindowSize.y - 67.0f), false, iGenralWindowsFlags);
+		selectable_items++;
+		static float setadder = 0;
+		if(selectable_items <= 3)
+			ImGui::BeginChild("##LeftPanelCategories", ImVec2(0, vWindowSize.y - (67.0f + setadder)), false, iGenralWindowsFlags);
+		else if (selectable_items <= 4)
+			ImGui::BeginChild("##LeftPanelCategories", ImVec2(0, vWindowSize.y - (95.0f)), false, iGenralWindowsFlags);
+		else if (selectable_items <= 5)
+			ImGui::BeginChild("##LeftPanelCategories", ImVec2(0, vWindowSize.y - (113.0f)), false, iGenralWindowsFlags);
+		else
+			ImGui::BeginChild("##LeftPanelCategories", ImVec2(0, vWindowSize.y - (133.0f)), false, iGenralWindowsFlags);
 
 		if (iDisplayLibraryType == 0 && iDisplayLibrarySubType == 1)
 		{
@@ -18922,6 +19464,7 @@ void process_entity_library_v2(void)
 		if (1)
 		{
 			static std::vector< std::pair<std::string, cFolderItem::sFolderFiles *>> sorted_files;
+			static std::vector< std::pair<std::string, cFolderItem::sFolderFiles*>> remoteproject_files;
 			if (sorted_files.size() == 0)
 				bUpdateSearchSorting = true;
 
@@ -18972,6 +19515,8 @@ void process_entity_library_v2(void)
 			if ((bCheckGotoPreview || bUpdateSearchSorting || bUpdateSearchSortingNextFrame) && pNewFolder)
 			{
 				sorted_files.clear();
+				remoteproject_files.clear();
+
 				pNewFolder = pNewFolder->m_pNext;
 
 				cStr path_remove = pNewFolder->m_sFolderFullPath.Get();
@@ -19185,6 +19730,7 @@ void process_entity_library_v2(void)
 									if (strnicmp(dir_name.c_str(), "people", strlen("people")) == NULL)		bDisplayEverythingHere = false;
 									if (strnicmp(dir_name.c_str(), "puzzle", strlen("puzzle")) == NULL)		bDisplayEverythingHere = false;
 									if (strnicmp(dir_name.c_str(), "rpg", strlen("rpg")) == NULL)			bDisplayEverythingHere = false;
+									if (strnicmp(dir_name.c_str(), "global", strlen("global")) == NULL)		bDisplayEverythingHere = false;
 									if (strnicmp(dir_name.c_str(), "user", strlen("user")) == NULL)			bDisplayEverythingHere = false;
 									if (strnicmp(dir_name.c_str(), "weather", strlen("weather")) == NULL)	bDisplayEverythingHere = false;
 								}
@@ -19263,17 +19809,27 @@ void process_entity_library_v2(void)
 
 								if (i == 0 && strlen(cSearchAllEntities[i]) > 0) {
 
-									if (pestrcasestr(myfiles->m_sBetterSearch.Get(), cSearchAllEntities[i]))
-										bIsVisible = true;
-									if (!bIsVisible) // else current_sortby == 4)
+									if (iDisplayLibraryType == 4 && stricmp(cSearchAllEntities[i], "global") == 0 )
 									{
-										if (bAdvancedFPEFeatures && myfiles->m_sFPEKeywords.Len() > 0)
+										bDisplayEverythingHere = false;
+										if (pestrcasestr(dir_name.c_str(), "global"))
 										{
-											if (pestrcasestr(myfiles->m_sFPEKeywords.Get(), cSearchAllEntities[i]))
-												bIsVisible = true;
+											bIsVisible = true;
 										}
 									}
-
+									else
+									{
+										if (pestrcasestr(myfiles->m_sBetterSearch.Get(), cSearchAllEntities[i]))
+											bIsVisible = true;
+										if (!bIsVisible) // else current_sortby == 4)
+										{
+											if (bAdvancedFPEFeatures && myfiles->m_sFPEKeywords.Len() > 0)
+											{
+												if (pestrcasestr(myfiles->m_sFPEKeywords.Get(), cSearchAllEntities[i]))
+													bIsVisible = true;
+											}
+										}
+									}
 									if (!bIsVisible && bSearchGameElements)
 									{
 										if (pestrcasestr(cSearchAllEntities[i], "Game Elements"))
@@ -19419,7 +19975,52 @@ void process_entity_library_v2(void)
 										}
 									}
 
-									sorted_files.push_back(std::make_pair(SortBy, myfiles));
+									//PE: Remove dublicates here, if using 
+									bool bDuplicate = false;
+									bool bRemoteProject = false;
+									extern char szBeforeChangeWriteDir[MAX_PATH];
+ 									if (strlen(szBeforeChangeWriteDir) > 0 && strlen(projectfolder) > 0 )
+									{
+
+										//strcpy(projectfolder, Storyboard.customprojectfolder);
+										//strcat(projectfolder, Storyboard.gamename);
+
+										LPSTR pFileFolderToCheck = pNewFolder->m_sFolderFullPath.Get();
+										if (myfiles && strnicmp(pFileFolderToCheck, projectfolder, strlen(projectfolder)) == NULL)
+										{
+											bRemoteProject = true;
+										}
+										else
+										{
+											//PE: Check if we already added this to remoteproject_files.
+											for (int loop = 0; loop < remoteproject_files.size(); loop++)
+											{
+												if (remoteproject_files[loop].second->m_sName == myfiles->m_sName)
+												{
+													//PE: Check full folder.
+													char check[MAX_PATH];
+													strcpy(check, remoteproject_files[loop].second->m_sPath.Get());
+													const char* find = pestrcasestr(check, "\\files\\");
+													if (find)
+													{
+														if (pestrcasestr(myfiles->m_sPath.Get(),find))
+														{
+															//PE: Same path , mark as duplicate. and prefer remoteproject file.
+															bDuplicate = true;
+															break;
+														}
+													}
+												}
+											}
+										}
+									}
+									if (bRemoteProject)
+									{
+										remoteproject_files.push_back(std::make_pair(SortBy, myfiles));
+									}
+									if(!bDuplicate)
+										sorted_files.push_back(std::make_pair(SortBy, myfiles));
+
 									//Map pNewFolder to files entry.
 									myfiles->pNewFolder = pNewFolder;
 									//myfiles->bLoadedInNewFormat = bLoadedInNewFormat;
@@ -25774,7 +26375,7 @@ void gridedit_makelighthybrid ( void )
 entityeleproftype *lua_grideleprof;
 entityeleproftype lua_readonly_grideleprof; //Temp for readonly dynamic lua parsing.
 
-void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_grideleprof, int elementID)
+void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_grideleprof, int elementID, bool bHideIcon)
 {
 	//FPE Properties.
 	bool bIsLightProbe = false;
@@ -26019,42 +26620,43 @@ void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_gridel
 		float ImgW = ImageWidth(fpe_current_loaded_script_image);
 		float ImgH = ImageHeight(fpe_current_loaded_script_image);
 		float fRatio = w/ImgW;
-
-		ImGuiWindow* window = ImGui::GetCurrentWindow();
-		if (iSelectedLibraryStingReturnID == window->GetID("ScriptSelector##+"))
+		if (!bHideIcon)
 		{
-			//Update Script.
-			if (sSelectedLibrarySting != "")
+			ImGuiWindow* window = ImGui::GetCurrentWindow();
+			if (iSelectedLibraryStingReturnID == window->GetID("ScriptSelector##+"))
 			{
-				if ( stricmp (edit_grideleprof->aimain_s.Get(), sSelectedLibrarySting.Get()) != NULL )
+				//Update Script.
+				if (sSelectedLibrarySting != "")
 				{
-					// changed behavior of object, ensure any behavior specific properties are cleared (as they cannot be set if new behavior does not expose them)
-					edit_grideleprof->overrideanimset_s = "";
-					edit_grideleprof->hasweapon_s = t.entityprofile[entid].hasweapon_s;
-					edit_grideleprof->hasweapon = 0;
-					extern bool g_bNowPopulateWithCorrectAnimSet;			
-					g_bNowPopulateWithCorrectAnimSet = true;
+					if (stricmp(edit_grideleprof->aimain_s.Get(), sSelectedLibrarySting.Get()) != NULL)
+					{
+						// changed behavior of object, ensure any behavior specific properties are cleared (as they cannot be set if new behavior does not expose them)
+						edit_grideleprof->overrideanimset_s = "";
+						edit_grideleprof->hasweapon_s = t.entityprofile[entid].hasweapon_s;
+						edit_grideleprof->hasweapon = 0;
+						extern bool g_bNowPopulateWithCorrectAnimSet;
+						g_bNowPopulateWithCorrectAnimSet = true;
+					}
+					edit_grideleprof->aimain_s = sSelectedLibrarySting;
+					sSelectedLibrarySting = "";
+					iSelectedLibraryStingReturnID = -1; //disable.
+					fpe_current_loaded_script = -1; //Reload image and DLUA.
 				}
-				edit_grideleprof->aimain_s = sSelectedLibrarySting;
-				sSelectedLibrarySting = "";
-				iSelectedLibraryStingReturnID = -1; //disable.
-				fpe_current_loaded_script = -1; //Reload image and DLUA.
 			}
-		}
-		if (ImGui::ImgBtn(fpe_current_loaded_script_image, ImVec2(ImgW*fRatio, ImgH*fRatio), drawCol_black, drawCol_normal, drawCol_normal, drawCol_normal, -1, 0, 0, 0, false))
-		{
-			//Select script.
-			sStartLibrarySearchString = "People";
-			iLastDisplayLibraryType = -1;
-			bExternal_Entities_Window = true;
-			iDisplayLibraryType = 4;
-			iLibraryStingReturnToID = window->GetID("ScriptSelector##+");
-			if (edit_grideleprof->aimain_s.Len() > 0)
-				sMakeDefaultSelecting = edit_grideleprof->aimain_s;
+			if (ImGui::ImgBtn(fpe_current_loaded_script_image, ImVec2(ImgW * fRatio, ImgH * fRatio), drawCol_black, drawCol_normal, drawCol_normal, drawCol_normal, -1, 0, 0, 0, false))
+			{
+				//Select script.
+				sStartLibrarySearchString = "People";
+				iLastDisplayLibraryType = -1;
+				bExternal_Entities_Window = true;
+				iDisplayLibraryType = 4;
+				iLibraryStingReturnToID = window->GetID("ScriptSelector##+");
+				if (edit_grideleprof->aimain_s.Len() > 0)
+					sMakeDefaultSelecting = edit_grideleprof->aimain_s;
 
+			}
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select Character Behavior");
 		}
-		if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select Character Behavior");
-
 		ImGui::TextCenter(cDisplayName);
 
 		#else
@@ -26784,32 +27386,33 @@ void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_gridel
 		float ImgW = ImageWidth(fpe_current_loaded_script_image);
 		float ImgH = ImageHeight(fpe_current_loaded_script_image);
 		float fRatio = w / ImgW;
-
-		if (iSelectedLibraryStingReturnID == window->GetID("ScriptSelector##+"))
+		if (!bHideIcon)
 		{
-			//Update Script.
-			if (sSelectedLibrarySting != "")
+			if (iSelectedLibraryStingReturnID == window->GetID("ScriptSelector##+"))
 			{
-				edit_grideleprof->aimain_s = sSelectedLibrarySting;
-				sSelectedLibrarySting = "";
-				iSelectedLibraryStingReturnID = -1; //disable.
-				fpe_current_loaded_script = -1; //Reload image and DLUA.
+				//Update Script.
+				if (sSelectedLibrarySting != "")
+				{
+					edit_grideleprof->aimain_s = sSelectedLibrarySting;
+					sSelectedLibrarySting = "";
+					iSelectedLibraryStingReturnID = -1; //disable.
+					fpe_current_loaded_script = -1; //Reload image and DLUA.
+				}
 			}
-		}
-		if (ImGui::ImgBtn(fpe_current_loaded_script_image, ImVec2(ImgW*fRatio, ImgH*fRatio), drawCol_black, drawCol_normal, drawCol_normal, drawCol_normal, -1, 0, 0, 0, false))
-		{
-			//Select script.
-			sStartLibrarySearchString = "Light";
-			iLastDisplayLibraryType = -1;
-			bExternal_Entities_Window = true;
-			iDisplayLibraryType = 4;
-			iLibraryStingReturnToID = window->GetID("ScriptSelector##+");
-			if (edit_grideleprof->aimain_s.Len() > 0)
-				sMakeDefaultSelecting = edit_grideleprof->aimain_s;
+			if (ImGui::ImgBtn(fpe_current_loaded_script_image, ImVec2(ImgW * fRatio, ImgH * fRatio), drawCol_black, drawCol_normal, drawCol_normal, drawCol_normal, -1, 0, 0, 0, false))
+			{
+				//Select script.
+				sStartLibrarySearchString = "Light";
+				iLastDisplayLibraryType = -1;
+				bExternal_Entities_Window = true;
+				iDisplayLibraryType = 4;
+				iLibraryStingReturnToID = window->GetID("ScriptSelector##+");
+				if (edit_grideleprof->aimain_s.Len() > 0)
+					sMakeDefaultSelecting = edit_grideleprof->aimain_s;
 
+			}
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select Light Behavior");
 		}
-		if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select Light Behavior");
-
 		ImGui::TextCenter(cDisplayName);
 		#else
 
@@ -27918,6 +28521,14 @@ void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_gridel
 		}
 		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Sets whether the flashlight is disabled for the player");
 
+		// additional sound control for player start marker
+		edit_grideleprof->soundset_s = imgui_setpropertylist2c_v2(t.group, t.controlindex, edit_grideleprof->soundset_s.Get(), "Preferred Voice", "Choose the style of voice for the player", 32, readonly, false, false, false, 0);
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Choose the style of voice for the player");
+
+		edit_grideleprof->soundset1_s = imgui_setpropertyfile2_v2(t.group, edit_grideleprof->soundset1_s.Get(), "Hard Impact", "", "audiobank\\", readonly);
+		//if (ImGui::IsItemHovered()) ImGui::SetTooltip("Choose an optional sound when player strikes a non-character, typically a hard surface");
+		edit_grideleprof->soundset2_s = imgui_setpropertyfile2_v2(t.group, edit_grideleprof->soundset2_s.Get(), "Soft Impact", "", "audiobank\\", readonly);
+		//if (ImGui::IsItemHovered()) ImGui::SetTooltip("Choose an optional sound when player strieks a character, typically soft and fleshy");
 	}
 	else
 	{
@@ -27943,7 +28554,7 @@ void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_gridel
 		//health.lua
 		cstr aimain = edit_grideleprof->aimain_s.Lower();
 		//new: trigger anyting not a marker.
-		if (t.entityprofile[entid].ismarker == 0)// || aimain == "key.lua" || aimain == "objects\\key.lua" || aimain == "door.lua" || aimain == "default.lua" || aimain == "health.lua" || aimain == "pickuppable.lua" ) ) 
+		if (t.entityprofile[entid].ismarker == 0 || t.entityprofile[entid].ismarker == 12) // || aimain == "key.lua" || aimain == "objects\\key.lua" || aimain == "door.lua" || aimain == "default.lua" || aimain == "health.lua" || aimain == "pickuppable.lua" ) ) 
 		{
 			//"Name"
 			//Display icon.
@@ -27964,7 +28575,10 @@ void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_gridel
 			std::vector<cstr> scriptListTitle_s; scriptListTitle_s.clear();
 			cstr oldDir_s = GetDir();
 			SetDir(g.fpscrootdir_s.Get());
-			SetDir("Files\\scriptbank\\objects");
+			if(t.entityprofile[entid].ismarker == 12)
+				SetDir("Files\\scriptbank\\global");
+			else
+				SetDir("Files\\scriptbank\\objects");
 			ChecklistForFiles();
 			for (int f = 1; f <= ChecklistQuantity(); f++)
 			{
@@ -27994,7 +28608,10 @@ void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_gridel
 						}
 
 						// add script and title to list
-						scriptList_s.push_back(cstr("objects\\") + tfile_s);
+						if (t.entityprofile[entid].ismarker == 12)
+							scriptList_s.push_back(cstr("global\\") + tfile_s);
+						else
+							scriptList_s.push_back(cstr("objects\\") + tfile_s);
 						scriptListTitle_s.push_back(cstr(pTitleName));
 					}
 				}
@@ -28137,39 +28754,47 @@ void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_gridel
 			float ImgH = ImageHeight(fpe_current_loaded_script_image);
 			float fRatio = w / ImgW;
 
-			ImGuiWindow* window = ImGui::GetCurrentWindow();
-			if (iSelectedLibraryStingReturnID == window->GetID("ScriptSelector##+"))
+			if (!bHideIcon)
 			{
-				//Update Script.
-				if (sSelectedLibrarySting != "")
+				ImGuiWindow* window = ImGui::GetCurrentWindow();
+				if (iSelectedLibraryStingReturnID == window->GetID("ScriptSelector##+"))
 				{
-					edit_grideleprof->aimain_s = sSelectedLibrarySting;
-					sSelectedLibrarySting = "";
-					iSelectedLibraryStingReturnID = -1; //disable.
-					fpe_current_loaded_script = -1; //Reload image and DLUA.
-					if(!pestrcasestr(edit_grideleprof->aimain_s.Get(), "default.lua"))
+					//Update Script.
+					if (sSelectedLibrarySting != "")
 					{
-						//PE: When selecting a script, disable static so script will run.
-						if (elementID > 0) t.entityelement[elementID].staticflag = 0;
+						edit_grideleprof->aimain_s = sSelectedLibrarySting;
+						sSelectedLibrarySting = "";
+						iSelectedLibraryStingReturnID = -1; //disable.
+						fpe_current_loaded_script = -1; //Reload image and DLUA.
+						if (!pestrcasestr(edit_grideleprof->aimain_s.Get(), "default.lua"))
+						{
+							//PE: When selecting a script, disable static so script will run.
+							if (elementID > 0) t.entityelement[elementID].staticflag = 0;
+						}
 					}
 				}
+				//if (ImGui::ImgBtn(fpe_current_loaded_script_image, ImVec2(ImgW*fRatio, ImgH*fRatio), drawCol_back, drawCol_normal, drawCol_normal, drawCol_normal, -1, 0, 0, 0, true))
+				if (ImGui::ImgBtn(fpe_current_loaded_script_image, ImVec2(ImgW * fRatio, ImgH * fRatio), drawCol_black, drawCol_normal, drawCol_normal, drawCol_normal, -1, 0, 0, 0, false))
+				{
+					//Select script.
+					if (t.entityprofile[entid].bIsDecal)
+						sStartLibrarySearchString = "Decal";
+					else
+					{
+						if (t.entityprofile[entid].ismarker == 12)
+							sStartLibrarySearchString = "global";
+						else
+							sStartLibrarySearchString = "Objects";
+					}
+					iLastDisplayLibraryType = -1;
+					bExternal_Entities_Window = true;
+					iDisplayLibraryType = 4;
+					iLibraryStingReturnToID = window->GetID("ScriptSelector##+");
+					if (edit_grideleprof->aimain_s.Len() > 0)
+						sMakeDefaultSelecting = edit_grideleprof->aimain_s;
+				}
+				if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select Object Behavior");
 			}
-			//if (ImGui::ImgBtn(fpe_current_loaded_script_image, ImVec2(ImgW*fRatio, ImgH*fRatio), drawCol_back, drawCol_normal, drawCol_normal, drawCol_normal, -1, 0, 0, 0, true))
-			if (ImGui::ImgBtn(fpe_current_loaded_script_image, ImVec2(ImgW*fRatio, ImgH*fRatio), drawCol_black, drawCol_normal, drawCol_normal, drawCol_normal, -1, 0, 0, 0,false))
-			{
-				//Select script.
-				if (t.entityprofile[entid].bIsDecal)
-					sStartLibrarySearchString = "Decal";
-				else
-					sStartLibrarySearchString = "Objects";
-				iLastDisplayLibraryType = -1;
-				bExternal_Entities_Window = true;
-				iDisplayLibraryType = 4;
-				iLibraryStingReturnToID = window->GetID("ScriptSelector##+");
-				if ( edit_grideleprof->aimain_s.Len() > 0)
-					sMakeDefaultSelecting = edit_grideleprof->aimain_s;
-			}
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Select Object Behavior");
 			ImGui::TextCenter(cDisplayName);
 			ImGui::PopItemWidth();
 			#else
@@ -28302,36 +28927,39 @@ void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_gridel
 				float ImgH = ImageHeight(fpe_current_loaded_script_image);
 				float fRatio = w / ImgW;
 
-				//LB: Do allow TRIGGER ZONE script to change
-				ImGuiWindow* window = ImGui::GetCurrentWindow();
-				if (t.entityprofile[entid].ismarker == 3 && t.entityprofile[entid].trigger.stylecolor == 2)
+				if (!bHideIcon)
 				{
-					if (iSelectedLibraryStingReturnID == window->GetID("ScriptSelector##+"))
-					{
-						//Update Script.
-						if (sSelectedLibrarySting != "")
-						{
-							edit_grideleprof->aimain_s = sSelectedLibrarySting;
-							sSelectedLibrarySting = "";
-							iSelectedLibraryStingReturnID = -1;
-							fpe_current_loaded_script = -1;
-						}
-					}
-				}
-				if (ImGui::ImgBtn(fpe_current_loaded_script_image, ImVec2(ImgW*fRatio, ImgH*fRatio), drawCol_black, drawCol_normal, drawCol_normal, drawCol_normal, -1, 0, 0, 0, false))
-				{
-					//LB: But do allow TRIGGER ZONE script to change
+					//LB: Do allow TRIGGER ZONE script to change
+					ImGuiWindow* window = ImGui::GetCurrentWindow();
 					if (t.entityprofile[entid].ismarker == 3 && t.entityprofile[entid].trigger.stylecolor == 2)
 					{
-						//Select script.
-						sStartLibrarySearchString = "Markers";
-						iLastDisplayLibraryType = -1;
-						bExternal_Entities_Window = true;
-						iDisplayLibraryType = 4;
-						iLibraryStingReturnToID = window->GetID("ScriptSelector##+");
-						if (edit_grideleprof->aimain_s.Len() > 0)
+						if (iSelectedLibraryStingReturnID == window->GetID("ScriptSelector##+"))
 						{
-							sMakeDefaultSelecting = edit_grideleprof->aimain_s;
+							//Update Script.
+							if (sSelectedLibrarySting != "")
+							{
+								edit_grideleprof->aimain_s = sSelectedLibrarySting;
+								sSelectedLibrarySting = "";
+								iSelectedLibraryStingReturnID = -1;
+								fpe_current_loaded_script = -1;
+							}
+						}
+					}
+					if (ImGui::ImgBtn(fpe_current_loaded_script_image, ImVec2(ImgW * fRatio, ImgH * fRatio), drawCol_black, drawCol_normal, drawCol_normal, drawCol_normal, -1, 0, 0, 0, false))
+					{
+						//LB: But do allow TRIGGER ZONE script to change
+						if (t.entityprofile[entid].ismarker == 3 && t.entityprofile[entid].trigger.stylecolor == 2)
+						{
+							//Select script.
+							sStartLibrarySearchString = "Markers";
+							iLastDisplayLibraryType = -1;
+							bExternal_Entities_Window = true;
+							iDisplayLibraryType = 4;
+							iLibraryStingReturnToID = window->GetID("ScriptSelector##+");
+							if (edit_grideleprof->aimain_s.Len() > 0)
+							{
+								sMakeDefaultSelecting = edit_grideleprof->aimain_s;
+							}
 						}
 					}
 				}
@@ -28375,6 +29003,8 @@ void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_gridel
 		bool bSound1Mentioned = false;
 		bool bSound2Mentioned = false;
 		bool bSound3Mentioned = false;
+		bool bSound4Mentioned = false;
+		bool bSound5Mentioned = false;
 		bool bVideoSlotMentioned = false;
 		bool bIfUsedMentioned = false;
 		bool bUseKeyMentioned = false;
@@ -28399,6 +29029,8 @@ void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_gridel
 		if (strstr(pCaptureAnyScriptDesc, "<Sound1>") != 0) bSound1Mentioned = true;
 		if (strstr(pCaptureAnyScriptDesc, "<Sound2>") != 0) bSound2Mentioned = true;
 		if (strstr(pCaptureAnyScriptDesc, "<Sound3>") != 0) bSound3Mentioned = true;
+		if (strstr(pCaptureAnyScriptDesc, "<Sound4>") != 0) bSound4Mentioned = true;
+		if (strstr(pCaptureAnyScriptDesc, "<Sound5>") != 0) bSound5Mentioned = true;
 		if (strstr(pCaptureAnyScriptDesc, "<Video Slot>") != 0) bVideoSlotMentioned = true;
 		if (strstr(pCaptureAnyScriptDesc, "<If Used>") != 0) bIfUsedMentioned = true;
 		if (strstr(pCaptureAnyScriptDesc, "<Use Key>") != 0) bUseKeyMentioned = true;
@@ -28411,7 +29043,7 @@ void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_gridel
 		if (strstr(pCaptureAnyScriptDesc, "<Zombie Animations>") != 0) iAnimationSetMentioned = 3;
 		if (strstr(pCaptureAnyScriptDesc, "<Default Animations>") != 0) iAnimationSetMentioned = 4;		
 
-		if (bSound0Mentioned || bSound1Mentioned || bSound2Mentioned || bSound3Mentioned || bVideoSlotMentioned || bIfUsedMentioned || bUseKeyMentioned || bShootingWeaponMentioned || bMeleeWeaponMentioned || iAnimationSetMentioned>0)
+		if (bSound0Mentioned || bSound1Mentioned || bSound2Mentioned || bSound3Mentioned || bSound4Mentioned || bSound5Mentioned || bVideoSlotMentioned || bIfUsedMentioned || bUseKeyMentioned || bShootingWeaponMentioned || bMeleeWeaponMentioned || iAnimationSetMentioned>0)
 		{
 			if (bVideoSlotMentioned == true)
 			{
@@ -28473,6 +29105,8 @@ void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_gridel
 			if (bSound1Mentioned == true) edit_grideleprof->soundset1_s = imgui_setpropertyfile2_v2(t.group, edit_grideleprof->soundset1_s.Get(), "Sound1", t.strarr_s[254].Get(), "audiobank\\", readonly);
 			if (bSound2Mentioned == true) edit_grideleprof->soundset2_s = imgui_setpropertyfile2_v2(t.group, edit_grideleprof->soundset2_s.Get(), "Sound2", t.strarr_s[254].Get(), "audiobank\\", readonly);
 			if (bSound3Mentioned == true) edit_grideleprof->soundset3_s = imgui_setpropertyfile2_v2(t.group, edit_grideleprof->soundset3_s.Get(), "Sound3", t.strarr_s[254].Get(), "audiobank\\", readonly);
+			if (bSound4Mentioned == true) edit_grideleprof->soundset5_s = imgui_setpropertyfile2_v2(t.group, edit_grideleprof->soundset5_s.Get(), "Sound4", t.strarr_s[254].Get(), "audiobank\\", readonly);
+			if (bSound5Mentioned == true) edit_grideleprof->soundset6_s = imgui_setpropertyfile2_v2(t.group, edit_grideleprof->soundset6_s.Get(), "Sound5", t.strarr_s[254].Get(), "audiobank\\", readonly);
 			if (bIfUsedMentioned == true)
 			{
 				if (t.entityprofile[entid].ischaracter != 1)
@@ -28643,6 +29277,11 @@ void DisplayFPEGeneral(bool readonly, int entid, entityeleproftype *edit_gridele
 					const char* itemsAll[] = { "Change All To" , "Static", "Physics on", "Physics off" };
 					const char** Selected = items;
 					int iArraySize = 3;
+
+					//PE: Users are relying on this feature so they can, set a polygon collision object to have "behaviour".
+					//PE: Used by many where polygon is needed with a "behaviour" , platforms ... explodeable ... isimmobile == 1 ... Is Collectable ...
+					//PE: https://github.com/TheGameCreators/GameGuruMAX/commit/a1929f0a832db7b799d53a01955837b15a8d2d5c
+					/*
 					// limit selection to just Static if certain collision modes used
 					if (t.entityelement[elementID].eleprof.iOverrideCollisionMode == 1 || t.entityelement[elementID].eleprof.iOverrideCollisionMode == 8)
 					{
@@ -28659,6 +29298,8 @@ void DisplayFPEGeneral(bool readonly, int entid, entityeleproftype *edit_gridele
 							if (t.entityprofile[entid].collisionmode == 8) iArraySize = 1;
 						}
 					}
+					*/
+
 					int item_current = 0;
 					if (t.entityelement[elementID].staticflag == 1)
 						item_current = 0;
@@ -29014,11 +29655,15 @@ void DisplayFPEGeneral(bool readonly, int entid, entityeleproftype *edit_gridele
 		{
 			for (int i = 0; i < 10; i++)
 			{
+				//PE: Users are relying on this feature so they can, set a polygon collision object to have "behaviour".
+				//PE: Used by many where polygon is needed with a "behaviour" , platforms ... explodeable ... isimmobile == 1 ... Is Collectable ...
+				//PE: https://github.com/TheGameCreators/GameGuruMAX/commit/a1929f0a832db7b799d53a01955837b15a8d2d5c
+
 				// Don't display certtain collision modes for dynamic objects!
 				if (i == 1 && t.entityelement[elementID].staticflag == 0) continue;
-				if (i == 4 && t.entityelement[elementID].staticflag == 0) continue;
-				if (i == 8 && t.entityelement[elementID].staticflag == 0) continue;
-				if (i == 9 && t.entityelement[elementID].staticflag == 0) continue;
+				//if (i == 4 && t.entityelement[elementID].staticflag == 0) continue;
+				//if (i == 8 && t.entityelement[elementID].staticflag == 0) continue;
+				//if (i == 9 && t.entityelement[elementID].staticflag == 0) continue;
 
 				// get collision shape name
 				char* pCollisionShapeName = pCollisionShapes[i];
@@ -29118,7 +29763,13 @@ void DisplayFPEGeneral(bool readonly, int entid, entityeleproftype *edit_gridele
 		if (t.entityprofile[entid].ismarker == 3)
 			edit_grideleprof->isobjective = 2;
 		else
+		{
 			edit_grideleprof->isobjective = 1;
+		}
+		ImGui::SameLine();
+		bool bTmp = edit_grideleprof->isobjective_alwaysactive;
+		ImGui::Checkbox("Always Visible", &bTmp);
+		edit_grideleprof->isobjective_alwaysactive = bTmp;
 	}
 	else
 	{
@@ -30042,8 +30693,21 @@ char* imgui_setpropertylist2c_v2(int group, int controlindex, char* data_s, char
 
 	if (listtype == 31)
 	{
-		listmax = fillgloballistwithdecals();
+		listmax = fillgloballistwithdecals(t.list_s);
 		for (int n = 0; n < listmax; n++)
+		{
+			if (ldata_s == t.list_s[n])
+			{
+				current_selection = n;
+				break;
+			}
+		}
+	}
+
+	if (listtype == 32)
+	{
+		listmax = fillgloballistwithvoices(t.list_s);
+		for (int n = 0; n <= listmax; n++)
 		{
 			if (ldata_s == t.list_s[n])
 			{
@@ -33679,9 +34343,12 @@ void GetProjectThumbnails()
 {
 	projectbank_image.clear();
 	projectbank_imageid.resize(projectbank_list.size());
-	
+	projectbank_active.resize(projectbank_list.size());
+
 	for (int i = 0; i < projectbank_list.size(); i++)
 	{
+		projectbank_active[i] = true;
+
 		if (!pestrcasestr((char *)projectbank_list[i].c_str(), "_backup_"))
 		{
 			char project[MAX_PATH];
@@ -33801,6 +34468,9 @@ void GetProjectThumbnails()
 							}
 						}
 					}
+					if(checkproject.project_inactive)
+						projectbank_active[i] = false;
+
 					projectbank_image.push_back(bestfound.Get());
 				}
 				else
@@ -34682,17 +35352,25 @@ void Welcome_Screen(void)
 					}
 					bCheckForAnyProjectFiles = false;
 				}
-
+				static bool bShowAvtiveProject = true;
 				if (ImGui::BeginTabItem(" My Games ", NULL, tabflagsMyGames))
 				{
 					ImGui::SetWindowFontScale(0.99f);
 
 					ImGui::Indent(10);
-					ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(905.0f, 6.0f));
+					ImVec2 cpos = ImGui::GetCursorPos();
+					ImGui::SetCursorPos(cpos + ImVec2(770.0f, 2.0f));
+					if (ImGui::Checkbox("Active/InActive", &bShowAvtiveProject))
+					{
+					}
+					ImGui::SameLine();
+
+					ImGui::SetCursorPos(cpos + ImVec2(905.0f, 2.0f));
+
 					ImGui::Text("Sort Projects: ");
 					ImGui::SameLine();
-					ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(0.0f, -2.0f));
-					
+					//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(0.0f, -2.0f));
+
 					const char* pProjectSortModes[] = { "Most Recent", "Least Recent", "A-Z", "Z-A" };
 					int iProjectSortMode = pref.iProjectSortMode;
 
@@ -34827,8 +35505,13 @@ void Welcome_Screen(void)
 									}
 								}
 							}
+							bool bValid = false;
+							if (bShowAvtiveProject && projectbank_active[i])
+								bValid = true;
+							if (!bShowAvtiveProject && !projectbank_active[i])
+								bValid = true;
 
-							if (!pestrcasestr((char *)projectbank_list[i].c_str(), "_backup_"))
+							if (bValid && !pestrcasestr((char *)projectbank_list[i].c_str(), "_backup_"))
 							{
 								ImGui::PushID(564231 + i);
 								int TextureID = BOX_CLICK_HERE;
@@ -34903,10 +35586,23 @@ void Welcome_Screen(void)
 
 					//PE: Always have a selection
 					//LB: moved down so can benefit from above sort call
-					if (current_project_selected == "" && projectbank_list.size() > 0)
+					if (!bResetProjectThumbnails && current_project_selected == "" && projectbank_list.size() > 0)
 					{
-						current_project_id = 0;
-						current_project_selected = projectbank_list[0];
+						//projectbank_active[i]
+						for (int i = 0; i < projectbank_active.size(); i++)
+						{
+							if (projectbank_active[i])
+							{
+								current_project_id = i;
+								current_project_selected = projectbank_list[i];
+								break;
+							}
+						}
+						if (current_project_selected == "")
+						{
+							current_project_id = 0;
+							current_project_selected = projectbank_list[0];
+						}
 					}
 
 					//PE: No trigger load here, moved to other column.
@@ -35306,7 +36002,7 @@ void Welcome_Screen(void)
 						memset(pDatatmp, 0, sizeof(pDatatmp));
 						DWORD dwDataReturnedSize = 0;
 						char cUrl[10240];
-						sprintf(cUrl, "repos/TheGameCreators/GameGuruMAX/commits?&per_page=100");
+						sprintf(cUrl, "repos/Dark-Basic-Software-Limited/GameGuruMAX/commits?&per_page=100");
 
 						// access features list from store server
 						UINT iError = StoreOpenURLForDataOrFile("api.github.com", pDataReturned, &dwDataReturnedSize, "", "GET", cUrl, NULL);
@@ -35823,6 +36519,19 @@ void Welcome_Screen(void)
 			float fRatio = 288.0f / 512.0f;
 			float right_margin = 9.0;
 			ImVec2 vPreviewSize = { (fContentWidth - right_margin) , (fContentWidth - right_margin) * fRatio };
+
+			ImVec2 winsize = ImGui::GetWindowSize();
+			if (vPreviewSize.y >= winsize.y - 72.0f - 48.0f)
+			{
+				if (iCurrentOpenTab == 0 || iCurrentOpenTab == 1)
+				{
+					//PE: Must center image after this.
+					float fHRatio = 512.0f / 288.0f;
+					float maxheight = winsize.y - 72.0f - 48.0f; //buttons + new project bar + small description.
+					vPreviewSize = { maxheight * fHRatio , maxheight };
+				}
+			}
+
 			float fImageWidth = 460;
 			float fImageHeight = 215;
 			
@@ -36215,15 +36924,26 @@ void Welcome_Screen(void)
 
 				if (iTextureID > 0)
 				{
+					float missing = 0;
 					if (current_project_selected.length() > 0)
 					{
 						ImGuiWindow* window = ImGui::GetCurrentWindow();
 						ImVec4 tool_selected_col = ImGui::GetStyle().Colors[ImGuiCol_PlotHistogram];
 						ImVec2 padding = { 1.0, 1.0 };
-						const ImRect image_bb((window->DC.CursorPos - padding), window->DC.CursorPos + padding + vPreviewSize);
+						ImRect image_bb((window->DC.CursorPos - padding), window->DC.CursorPos + padding + vPreviewSize);
+						float width = ImGui::GetContentRegionAvailWidth();
+						ImVec2 winpos = ImGui::GetWindowPos();
+						if (image_bb.Max.x < winpos.x + width)
+						{
+							//PE: Center image.
+							missing = (winpos.x + width) - image_bb.Max.x;
+							missing *= 0.5f;
+							image_bb.Min.x += missing;
+							image_bb.Max.x += missing;
+						}
 						window->DrawList->AddRect(image_bb.Min, image_bb.Max, ImGui::GetColorU32(tool_selected_col), 0.0f, 15, 2.0f);
 					}
-
+					ImGui::SetCursorPosX(ImGui::GetCursorPosX() + missing);
 					if (ImGui::ImgBtn(iTextureID, vPreviewSize, ImColor(0, 0, 0, 0), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 200), 0, 0, 0, 0, false, false, false))
 					{
 						//Click ?
@@ -36338,14 +37058,29 @@ void Welcome_Screen(void)
 					int iTextureID = GetImageIDFilesListForLibrary(sCurrentGame);
 					if (iTextureID > 0)
 					{
+						float missing = 0;
+
 						if (current_project_selected.length() > 0)
 						{
 							ImGuiWindow* window = ImGui::GetCurrentWindow();
 							ImVec4 tool_selected_col = ImGui::GetStyle().Colors[ImGuiCol_PlotHistogram];
 							ImVec2 padding = { 1.0, 1.0 };
-							const ImRect image_bb((window->DC.CursorPos - padding), window->DC.CursorPos + padding + vPreviewSize);
+							ImRect image_bb((window->DC.CursorPos - padding), window->DC.CursorPos + padding + vPreviewSize);
+
+							float width = ImGui::GetContentRegionAvailWidth();
+							ImVec2 winpos = ImGui::GetWindowPos();
+							if (image_bb.Max.x < winpos.x + width)
+							{
+								//PE: Center image.
+								missing = (winpos.x + width) - image_bb.Max.x;
+								missing *= 0.5f;
+								image_bb.Min.x += missing;
+								image_bb.Max.x += missing;
+							}
+
 							window->DrawList->AddRect(image_bb.Min, image_bb.Max, ImGui::GetColorU32(tool_selected_col), 0.0f, 15, 2.0f);
 						}
+						ImGui::SetCursorPosX(ImGui::GetCursorPosX() + missing);
 
 						if (ImGui::ImgBtn(iTextureID, vPreviewSize, ImColor(0, 0, 0, 0), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 200), 0, 0, 0, 0, false, false, false))
 						{
@@ -36928,10 +37663,10 @@ void About_Screen(void)
 		ImGui::TextCenter("Art & Media Team");
 		ImGui::SetWindowFontScale(1.0);
 		ImGui::Text("");
-		ImGui::TextCenter("Mark Blosser & Peter Jovanovic");
+		ImGui::TextCenter("Mark Blosser aka BOND1 - 3D and Animation");
+		ImGui::TextCenter("Peter Jovanovic & Ugur Gokus");
 		ImGui::TextCenter("Martin Oliver & Glynn Taylor");
-		ImGui::TextCenter("Ugur Gokus & Ispas Gabriela Cristina");
-		ImGui::TextCenter("Volkov Studio");
+		ImGui::TextCenter("Ispas Gabriela Cristina & Volkov Studio");
 		ImGui::Text("");
 
 		ImGui::SetWindowFontScale(1.5);
@@ -37324,6 +38059,11 @@ bool DoTreeNodeEntity(int masterid,bool bMoveCameraToObjectPosition)
 					treename = treename + " (Auto-Gen) ";
 					bAutoGenObject = true;
 				}
+				if (t.entityelement[i].y == -999999)
+				{
+					treename = treename + " (Hidden) ";
+					bAutoGenObject = true;
+				}
 
 				bool TreeNodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)(i + 90000), node_flags, treename.c_str());
 				ImGui::PopItemWidth();
@@ -37521,6 +38261,11 @@ bool DoTreeNodeBehavior(LPSTR behaviorscriptname, bool bMoveCameraToObjectPositi
 					treename = treename + " (Auto-Gen) ";
 					bAutoGenObject = true;
 				}
+				if (t.entityelement[i].y == -999999)
+				{
+					treename = treename + " (Hidden) ";
+					bAutoGenObject = true;
+				}
 
 				bool TreeNodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)(i + 90000), node_flags, treename.c_str());
 				ImGui::PopItemWidth();
@@ -37582,6 +38327,8 @@ bool DoTreeNodeBehavior(LPSTR behaviorscriptname, bool bMoveCameraToObjectPositi
 
 void SetupDecalObject(int obj, int elementID)
 {
+	//PE: Always use custom material or FPE settings.
+	return;
 	//SetAlphaMappingOn(obj, 100.0);
 	SetObjectTransparency(obj, 6);
 	SetObjectLight(obj, 0);
@@ -37597,7 +38344,9 @@ void SetupDecalObject(int obj, int elementID)
 		WickedCall_SetObjectCullmode(pObject);
 		WickedCall_SetObjectCastShadows(pObject, false); //PE: No shadows on particles for now.
 
-		if(!t.entityelement[elementID].eleprof.bCustomWickedMaterialActive) // ZJ: Only reset this if not using custom materials for this decal.
+		
+		//if(!t.entityelement[elementID].eleprof.bCustomWickedMaterialActive) // ZJ: Only reset this if not using custom materials for this decal.
+		if (t.entityelement[elementID].eleprof.bUseFPESettings) // ZJ: Only reset this if not using custom materials for this decal.
 		{
 			//PE: Use unlit shader.
 			for (int iMesh = 0; iMesh < pObject->iMeshCount; iMesh++)
@@ -37908,7 +38657,8 @@ void SetIconSetCheck(bool bInstant)
 			LoadImage("editors\\uiv3\\shooter_enemies.png", ENTITY_ENEMIES); // Not used anymore?
 			LoadImage("editors\\uiv3\\shooter_allies.png", ENTITY_ALLIES); // Not used anymore?
 			LoadImage("editors\\uiv3\\entity_triggerzone.png", ENTITY_TRIGGERZONE);
-
+			LoadImage("editors\\uiv3\\entity_behavior.png", ENTITY_BEHAVIOR);
+			
 
 			LoadImage("editors\\uiv3\\ccp-hat.png", CCP_HAT);
 			LoadImage("editors\\uiv3\\ccp-feet.png", CCP_FEET);
@@ -37943,6 +38693,7 @@ void SetIconSetCheck(bool bInstant)
 			LoadImage("editors\\uiv3\\shooter_enemies2.png", ENTITY_ENEMIES);
 			LoadImage("editors\\uiv3\\shooter_allies2.png", ENTITY_ALLIES);
 			LoadImage("editors\\uiv3\\entity_triggerzone2.png", ENTITY_TRIGGERZONE);
+			LoadImage("editors\\uiv3\\entity_behavior2.png", ENTITY_BEHAVIOR);
 
 			LoadImage("editors\\uiv3\\ccp-hat2.png", CCP_HAT);
 			LoadImage("editors\\uiv3\\ccp-feet2.png", CCP_FEET);
@@ -37960,6 +38711,16 @@ void SetIconSetCheck(bool bInstant)
 		current_icon_set = pref.current_style;
 		image_setlegacyimageloading(false);
 		SetMipmapNum(-1);
+
+		//PE: Mark all global Behaviors to update.
+		for (t.e = 1; t.e <= g.entityelementlist; t.e++)
+		{
+			t.entid = t.entityelement[t.e].bankindex;
+			if (t.entid > 0 && t.entityprofile[t.entid].ismarker == 12)
+			{
+				t.entityelement[t.e].eleprof.thumb_id = -1;
+			}
+		}
 	}
 	//----
 }
@@ -40441,6 +41202,10 @@ void process_storeboard(bool bInitOnly)
 
 		if (TriggerLoadGameProject != "")
 		{
+			// and in case this was a remote project, restore to writables regular
+			extern void switch_to_regular_projects(void);
+			switch_to_regular_projects();
+
 			load_storyboard((char *)TriggerLoadGameProject.Get());
 			iGamePausedNodeID = storyboard_add_missing_nodex(8, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
 			iLoadGameNodeID = storyboard_add_missing_nodex(3, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
@@ -41086,158 +41851,9 @@ void process_storeboard(bool bInitOnly)
 			}
 		}
 
-		bool bReadyToOpen = false;
-		if (bTriggerOpenProject)
-		{
-			if (iDelayTriggerOpenProject > 0)
-			{
-				iDelayTriggerOpenProject--;
-				if (iDelayTriggerOpenProject == 0)
-				{
-					strcpy(cNextWindowFocus, "Open Project##Storyboard");
-					iSkibFramesBeforeLaunch = 2;
-					iLaunchAfterSync = 81; //Delayed window focus.
-				}
-			}
-			else
-			{
-				bReadyToOpen = true;
-			}
-		}
-		if (bReadyToOpen)
-		{
-			//Open Project window.
-			static char OpenProjectName[256] = "\0";
-			static char OpenProjectError[256] = "\0";
+		void storyboard_openproject(float preview_size_x, float fNodeWidth, float fNodeHeight,int mode);
+		storyboard_openproject(preview_size_x, fNodeWidth, fNodeHeight,0);
 
-			ImGui::OpenPopup("Open Project##Storyboard");
-			ImGui::SetNextWindowSize(ImVec2(0, 532), ImGuiCond_Once);
-			static int popwinheight = 0;
-			if (popwinheight > 800 || iSkibFramesBeforeLaunch > 0)
-			{
-				ImGui::SetNextWindowSize(ImVec2(0, 532), ImGuiCond_Always);
-			}
-			ImGui::SetNextWindowPosCenter(ImGuiCond_Always);
-			bool bOpenWindow = true;
-			//PE: Somehow cant get this window ontop ?
-			if (ImGui::BeginPopupModal("Open Project##Storyboard", &bOpenWindow, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings))
-			{
-				popwinheight = ImGui::GetWindowSize().y;
-				ImGui::Indent(10);
-				ImGui::Text("");
-				ImGui::SetWindowFontScale(1.4);
-				ImGui::TextCenter("Open Game Project");
-				ImGui::Separator();
-
-				ImGui::SetWindowFontScale(1.0);
-				ImGui::Text("");
-				ImGui::Text("Select the project to open and click 'Open Project'");
-				ImGui::SameLine(); ImGui::Text(" ");
-				ImGui::Text("");
-				if (strlen(OpenProjectError) > 0)
-				{
-					ImGui::Text(OpenProjectError);
-					ImGui::Text("");
-				}
-				//Ignore _backup files.
-
-				// when in a remote project, need to rebuild the latest writables based project list
-				GG_SetWritablesToRoot(true);
-				GetProjectList("projectbank\\");
-				GG_SetWritablesToRoot(false);
-
-				static std::string current_project_selected = "";
-				ImVec2 size = { ImGui::GetContentRegionAvailWidth(),0 };
-
-				float fHeight = ImGui::GetFontSize() * 10.0;
-
-				ImGui::Text("Projects");
-				ImGui::SameLine();
-				static bool bDisplayBackups = false;
-				float fBoxWidth = ImGui::CalcTextSize("Display Backups").x;
-				ImGui::SetCursorPosX((ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x) - 10.0 - 30.0 - fBoxWidth);
-				ImGui::Checkbox("Display Backups", &bDisplayBackups);
-				ImGui::BeginChild("Projects##FileOpenStoryboard", ImVec2(ImGui::GetContentRegionAvail().x - 10.0, fHeight), true, iGenralWindowsFlags);
-				bool bTriggerLoad = false;
-				if (projectbank_list.size() > 0)
-				{
-					float fRegAvail = ImGui::GetContentRegionAvailWidth() - 10.0;
-					for (int i = 0; i < projectbank_list.size(); i++)
-					{
-						if (bDisplayBackups || !pestrcasestr((char *)projectbank_list[i].c_str(), "_backup_"))
-						{
-							bool bSelected = false;
-							if (current_project_selected == projectbank_list[i]) bSelected = true;
-							if (ImGui::Selectable(projectbank_list[i].c_str(), bSelected))
-							{
-								current_project_selected = projectbank_list[i];
-							}
-							if(ImGui::IsItemHovered())
-							{
-								if (ImGui::IsMouseDoubleClicked(0))
-								{
-									current_project_selected = projectbank_list[i];
-									bTriggerLoad = true;
-								}
-							}
-						}
-					}
-				}
-				else
-				{
-					ImGui::Text("No Projects Found.");
-				}
-				ImGui::EndChild();
-				ImGui::PushItemWidth(-10);
-				ImGui::InputText("##OpenProjectStoryboardText", (char *) current_project_selected.c_str(), 250, ImGuiInputTextFlags_ReadOnly); //ImGuiInputTextFlags_None
-				ImGui::PopItemWidth();
-
-				ImGui::Text("");
-
-				ImGui::SetWindowFontScale(1.4);
-				if (bTriggerLoad || ImGui::StyleButton("Open Project", ImVec2(ImGui::GetContentRegionAvail().x*0.5 - 20.0f, 0.0f)))
-				{
-					// and in case this was a remote project, restore to writables regular
-					extern void switch_to_regular_projects(void);
-					switch_to_regular_projects();
-
-					//Open
-					load_storyboard( (char *) current_project_selected.c_str());
-					iGamePausedNodeID = storyboard_add_missing_nodex(8, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
-					iLoadGameNodeID = storyboard_add_missing_nodex(3, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
-					iSaveGameNodeID = storyboard_add_missing_nodex(9, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
-					iGraphicsNodeID = storyboard_add_missing_nodex(10, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
-					iSoundsNodeID = storyboard_add_missing_nodex(11, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
-					iControlNodeID = storyboard_add_missing_nodex(12, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
-					iLoadingScreenNodeID = storyboard_add_missing_nodex(2, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
-					iHUDScreenNodeID = storyboard_add_missing_nodex(13, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
-
-					bTriggerOpenProject = false;
-					bOpenProjectsFromWelcome = false;
-				}
-				ImGui::SameLine();
-				if (ImGui::StyleButton("Cancel", ImVec2(ImGui::GetContentRegionAvail().x - 10.0f, 0.0f)))
-				{
-					//Cancel.
-					bTriggerOpenProject = false;
-					if (bOpenProjectsFromWelcome)
-					{
-						bWelcomeScreen_Window = true;
-						bStoryboardWindow = false;
-						bOpenProjectsFromWelcome = false;
-					}
-				}
-
-				ImGui::SetWindowFontScale(1.0);
-				ImGui::Text("");
-
-				bImGuiGotFocus = true;
-				ImGui::Indent(-10);
-				ImGui::EndPopup();
-
-				bBlockNextMouseCheck = true;
-			}
-		}
 		if (bStoryboardWindowOpenLoad)
 		{
 			bTriggerOpenProject = true;
@@ -41553,6 +42169,7 @@ void process_storeboard(bool bInitOnly)
 				}
 				if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Exit to Storyboard");
 				ImGui::SetCursorPos(vCurPos);
+
 
 				ImGui::Columns(2, "StoryboardWindowGameSettingsColumns", false);  //false no border
 				ImGui::SetColumnOffset(0, 0.0f);
@@ -42018,6 +42635,8 @@ void process_storeboard(bool bInitOnly)
 				}
 				ImGui::NextColumn();
 
+				ImGui::Text("");
+
 				if (ImGui::StyleCollapsingHeader("Game Description", ImGuiTreeNodeFlags_DefaultOpen) || iStoryboardExecuteKey != 0) //"Add New"
 				{
 					ImGui::Indent(10);
@@ -42071,6 +42690,30 @@ void process_storeboard(bool bInitOnly)
 					}
 					ImGui::Indent(-10);
 				}
+
+				ImGui::Text("");
+				bool bTmp = 1 - Storyboard.project_inactive;
+				if (ImGui::Checkbox("Active/InActive Project", &bTmp))
+				{
+					Storyboard.project_inactive = 1 - bTmp;
+					Storyboard.iChanged = true;
+					//PE: Check if we have a current list and update.
+					if (projectbank_list.size() > 0)
+					{
+						for (int i = 0; i < projectbank_list.size(); i++)
+						{
+							if (stricmp(Storyboard.gamename, projectbank_list[i].c_str()) == NULL )
+							{
+								if(Storyboard.project_inactive)
+									projectbank_active[i] = false;
+								else
+									projectbank_active[i] = true;
+								break;
+							}
+						}
+					}
+				}
+
 				ImGui::EndColumns();
 
 				bImGuiGotFocus = true;
@@ -43356,6 +43999,26 @@ void process_storeboard(bool bInitOnly)
 				char pToolTipForAddingNewScreens[256];
 				sprintf(pToolTipForAddingNewScreens, "The game project can contain up to %d screens or levels.", STORYBOARD_MAXNODES);
 
+				const float groupspacer = 4.0f;
+				static int ClassicConversion = 0;
+				static char pReconstructGameGuruRootFiles[MAX_PATH];
+
+				#ifdef INCLUDE_GAME_SETTINGS
+				//if (pref.iStoryboardAdvanced) // Necrym59 always visible.
+				{
+					if (ImGui::StyleCollapsingHeader("Game Project Settings", ImGuiTreeNodeFlags_DefaultOpen) || iStoryboardExecuteKey != 0) //"Add New"
+					{
+						ImGui::Indent(10);
+						ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2((ImGui::GetContentRegionAvail().x * 0.5) - (buttonwide * 0.5), 0.0f));
+						if (ImGui::StyleButton("Edit Game Settings", ImVec2(buttonwide, 0.0f)))
+						{
+							bEditGameSettings = true;
+						}
+						ImGui::Indent(-10);
+					}
+				}
+				#endif
+
 				if (ImGui::StyleCollapsingHeader("Add and Edit Storyboard", ImGuiTreeNodeFlags_DefaultOpen) || iStoryboardExecuteKey != 0) //"Add New"
 				{
 					int iAutoConnectNode = -1;
@@ -43419,6 +44082,214 @@ void process_storeboard(bool bInitOnly)
 						}
 					}
 					if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", pToolTipForAddingNewScreens);
+
+
+					ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2((ImGui::GetContentRegionAvail().x * 0.5) - (buttonwide * 0.5), 0.0f));
+					if (ImGui::StyleButton("Add Existing Level", ImVec2(buttonwide, 0.0f)) || iStoryboardExecuteKey == 'L')
+					{
+						iStoryboardExecuteKey = 0;
+						cStr tOldDir = GetDir();
+
+						// we know we need to focus on the mapbank associated with the current storyboard
+						cstr correctFPMLocation_s = Storyboard.customprojectfolder;
+						if (correctFPMLocation_s.Len() > 0)
+						{
+							correctFPMLocation_s += Storyboard.gamename;
+							correctFPMLocation_s += "\\Files\\mapbank";
+						}
+						else
+						{
+							correctFPMLocation_s = g.mysystem.mapbankAbs_s.Get();
+						}
+						//cFileSelected = (char *)noc_file_dialog_open(NOC_FILE_DIALOG_OPEN, "fpm\0*.fpm\0", g.mysystem.mapbankAbs_s.Get(), NULL, true);
+						char* cFileSelected = (char*)noc_file_dialog_open(NOC_FILE_DIALOG_OPEN, "fpm\0*.fpm\0", correctFPMLocation_s.Get(), NULL, true);
+
+						SetDir(tOldDir.Get());
+						if (cFileSelected && strlen(cFileSelected) > 0)
+						{
+							t.returnstring_s = cFileSelected;
+							if (t.returnstring_s != "")
+							{
+								if (cstr(Lower(Right(t.returnstring_s.Get(), 4))) == ".fpm")
+								{
+
+									//Only relative.
+									char tmp[MAX_PATH];
+									strcpy(tmp, t.returnstring_s.Get());
+
+									//PE: Vaidate path, must be inside the mapbank to work.
+									extern char szRootDir[MAX_PATH];
+									extern char szWriteDir[MAX_PATH];
+									extern char szAddWriteDirAdditional[MAX_PATH];
+
+									bool bValidPath = false;
+									int rootLen = strlen(szWriteDir);
+									if (strnicmp(tmp, szWriteDir, rootLen) == 0)
+									{
+										bValidPath = true;
+									}
+									rootLen = strlen(szAddWriteDirAdditional);
+									if (!bValidPath && strnicmp(tmp, szAddWriteDirAdditional, rootLen) == 0)
+									{
+										bValidPath = true;
+									}
+									rootLen = strlen(szRootDir);
+									if (!bValidPath && strnicmp(tmp, szRootDir, rootLen) == 0)
+									{
+										bValidPath = true;
+									}
+
+
+									char* find = (char*)pestrcasestr(tmp, "mapbank\\");
+									if (find && find != &tmp[0]) strcpy(&tmp[0], find);
+
+									if (bValidPath && !find)
+									{
+										//PE: Must be located inside mapbank.
+										bValidPath = false;;
+									}
+
+									//PE: check if this is a Classic map we need to import.
+									bool bImportClassicMap = false;
+									{
+										strcpy(pReconstructGameGuruRootFiles, "");
+										char pReconstructGameGuruFolder[MAX_PATH];
+										strcpy(pReconstructGameGuruFolder, "");
+										char pReconstructGameGuruEXE[MAX_PATH];
+										strcpy(pReconstructGameGuruEXE, cFileSelected);
+										char* pFindClassicFolder = (char*)pestrcasestr(pReconstructGameGuruEXE, "Game Guru\\Files\\mapbank\\");
+										if (pFindClassicFolder != NULL)
+										{
+											*pFindClassicFolder = 0;
+											strcpy(pReconstructGameGuruRootFiles, pReconstructGameGuruEXE);
+											strcat(pReconstructGameGuruRootFiles, "Game Guru\\Files\\");
+											strcpy(pReconstructGameGuruFolder, pReconstructGameGuruEXE);
+											strcat(pReconstructGameGuruFolder, "Game Guru\\Files\\entitybank\\");
+											strcat(pReconstructGameGuruEXE, "Game Guru\\GameGuru.exe");
+											if (FileExist(pReconstructGameGuruEXE) == 1)
+											{
+												bImportClassicMap = true;
+												bValidPath = false;
+											}
+										}
+									}
+
+									if (!bValidPath)
+									{
+										if (bImportClassicMap)
+										{
+											int iAction = askBoxCancel("You have selected a classic map, do you want to import this level ?", "GameGuru Classic Map!"); //1==Yes 2=Cancel 0=No
+											if (iAction == 1)
+											{
+												//Import map.
+												ClassicConversion = 1;
+												sNextLevelToLoad = t.returnstring_s;
+											}
+										}
+										else
+										{
+											MessageBoxA(NULL, "All levels added to storyboard must be saved inside the default 'mapbank' folder.", "Error:", 0);
+										}
+									}
+									if (bValidPath)
+									{
+										std::string sLevelPath = &tmp[0];
+
+										//Dont actual load, just use filename.
+										int iPos;
+										for (iPos = strlen(tmp); iPos >= 0; iPos--)
+											if (tmp[iPos] == '\\') break;
+										if (iPos > 0) iPos++;
+										std::string sLevelTitle = &tmp[iPos];
+										replaceAll(sLevelTitle, ".fpm", "");
+
+										//PE: Find next level from nodes.
+										int iNextLevel = 0, levelname = -1, iFirstNodeFree = -1;
+										FindFreeLevelNode(iNextLevel, levelname, iFirstNodeFree);
+
+										if (iFirstNodeFree >= 0)
+										{
+											//Create new level.
+											char tmp[255];
+											int node = iFirstNodeFree;
+											int nodeposy = iNextLevel;
+											if (levelname > 0)
+											{
+												sprintf(tmp, "Level %d", levelname);
+												nodeposy = levelname - 1;
+											}
+											else
+												sprintf(tmp, "Level %d", iNextLevel + 1);
+
+											//PE: Make sure any old data is removed, also thumbs.
+											reset_single_node(node);
+
+											Storyboard.Nodes[node].used = true;
+											Storyboard.Nodes[node].type = STORYBOARD_TYPE_LEVEL;
+											Storyboard.Nodes[node].restore_position = ImVec2(preview_size_x * 0.5 - (fNodeWidth * 0.5) + ((fNodeWidth + NODE_WIDTH_PADDING) * 2.0), STORYBOARD_YSTART + ((fNodeHeight + 20.0 + NODE_HEIGHT_PADDING) * (nodeposy)));
+											Storyboard.Nodes[node].iEditEnable = true;
+											strcpy(Storyboard.Nodes[node].title, sLevelTitle.c_str());
+											strcpy(Storyboard.Nodes[node].level_name, sLevelPath.c_str());
+											strcpy(Storyboard.Nodes[node].levelnumber, tmp);
+
+											strcpy(Storyboard.Nodes[node].thumb, "");
+											//Input.
+											strcpy(Storyboard.Nodes[node].input_title[0], " Input ");
+											//Output.
+											strcpy(Storyboard.Nodes[node].output_title[0], " WIN LEVEL -> Connect to Scene ");
+											strcpy(Storyboard.Nodes[node].output_action[0], "loadlevel"); //Not defined this yet.
+											Storyboard.Nodes[node].output_can_link_to_type[0] = STORYBOARD_TYPE_SCREEN;
+											Storyboard.Nodes[node].output_linkto[0] = 0;
+
+											strcpy(Storyboard.Nodes[node].output_title[1], " GAME OVER -> Connect to Scene ");
+											strcpy(Storyboard.Nodes[node].output_action[1], "loadlevel"); //Not defined this yet.
+											Storyboard.Nodes[node].output_can_link_to_type[1] = STORYBOARD_TYPE_SCREEN;
+											Storyboard.Nodes[node].output_linkto[1] = 0;
+
+											strcpy(Storyboard.Nodes[node].output_title[2], " NEXT LEVEL -> Connect to Level ");
+											strcpy(Storyboard.Nodes[node].output_action[2], "loadlevel"); //Not defined this yet.
+											Storyboard.Nodes[node].output_can_link_to_type[2] = STORYBOARD_TYPE_LEVEL;
+											Storyboard.Nodes[node].output_linkto[2] = 0;
+											ImNodes::SetNodeGridSpacePos(Storyboard.Nodes[node].id, Storyboard.Nodes[node].restore_position);
+											iAutoConnectNode = node;
+											//Check if level already got a thumb.
+											CreateBackBufferCacheNameEx(Storyboard.Nodes[node].level_name, 512, 288, true);
+											if (FileExist(BackBufferCacheName.Get()))
+											{
+												if (CopyToProjectFolder(BackBufferCacheName.Get()))
+												{
+													//PE: Use relative projectbank filename.
+													if (FileExist(ProjectCacheName.Get()))
+														BackBufferCacheName = ProjectCacheName;
+												}
+
+												//PE: Load in old thumb.
+												SetMipmapNum(1); //PE: mipmaps not needed.
+												image_setlegacyimageloading(true);
+												LoadImageSize(BackBufferCacheName.Get(), Storyboard.Nodes[node].thumb_id, 512, 288);
+												image_setlegacyimageloading(false);
+												SetMipmapNum(-1); //PE: mipmaps not needed.
+												if (ImageExist(Storyboard.Nodes[node].thumb_id))
+												{
+													//PE: Success update thumb filename.
+													strcpy(Storyboard.Nodes[node].thumb, BackBufferCacheName.Get());
+												}
+											}
+										}
+										else
+										{
+											bShowNoMoreScreensError = true;
+										}
+									}
+								}
+							}
+						}
+					}
+					if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", pToolTipForAddingNewScreens);
+
+					ImGui::SetCursorPosY(ImGui::GetCursorPosY() + groupspacer);
+					//---- spacer ----
+
 
 					ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2((ImGui::GetContentRegionAvail().x * 0.5) - (buttonwide * 0.5), 0.0f));
 					if (ImGui::StyleButton("Add New Screen", ImVec2(buttonwide, 0.0f)))
@@ -43667,211 +44538,9 @@ void process_storeboard(bool bInitOnly)
 					}
 					if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", pToolTipForAddingNewScreens);
 
-					static int ClassicConversion = 0;
-					static char pReconstructGameGuruRootFiles[MAX_PATH];
+					ImGui::SetCursorPosY(ImGui::GetCursorPosY() + groupspacer);
+					//---- spacer ----
 
-					ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2((ImGui::GetContentRegionAvail().x*0.5) - (buttonwide*0.5), 0.0f));
-					if (ImGui::StyleButton("Add Existing Level", ImVec2(buttonwide, 0.0f)) || iStoryboardExecuteKey == 'L')
-					{
-						iStoryboardExecuteKey = 0;
-						cStr tOldDir = GetDir();
-
-						// we know we need to focus on the mapbank associated with the current storyboard
-						cstr correctFPMLocation_s = Storyboard.customprojectfolder;
-						if (correctFPMLocation_s.Len() > 0)
-						{
-							correctFPMLocation_s += Storyboard.gamename;
-							correctFPMLocation_s += "\\Files\\mapbank";
-						}
-						else
-						{
-							correctFPMLocation_s = g.mysystem.mapbankAbs_s.Get();
-						}
-						//cFileSelected = (char *)noc_file_dialog_open(NOC_FILE_DIALOG_OPEN, "fpm\0*.fpm\0", g.mysystem.mapbankAbs_s.Get(), NULL, true);
-						char* cFileSelected = (char*)noc_file_dialog_open(NOC_FILE_DIALOG_OPEN, "fpm\0*.fpm\0", correctFPMLocation_s.Get(), NULL, true);
-
-						SetDir(tOldDir.Get());
-						if (cFileSelected && strlen(cFileSelected) > 0)
-						{
-							t.returnstring_s = cFileSelected;
-							if (t.returnstring_s != "")
-							{
-								if (cstr(Lower(Right(t.returnstring_s.Get(), 4))) == ".fpm")
-								{
-
-									//Only relative.
-									char tmp[MAX_PATH];
-									strcpy(tmp, t.returnstring_s.Get());
-
-									//PE: Vaidate path, must be inside the mapbank to work.
-									extern char szRootDir[MAX_PATH];
-									extern char szWriteDir[MAX_PATH];
-									extern char szAddWriteDirAdditional[MAX_PATH];
-
-									bool bValidPath = false;
-									int rootLen = strlen(szWriteDir);
-									if (strnicmp(tmp, szWriteDir, rootLen) == 0)
-									{
-										bValidPath = true;
-									}
-									rootLen = strlen(szAddWriteDirAdditional);
-									if (!bValidPath && strnicmp(tmp, szAddWriteDirAdditional, rootLen) == 0)
-									{
-										bValidPath = true;
-									}
-									rootLen = strlen(szRootDir);
-									if (!bValidPath && strnicmp(tmp, szRootDir, rootLen) == 0)
-									{
-										bValidPath = true;
-									}
-
-
-									char *find = (char *)pestrcasestr(tmp, "mapbank\\");
-									if (find && find != &tmp[0]) strcpy(&tmp[0], find);
-
-									if (bValidPath && !find)
-									{
-										//PE: Must be located inside mapbank.
-										bValidPath = false;;
-									}
-
-									//PE: check if this is a Classic map we need to import.
-									bool bImportClassicMap = false;
-									{
-										strcpy(pReconstructGameGuruRootFiles, "");
-										char pReconstructGameGuruFolder[MAX_PATH];
-										strcpy(pReconstructGameGuruFolder, "");
-										char pReconstructGameGuruEXE[MAX_PATH];
-										strcpy(pReconstructGameGuruEXE, cFileSelected);
-										char* pFindClassicFolder = (char *) pestrcasestr(pReconstructGameGuruEXE, "Game Guru\\Files\\mapbank\\");
-										if (pFindClassicFolder != NULL)
-										{
-											*pFindClassicFolder = 0;
-											strcpy(pReconstructGameGuruRootFiles, pReconstructGameGuruEXE);
-											strcat(pReconstructGameGuruRootFiles, "Game Guru\\Files\\");
-											strcpy(pReconstructGameGuruFolder, pReconstructGameGuruEXE);
-											strcat(pReconstructGameGuruFolder, "Game Guru\\Files\\entitybank\\");
-											strcat(pReconstructGameGuruEXE, "Game Guru\\GameGuru.exe");
-											if (FileExist(pReconstructGameGuruEXE) == 1)
-											{
-												bImportClassicMap = true;
-												bValidPath = false;
-											}
-										}
-									}
-
-									if (!bValidPath)
-									{
-										if (bImportClassicMap)
-										{
-											int iAction = askBoxCancel("You have selected a classic map, do you want to import this level ?", "GameGuru Classic Map!"); //1==Yes 2=Cancel 0=No
-											if (iAction == 1)
-											{
-												//Import map.
-												ClassicConversion = 1;
-												sNextLevelToLoad = t.returnstring_s;
-											}
-										}
-										else
-										{
-											MessageBoxA(NULL, "All levels added to storyboard must be saved inside the default 'mapbank' folder.", "Error:", 0);
-										}
-									}
-									if (bValidPath)
-									{
-										std::string sLevelPath = &tmp[0];
-
-										//Dont actual load, just use filename.
-										int iPos;
-										for (iPos = strlen(tmp); iPos >= 0; iPos--)
-											if (tmp[iPos] == '\\') break;
-										if (iPos > 0) iPos++;
-										std::string sLevelTitle = &tmp[iPos];
-										replaceAll(sLevelTitle, ".fpm", "");
-
-										//PE: Find next level from nodes.
-										int iNextLevel = 0, levelname = -1, iFirstNodeFree = -1;
-										FindFreeLevelNode(iNextLevel, levelname, iFirstNodeFree);
-
-										if (iFirstNodeFree >= 0)
-										{
-											//Create new level.
-											char tmp[255];
-											int node = iFirstNodeFree;
-											int nodeposy = iNextLevel;
-											if (levelname > 0)
-											{
-												sprintf(tmp, "Level %d", levelname);
-												nodeposy = levelname - 1;
-											}
-											else
-												sprintf(tmp, "Level %d", iNextLevel + 1);
-
-											//PE: Make sure any old data is removed, also thumbs.
-											reset_single_node(node);
-
-											Storyboard.Nodes[node].used = true;
-											Storyboard.Nodes[node].type = STORYBOARD_TYPE_LEVEL;
-											Storyboard.Nodes[node].restore_position = ImVec2(preview_size_x*0.5 - (fNodeWidth*0.5) + ((fNodeWidth + NODE_WIDTH_PADDING)*2.0), STORYBOARD_YSTART + ((fNodeHeight + 20.0 + NODE_HEIGHT_PADDING) * (nodeposy)));
-											Storyboard.Nodes[node].iEditEnable = true;
-											strcpy(Storyboard.Nodes[node].title, sLevelTitle.c_str());
-											strcpy(Storyboard.Nodes[node].level_name, sLevelPath.c_str());
-											strcpy(Storyboard.Nodes[node].levelnumber, tmp);
-
-											strcpy(Storyboard.Nodes[node].thumb, "");
-											//Input.
-											strcpy(Storyboard.Nodes[node].input_title[0], " Input ");
-											//Output.
-											strcpy(Storyboard.Nodes[node].output_title[0], " WIN LEVEL -> Connect to Scene ");
-											strcpy(Storyboard.Nodes[node].output_action[0], "loadlevel"); //Not defined this yet.
-											Storyboard.Nodes[node].output_can_link_to_type[0] = STORYBOARD_TYPE_SCREEN;
-											Storyboard.Nodes[node].output_linkto[0] = 0;
-
-											strcpy(Storyboard.Nodes[node].output_title[1], " GAME OVER -> Connect to Scene ");
-											strcpy(Storyboard.Nodes[node].output_action[1], "loadlevel"); //Not defined this yet.
-											Storyboard.Nodes[node].output_can_link_to_type[1] = STORYBOARD_TYPE_SCREEN;
-											Storyboard.Nodes[node].output_linkto[1] = 0;
-
-											strcpy(Storyboard.Nodes[node].output_title[2], " NEXT LEVEL -> Connect to Level ");
-											strcpy(Storyboard.Nodes[node].output_action[2], "loadlevel"); //Not defined this yet.
-											Storyboard.Nodes[node].output_can_link_to_type[2] = STORYBOARD_TYPE_LEVEL;
-											Storyboard.Nodes[node].output_linkto[2] = 0;
-											ImNodes::SetNodeGridSpacePos(Storyboard.Nodes[node].id, Storyboard.Nodes[node].restore_position);
-											iAutoConnectNode = node;
-											//Check if level already got a thumb.
-											CreateBackBufferCacheNameEx(Storyboard.Nodes[node].level_name, 512, 288, true);
-											if (FileExist(BackBufferCacheName.Get()))
-											{
-												if (CopyToProjectFolder(BackBufferCacheName.Get()))
-												{
-													//PE: Use relative projectbank filename.
-													if (FileExist(ProjectCacheName.Get()))
-														BackBufferCacheName = ProjectCacheName;
-												}
-
-												//PE: Load in old thumb.
-												SetMipmapNum(1); //PE: mipmaps not needed.
-												image_setlegacyimageloading(true);
-												LoadImageSize(BackBufferCacheName.Get(), Storyboard.Nodes[node].thumb_id, 512, 288);
-												image_setlegacyimageloading(false);
-												SetMipmapNum(-1); //PE: mipmaps not needed.
-												if (ImageExist(Storyboard.Nodes[node].thumb_id))
-												{
-													//PE: Success update thumb filename.
-													strcpy(Storyboard.Nodes[node].thumb, BackBufferCacheName.Get());
-												}
-											}
-										}
-										else
-										{
-											bShowNoMoreScreensError = true;
-										}
-									}
-								}
-							}
-						}
-					}
-					if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", pToolTipForAddingNewScreens);
 
 					if (ClassicConversion > 0 && bShowNoMoreScreensError == false)
 					{
@@ -44343,47 +45012,8 @@ void process_storeboard(bool bInitOnly)
 					#ifdef INCLUDE_GAME_SETTINGS
 					if (pref.iStoryboardAdvanced)
 					{
-						ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2((ImGui::GetContentRegionAvail().x*0.5) - (buttonwide*0.5), 0.0f));
-						if (ImGui::StyleButton("Edit Game Settings", ImVec2(buttonwide, 0.0f)))
-						{
-							bEditGameSettings = true;
-						}
 						ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2((ImGui::GetContentRegionAvail().x * 0.5) - (buttonwide * 0.5), 0.0f));
-						if (ImGui::StyleButton("Reset HUD Screens", ImVec2(buttonwide, 0.0f)))
-						{
-							// Force a reset of the In-Game HUD screen, and reset node position
-							for (int i = 0; i < STORYBOARD_MAXNODES; i++)
-							{
-								if (Storyboard.Nodes[i].used && Storyboard.Nodes[i].type == STORYBOARD_TYPE_HUD)
-								{
-									Storyboard.Nodes[i].used = false;
-								}
-							}
-							int areaWidth = ImGui::GetMainViewport()->Size.x - 300;
-							int nodeWidth = 180;
-							int nodeHeight = 150;
-							//PE: We cant force it to 13, it might overwrite another node.
-							iHUDScreenNodeID = storyboard_add_missing_nodex(13,areaWidth , nodeWidth, nodeHeight, false);
-							ImNodes::SetNodeGridSpacePos(Storyboard.Nodes[iHUDScreenNodeID].id, ImVec2(areaWidth * 0.5 - (nodeWidth * 0.5), STORYBOARD_YSTART + (nodeHeight + NODE_HEIGHT_PADDING) * 3));
-							iCurrentSelectedWidget = -1;
-							// Also ensure that any user defined globals are removed when resetting HUD screens
-							for (int i = 0; i < STORYBOARD_MAXNODES; i++)
-							{
-								if (strnicmp(Storyboard.Nodes[i].lua_name, "hud", 3) == NULL)
-								{
-									for (int j = 0; j < STORYBOARD_MAXWIDGETS; j++)
-									{
-										if (strnicmp(Storyboard.widget_readout[i][j], "user defined", 12) == 0)
-										{
-											Storyboard.widget_readout[i][j][0] = 0;
-										}
-									}
-								}
-							}
-							g_bRefreshGlobalList = true;
-						}
-						ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2((ImGui::GetContentRegionAvail().x * 0.5) - (buttonwide * 0.5), 0.0f));
-						if (ImGui::StyleButton("Add RPG Screens", ImVec2(buttonwide, 0.0f)))
+						if (ImGui::StyleButton("Add RPG HUD Screens", ImVec2(buttonwide, 0.0f)))
 						{
 							g_bRefreshGlobalList = true;
 
@@ -44442,11 +45072,11 @@ void process_storeboard(bool bInitOnly)
 									bShowNoMoreScreensError = true;
 								}
 							}
-							if (bAllRPGScreensAlreadyExist == false && bShowNoMoreScreensError==false)
+							if (bAllRPGScreensAlreadyExist == false && bShowNoMoreScreensError == false)
 							{
 								// load in template screens from "RPG Template" project
 								char project[MAX_PATH];
-								
+
 								sprintf(project, "projectbank\\RPG Template\\project%d.dat", STORYBOARDVERSION);
 								FILE* projectfile = GG_fopen(project, "rb");
 								if (!projectfile)
@@ -44481,10 +45111,10 @@ void process_storeboard(bool bInitOnly)
 													for (int hudi = 1; hudi <= 9; hudi++)
 													{
 														// only add those that are missing
-														if (bRPGHUDSMissing[hudi] == true )
+														if (bRPGHUDSMissing[hudi] == true)
 														{
 															char pTitleLabel[256];
-															if ( hudi == 1 )
+															if (hudi == 1)
 																sprintf(pTitleLabel, "In-Game HUD");
 															else
 																sprintf(pTitleLabel, "HUD Screen %d", hudi);
@@ -44494,7 +45124,7 @@ void process_storeboard(bool bInitOnly)
 																int newnodeid = 0;
 																for (int i = 14; i < STORYBOARD_MAXNODES; i++)
 																{
-																	if (Storyboard.Nodes[i].used == 0 )
+																	if (Storyboard.Nodes[i].used == 0)
 																	{
 																		newnodeid = i;
 																		break;
@@ -44595,6 +45225,47 @@ void process_storeboard(bool bInitOnly)
 							}
 						}
 						if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", pToolTipForAddingNewScreens);
+
+						ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2((ImGui::GetContentRegionAvail().x * 0.5) - (buttonwide * 0.5), 0.0f));
+						if (ImGui::StyleButton("Reset All HUD Screens", ImVec2(buttonwide, 0.0f)))
+						{
+							int iAction = askBoxCancel("This will reset ALL HUD screens, are you sure?", "Confirmation"); //1==Yes 2=Cancel 0=No
+							if (iAction == 1)
+							{
+								// Force a reset of the In-Game HUD screen, and reset node position
+								for (int i = 0; i < STORYBOARD_MAXNODES; i++)
+								{
+									if (Storyboard.Nodes[i].used && Storyboard.Nodes[i].type == STORYBOARD_TYPE_HUD)
+									{
+										Storyboard.Nodes[i].used = false;
+									}
+								}
+								int areaWidth = ImGui::GetMainViewport()->Size.x - 300;
+								int nodeWidth = 180;
+								int nodeHeight = 150;
+								//PE: We cant force it to 13, it might overwrite another node.
+								iHUDScreenNodeID = storyboard_add_missing_nodex(13, areaWidth, nodeWidth, nodeHeight, false);
+								ImNodes::SetNodeGridSpacePos(Storyboard.Nodes[iHUDScreenNodeID].id, ImVec2(areaWidth * 0.5 - (nodeWidth * 0.5), STORYBOARD_YSTART + (nodeHeight + NODE_HEIGHT_PADDING) * 3));
+								iCurrentSelectedWidget = -1;
+								// Also ensure that any user defined globals are removed when resetting HUD screens
+								for (int i = 0; i < STORYBOARD_MAXNODES; i++)
+								{
+									if (strnicmp(Storyboard.Nodes[i].lua_name, "hud", 3) == NULL)
+									{
+										for (int j = 0; j < STORYBOARD_MAXWIDGETS; j++)
+										{
+											if (strnicmp(Storyboard.widget_readout[i][j], "user defined", 12) == 0)
+											{
+												Storyboard.widget_readout[i][j][0] = 0;
+											}
+										}
+									}
+								}
+								g_bRefreshGlobalList = true;
+							}
+						}
+						ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2((ImGui::GetContentRegionAvail().x * 0.5) - (buttonwide * 0.5), 0.0f));
+
 					}
 					#endif
 
@@ -45090,6 +45761,7 @@ void process_storeboard(bool bInitOnly)
 								extern bool g_bAllowBackwardCompatibleConversion;
 								g_bAllowBackwardCompatibleConversion = true;
 								gridedit_load_map();
+								g_EntityClipboard.clear(); //PE: Clear any old copy/paste.
 								g_bAllowBackwardCompatibleConversion = false;
 
 								t.terrain.grassregionx1 = t.terrain.grassregionx2;
@@ -45401,6 +46073,12 @@ int save_level_as( void )
 
 void switch_to_remote_project(LPSTR ProjectAsName)
 {
+	extern char szWriteDir[MAX_PATH];
+	extern char szBeforeChangeWriteDir[MAX_PATH];
+	extern char szAddWriteDirAdditional[MAX_PATH];
+
+	strcpy(szBeforeChangeWriteDir, szWriteDir);
+
 	// store writables folder
 	char pStoreWriteable[MAX_PATH];
 	strcpy(pStoreWriteable, pref.cCustomWriteFolder);
@@ -45420,6 +46098,19 @@ void switch_to_remote_project(LPSTR ProjectAsName)
 	SetUpdaterWritePathFile(pref.cCustomWriteFolder);
 	FileRedirectChangeWritableArea("");
 
+	//PE: Fix szAddWriteDirAdditional
+	if (!pestrcasestr(szAddWriteDirAdditional, "GameGuruApps"))
+	{
+		strcat(szAddWriteDirAdditional, "\\GameGuruApps\\GameGuruMAX\\");
+	}
+
+	//PE: We are using szWriteDir for remote project path, so set szAddWriteDirAdditional to normal document folder.
+	if (strlen(pStoreWriteable) > 0)
+	{
+		// override writables with known custom writables folder
+		strcpy_s(szAddWriteDirAdditional, MAX_PATH, pStoreWriteable);
+	}
+
 	// create remote project marker
 	OpenToWrite(1, pRemoteProject);
 	WriteString(1, Storyboard.customprojectfolder);
@@ -45431,6 +46122,19 @@ void switch_to_remote_project(LPSTR ProjectAsName)
 
 void switch_to_regular_projects(void)
 {
+	extern char szBeforeChangeWriteDir[MAX_PATH];
+	extern char szWriteDir[MAX_PATH];
+
+	//PE: Check if we change from a remote project to none.
+	if (strlen(szBeforeChangeWriteDir) > 0)
+	{
+		//PE: Regular project update the library.
+		extern int g_iRefreshLibraryFoldersAfterDelay;
+		g_iRefreshLibraryFoldersAfterDelay = 10;
+	}
+
+	strcpy(szBeforeChangeWriteDir, "");
+
 	// generate app folder using exe name
 	HMODULE hModule = GetModuleHandle(NULL);
 	char szModule[MAX_PATH] = "";
@@ -46017,7 +46721,7 @@ void FindFirstSplash(char *splash_name)
 					strcpy(splash_name, Storyboard.Nodes[i].thumb);
 					if (!pestrcasestr(splash_name, "Files\\"))
 					{
-						int GG_GetRealPath(char* fullPath, int create);
+						int GG_GetRealPath(char* fullPath, int create, bool bIgnoreAdditional = false);
 						GG_GetRealPath(splash_name, 0);
 					}
 					if (!GG_FileExists(splash_name))
@@ -46380,8 +47084,94 @@ void hub_menubar(void)
 	if (ImGui::BeginMenuBar())
 	{
 		ImVec2 CursorMenuStart = ImGui::GetCursorPos();
+		bool bIsMenuHovered = false;
 		if (ImGui::BeginMenu("File##Hub"))
 		{
+			//---------------------------------------------------------------------------
+
+			if (bPreferences_Window == false)
+			{
+				if (ImGui::MenuItem("New Game Project", ""))
+				{
+					CloseAllOpenTools();
+					bool bAbort = false;
+					if (Storyboard.iChanged)
+					{
+						if (!pref.iDisableProjectAutoSave && strlen(Storyboard.gamename) > 0)
+						{
+							save_storyboard(Storyboard.gamename, false);
+						}
+						else
+						{
+							int iAction = askBoxCancel(STORYBOARD_SAVE_MESSAGE, "Confirmation"); //1==Yes 2=Cancel 0=No
+							if (iAction == 1)
+							{
+								//Save.
+								if (strlen(Storyboard.gamename) > 0)
+									save_storyboard(Storyboard.gamename, false);
+								else
+								{
+									bAbort = true;
+									save_storyboard(Storyboard.gamename, true);
+								}
+							}
+						}
+					}
+					if (!bAbort)
+					{
+
+						strcpy(pref.cLastUsedStoryboardProject, "");
+						bStoryboardInitNodes = false; //Just init again.
+						bStoryboardFirstRunSetInitPos = false;
+						process_storeboard(true); //Init a new project.
+						//PE: Bug - When creating a new project, it would contain g_collectionList from prev. loaded project.
+						init_rpg_system();
+
+						bTriggerSaveAsAfterNewLevel = true;
+						bTriggerSaveAs = true;
+						strcpy(SaveProjectAsName, "");
+						strcpy(SaveProjectAsError, "");
+
+					}
+				}
+				if (!bIsMenuHovered) bIsMenuHovered = ImGui::IsItemHovered();
+				if (ImGui::MenuItem("Open Game Project", ""))
+				{
+					CloseAllOpenToolsThatNeedSave();
+					bool bAbort = false;
+					if (Storyboard.iChanged)
+					{
+						if (!pref.iDisableProjectAutoSave && strlen(Storyboard.gamename) > 0)
+						{
+							save_storyboard(Storyboard.gamename, false);
+						}
+						else
+						{
+							int iAction = askBoxCancel(STORYBOARD_SAVE_MESSAGE, "Confirmation"); //1==Yes 2=Cancel 0=No
+							if (iAction == 1)
+							{
+								//Save.
+								if (strlen(Storyboard.gamename) > 0)
+									save_storyboard(Storyboard.gamename, false);
+								else
+								{
+									bAbort = true;
+									save_storyboard(Storyboard.gamename, true);
+								}
+							}
+						}
+					}
+
+					if (!bAbort)
+					{
+						//Open Game Project
+						bTriggerOpenProject = true;
+					}
+				}
+				if (!bIsMenuHovered) bIsMenuHovered = ImGui::IsItemHovered();
+			}
+
+			//---------------------------------------------------------------------------
 			if (ImGui::MenuItem("Exit to Desktop"))
 			{
 				int iAction = askBoxCancel("Are you sure you would like to exit to desktop?", "Confirmation"); //1==Yes 2=Cancel 0=No
@@ -46404,6 +47194,15 @@ void hub_menubar(void)
 		}
 		ImGui::EndMenuBar();
 	}
+
+	int preview_size_x = ImGui::GetMainViewport()->Size.x - 300.0;
+	int preview_size_y = ImGui::GetMainViewport()->Size.y - 60.0;
+	float fNodeWidth = 180.0f;
+	float fNodeHeight = 130.0f;
+
+	void storyboard_openproject(float preview_size_x, float fNodeWidth, float fNodeHeight,int mode);
+	storyboard_openproject(preview_size_x, fNodeWidth, fNodeHeight,1);
+
 }
 
 void storyboard_menubar(float area_width, float node_width, float node_height)
@@ -47172,6 +47971,11 @@ void load_storyboard(char *name)
 		strcat(pRemotePathToGrass, "\\Files\\");
 		GGGrass_Init_Textures(pRemotePathToGrass);
 		ReloadLensFlareImages();
+
+		//PE: Add custom fonts from remote project.
+		void AddRemoteProjectFonts(void);
+		AddRemoteProjectFonts();
+
 	}
 	else
 	{
@@ -47281,6 +48085,9 @@ bool load__storyboard_into_struct(const char *filepath, StoryboardStruct& storyb
 	if (projectfile)
 	{
 		memset(&storyboard, 0, sizeof(StoryboardStruct));
+		//PE: Features added to STORYBOARDVERSION 203 that need default values other then 0.
+		//PE: None yet. but like: storyboard.project_active = 1
+
 		size_t size = fread(&storyboard, 1, sizeof(storyboard), projectfile);
 		//Valid pref:
 		fclose(projectfile);
@@ -51715,6 +52522,8 @@ int screen_editor(int nodeid, bool standalone, char *screen)
 					g_gameGlobalListNodeId.clear();
 					g_gameGlobalListIndex.clear();
 					g_gameGlobalListValue.clear();
+					g_gameGlobalListValueString.clear();
+
 					for (int allhudscreensnodeid = 0; allhudscreensnodeid < STORYBOARD_MAXNODES; allhudscreensnodeid++)
 					{
 						if (strlen(Storyboard.Nodes[allhudscreensnodeid].lua_name) > 0 && strnicmp(Storyboard.Nodes[allhudscreensnodeid].lua_name, "hud", 3) == NULL)
@@ -51748,6 +52557,10 @@ int screen_editor(int nodeid, bool standalone, char *screen)
 												g_gameGlobalListNodeId.push_back(allhudscreensnodeid);
 												g_gameGlobalListIndex.push_back(i);
 												g_gameGlobalListValue.push_back(Storyboard.Nodes[allhudscreensnodeid].widget_initial_value[i]);
+												if(stricmp(readout.c_str(), "User Defined Global Text") == NULL)
+													g_gameGlobalListValueString.push_back(Storyboard.Nodes[allhudscreensnodeid].widget_click_sound[i]);
+												else
+													g_gameGlobalListValueString.push_back("");
 											}
 										}
 									}
@@ -51765,11 +52578,28 @@ int screen_editor(int nodeid, bool standalone, char *screen)
 					char pUDGVar[256];
 					sprintf(pUDGVar, "##WidgetUDG%d-%d", allhudscreensnodeid, i);
 					float fValue = g_gameGlobalListValue[n];
-					ImGui::MaxSliderInputFloat(pUDGVar, &fValue, 0, 100, "Set Initial Value for this User Defined Global", 0, 100);
-					if (fValue != g_gameGlobalListValue[n])
+					if (stricmp(Storyboard.widget_readout[allhudscreensnodeid][i], "User Defined Global Text") == NULL)
 					{
-						g_gameGlobalListValue[n] = fValue;
-						bChangedAGameGlobal = true;
+						char storeEntry[MAX_PATH];
+						strcpy(storeEntry, g_gameGlobalListValueString[n].c_str());
+						ImGui::PushItemWidth(-10);
+						if (ImGui::InputText(pUDGVar, storeEntry, 250, ImGuiInputTextFlags_EnterReturnsTrue))
+						{
+							g_gameGlobalListValueString[n] = storeEntry;
+							strcpy(Storyboard.Nodes[allhudscreensnodeid].widget_click_sound[i], storeEntry);
+							bChangedAGameGlobal = true;
+						}
+						ImGui::PopItemWidth();
+					}
+					else
+					{
+						//PE: TEXT g_gameGlobalListValueString.push_back(Storyboard.Nodes[allhudscreensnodeid].widget_click_sound[i]);
+						ImGui::MaxSliderInputFloat(pUDGVar, &fValue, 0, 100, "Set Initial Value for this User Defined Global", 0, 100);
+						if (fValue != g_gameGlobalListValue[n])
+						{
+							g_gameGlobalListValue[n] = fValue;
+							bChangedAGameGlobal = true;
+						}
 					}
 				}
 				if (g_bRefreshGlobalList == true)
@@ -51799,7 +52629,14 @@ int screen_editor(int nodeid, bool standalone, char *screen)
 													LPSTR pThisName = Storyboard.Nodes[thisnodeid].widget_label[index];
 													if (strcmp(pNewName, pThisName) == NULL)
 													{
-														Storyboard.Nodes[allhudscreensnodeid].widget_initial_value[i] = g_gameGlobalListValue[n];
+														if(stricmp(readout.c_str(), "User Defined Global Text") == NULL)
+														{
+															//g_gameGlobalListValueString[n]
+															strcpy(Storyboard.Nodes[allhudscreensnodeid].widget_click_sound[i], g_gameGlobalListValueString[n].c_str());
+															Storyboard.Nodes[allhudscreensnodeid].widget_initial_value[i] = 0;
+														}
+														else
+															Storyboard.Nodes[allhudscreensnodeid].widget_initial_value[i] = g_gameGlobalListValue[n];
 														break;
 													}
 												}
@@ -52577,11 +53414,13 @@ void LockSelectedObject(bool bLock, int iObjectLockedIndex)
 					vEntityLockedItem.e = e;
 					vEntityLockedList.push_back(vEntityLockedItem);
 				}
-				else {
+				else 
+				{
 					//Delete from list.
 					for (int i = 0; i < vEntityLockedList.size(); i++)
 					{
-						if (vEntityLockedList[i].e == e) {
+						if (vEntityLockedList[i].e == e) 
+						{
 							vEntityLockedList.erase(vEntityLockedList.begin() + i);
 							break;
 						}
@@ -52594,12 +53433,15 @@ void LockSelectedObject(bool bLock, int iObjectLockedIndex)
 	else
 	{
 		int e = t.widget.pickedEntityIndex;
-		if (iObjectLockedIndex >= 0) {
+		if (iObjectLockedIndex >= 0) 
+		{
 			t.entityelement[e].editorlock = 0;
 			sObject* pObject;
-			if (t.entityelement[e].obj > 0) {
+			if (t.entityelement[e].obj > 0) 
+			{
 				pObject = g_ObjectList[t.entityelement[e].obj];
-				if (pObject) {
+				if (pObject) 
+				{
 					WickedCall_SetObjectRenderLayer(pObject, GGRENDERLAYERS_NORMAL);
 				}
 			}
@@ -52992,12 +53834,35 @@ void ReloadEntityIDInSitu ( int entIndex)
 		}
 	}
 
+	//PE: bCustomWickedMaterialActive = false only if dbo changes.
 	// as a final step, ensure all custom material settings are removed as the replaced object may not line up with old one
 	for (int e = 1; e < t.entityelement.size(); e++)
 	{
 		if (t.entityelement[e].bankindex == entIndex)
 		{
-			t.entityelement[e].eleprof.bCustomWickedMaterialActive = false;
+			if (t.entityelement[e].eleprof.bUseFPESettings)
+			{
+				int iMasterID = t.entityelement[e].bankindex;
+				if (iMasterID > 0 && iMasterID < t.entityprofile.size())
+				{
+					sObject* pMasterObject = g_ObjectList[g.entitybankoffset + iMasterID];
+					if (pMasterObject)
+					{
+						Wicked_Copy_Material_To_Grideleprof((void*)pMasterObject, 0, &t.entityelement[e].eleprof);
+						int tobj = t.entityelement[e].obj;
+						if (tobj > 0)
+						{
+							if (t.entityprofile[iMasterID].WEMaterial.dwBaseColor[0] == -1)
+								SetObjectDiffuse(tobj, Rgb(255, 255, 255));
+							sObject* pObject = g_ObjectList[tobj];
+							Wicked_Set_Material_From_grideleprof((void*)pObject, 0, &t.entityelement[e].eleprof);
+							t.entityelement[e].eleprof.WEMaterial.MaterialActive = false;
+						}
+					}
+				}
+			}
+			//PE: Moved to bUseFPESettings.
+			//t.entityelement[e].eleprof.bCustomWickedMaterialActive = false;
 		}
 	}
 }
@@ -53292,9 +54157,43 @@ int DrawOccludedObjects(bool bDebug,bool bBox, int* iHiddenObjects, int* spot, i
 										AABB* aabb = wiScene::GetScene().aabb_objects.GetComponent(rootEntity);
 										if (aabb)
 										{
+											float sizeX = aabb->_max.x - aabb->_min.x;
+											float sizeY = aabb->_max.y - aabb->_min.y;
+											float sizeZ = aabb->_max.z - aabb->_min.z;
+											bool bMeshWorked = false;
 											XMFLOAT4X4 hoverBox;
-											XMStoreFloat4x4(&hoverBox, aabb->getAsBoxMatrix());
-											wiRenderer::DrawBox(hoverBox, XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f));
+											//PE: Strange gamecore\ammo\enhanced\762x39\762x39ammo.x aabb is wrong in wicked ?
+											if (sizeX > 20000.0f || sizeY > 20000.0f || sizeZ > 20000.0f)
+											{
+												//PE: Try mesh.
+												if (object->mesh_index != 0 && (int)object->mesh_index != -1)
+												{
+													if (object->transform_index != 0 && object->transform_index != -1)
+													{
+														MeshComponent* mesh = &wiScene::GetScene().meshes[object->mesh_index];
+														TransformComponent* transform = &wiScene::GetScene().transforms[object->transform_index];
+														if (mesh)
+														{
+															AABB aabb = mesh->aabb;
+															aabb._min.x += transform->world._41;
+															aabb._min.y += transform->world._42;
+															aabb._min.z += transform->world._43;
+															aabb._max.x += transform->world._41;
+															aabb._max.y += transform->world._42;
+															aabb._max.z += transform->world._43;
+
+															XMStoreFloat4x4(&hoverBox, aabb.getAsBoxMatrix());
+															wiRenderer::DrawBox(hoverBox, XMFLOAT4(1.0f, 0.7f, 0.0f, 1.0f));
+															bMeshWorked = true;
+														}
+													}
+												}
+											}
+											if (!bMeshWorked)
+											{
+												XMStoreFloat4x4(&hoverBox, aabb->getAsBoxMatrix());
+												wiRenderer::DrawBox(hoverBox, XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f));
+											}
 
 											//PE: Expanded bounding box.
 											/*
@@ -53449,3 +54348,250 @@ void tmpdebugfunc(void)
 	}
 }
 
+void storyboard_openproject(float preview_size_x, float fNodeWidth, float fNodeHeight, int mode)
+{
+	bool bReadyToOpen = false;
+	if (bTriggerOpenProject)
+	{
+		if (iDelayTriggerOpenProject > 0)
+		{
+			iDelayTriggerOpenProject--;
+			if (iDelayTriggerOpenProject == 0)
+			{
+				strcpy(cNextWindowFocus, "Open Project##Storyboard");
+				iSkibFramesBeforeLaunch = 2;
+				iLaunchAfterSync = 81; //Delayed window focus.
+			}
+		}
+		else
+		{
+			bReadyToOpen = true;
+		}
+	}
+	if (bReadyToOpen)
+	{
+		//Open Project window.
+		static char OpenProjectName[256] = "\0";
+		static char OpenProjectError[256] = "\0";
+
+		ImGui::OpenPopup("Open Project##Storyboard");
+		ImGui::SetNextWindowSize(ImVec2(0, 532), ImGuiCond_Once);
+		static int popwinheight = 0;
+		if (popwinheight > 800 || iSkibFramesBeforeLaunch > 0)
+		{
+			ImGui::SetNextWindowSize(ImVec2(0, 532), ImGuiCond_Always);
+		}
+		ImGui::SetNextWindowPosCenter(ImGuiCond_Always);
+		bool bOpenWindow = true;
+		//PE: Somehow cant get this window ontop ?
+		if (ImGui::BeginPopupModal("Open Project##Storyboard", &bOpenWindow, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings))
+		{
+			popwinheight = ImGui::GetWindowSize().y;
+			ImGui::Indent(10);
+			ImGui::Text("");
+			ImGui::SetWindowFontScale(1.4);
+			ImGui::TextCenter("Open Game Project");
+			ImGui::Separator();
+
+			ImGui::SetWindowFontScale(1.0);
+			ImGui::Text("");
+			ImGui::Text("Select the project to open and click 'Open Project'");
+			ImGui::Text("Or click 'Import  Project' to find a valid Project to import");
+			ImGui::SameLine(); ImGui::Text(" ");
+			ImGui::Text("");
+			if (strlen(OpenProjectError) > 0)
+			{
+				ImGui::Text(OpenProjectError);
+				ImGui::Text("");
+			}
+			//Ignore _backup files.
+
+			// when in a remote project, need to rebuild the latest writables based project list
+			GG_SetWritablesToRoot(true);
+			GetProjectList("projectbank\\");
+			GG_SetWritablesToRoot(false);
+
+			static std::string current_project_selected = "";
+			ImVec2 size = { ImGui::GetContentRegionAvailWidth(),0 };
+
+			float fHeight = ImGui::GetFontSize() * 10.0;
+
+			ImGui::Text("Projects");
+			ImGui::SameLine();
+			static bool bDisplayBackups = false;
+			float fBoxWidth = ImGui::CalcTextSize("Display Backups").x;
+			ImGui::SetCursorPosX((ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x) - 10.0 - 30.0 - fBoxWidth);
+			ImGui::Checkbox("Display Backups", &bDisplayBackups);
+			ImGui::BeginChild("Projects##FileOpenStoryboard", ImVec2(ImGui::GetContentRegionAvail().x - 10.0, fHeight), true, iGenralWindowsFlags);
+			bool bTriggerLoad = false;
+			if (projectbank_list.size() > 0)
+			{
+				float fRegAvail = ImGui::GetContentRegionAvailWidth() - 10.0;
+				for (int i = 0; i < projectbank_list.size(); i++)
+				{
+					if (bDisplayBackups || !pestrcasestr((char*)projectbank_list[i].c_str(), "_backup_"))
+					{
+						bool bSelected = false;
+						if (current_project_selected == projectbank_list[i]) bSelected = true;
+						if (ImGui::Selectable(projectbank_list[i].c_str(), bSelected))
+						{
+							current_project_selected = projectbank_list[i];
+						}
+						if (ImGui::IsItemHovered())
+						{
+							if (ImGui::IsMouseDoubleClicked(0))
+							{
+								current_project_selected = projectbank_list[i];
+								bTriggerLoad = true;
+							}
+						}
+					}
+				}
+			}
+			else
+			{
+				ImGui::Text("No Projects Found.");
+			}
+			ImGui::EndChild();
+			ImGui::PushItemWidth(-10);
+			ImGui::InputText("##OpenProjectStoryboardText", (char*)current_project_selected.c_str(), 250, ImGuiInputTextFlags_ReadOnly); //ImGuiInputTextFlags_None
+			ImGui::PopItemWidth();
+
+			ImGui::Text("");
+
+			ImGui::SetWindowFontScale(1.4);
+			//Import  Project
+			if (ImGui::StyleButton("Import Project", ImVec2(ImGui::GetContentRegionAvail().x - 10.0f, 0.0f)))
+			{
+				cStr tOldDir = GetDir();
+				char* cFileSelected;
+				cstr fulldir = "c:\\dropbox";
+
+				cFileSelected = (char*)noc_file_dialog_open(NOC_FILE_DIALOG_DIR, "All\0*.*\0", fulldir.Get(), NULL);
+
+				SetDir(tOldDir.Get());
+
+				if (cFileSelected && strlen(cFileSelected) > 0) {
+					char projectfolder[MAX_PATH];
+					std::string projectname;
+					std::string projectpath;
+					strcpy(projectfolder, cFileSelected);
+					projectname = cFileSelected;
+					projectpath = cFileSelected;
+
+					bool bValid = false;
+					std::size_t slash = projectname.find_last_of("/\\");
+					if (slash > 0)
+					{
+						projectpath = projectname.substr(0,slash + 1);
+						projectname = projectname.substr(slash + 1);
+
+						std::string checkproject = projectpath + projectname + "\\Files"; //PE: Must exists.
+						if (PathExist((char *) checkproject.c_str()))
+						{
+							checkproject = checkproject + "\\projectbank\\" + projectname + "\\project.dat"; //PE: Must exists.
+							if (FileExist((char *) checkproject.c_str()))
+							{
+								//PE: Check if already exists.
+								bool bFound = false;
+								for (int i = 0; i < projectbank_list.size(); i++)
+								{
+									if (stricmp(projectname.c_str(), projectbank_list[i].c_str()) == NULL)
+									{
+										bFound = true;
+										break;
+									}
+								}
+								if (bFound)
+								{
+									BoxerInfo("Selected project already exists.", "Information!");
+									bValid = true;
+								}
+								else
+								{
+									//PE: Add project to docwrite folder.
+									bValid = true;
+									//remoteproject.txt
+									char pRemoteProject[MAX_PATH];
+									strcpy(pRemoteProject, "projectbank\\");
+									strcat(pRemoteProject, projectname.c_str());
+									strcat(pRemoteProject, "\\remoteproject.txt");
+									GG_GetRealPath(pRemoteProject, 1);
+
+									OpenToWrite(1, pRemoteProject);
+									WriteString(1, (char *) projectpath.c_str());
+									CloseFile(1);
+									//PE: Add to list for selection.
+									projectbank_list.push_back(projectname);
+									BoxerInfo("Project has been imported.", "Information!");
+									current_project_selected = projectname;
+									bTriggerLoad = true;
+								}
+							}
+						}
+					}
+					if (!bValid)
+					{
+						BoxerInfo("Selected folder is not a valid project.", "Information!");
+					}
+
+				}
+
+			}
+			if (bTriggerLoad || ImGui::StyleButton("Open Project", ImVec2(ImGui::GetContentRegionAvail().x * 0.5 - 20.0f, 0.0f)))
+			{
+
+				if(mode == 1)
+				{
+					//Load and start storyboard.
+					TriggerLoadGameProject = current_project_selected.c_str();
+					bWelcomeScreen_Window = false;
+					bStoryboardWindow = true;
+					bTriggerOpenProject = false;
+
+				}
+				else
+				{
+					// and in case this was a remote project, restore to writables regular
+					extern void switch_to_regular_projects(void);
+					switch_to_regular_projects();
+
+					//Open
+					load_storyboard((char*)current_project_selected.c_str());
+					iGamePausedNodeID = storyboard_add_missing_nodex(8, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
+					iLoadGameNodeID = storyboard_add_missing_nodex(3, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
+					iSaveGameNodeID = storyboard_add_missing_nodex(9, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
+					iGraphicsNodeID = storyboard_add_missing_nodex(10, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
+					iSoundsNodeID = storyboard_add_missing_nodex(11, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
+					iControlNodeID = storyboard_add_missing_nodex(12, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
+					iLoadingScreenNodeID = storyboard_add_missing_nodex(2, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
+					iHUDScreenNodeID = storyboard_add_missing_nodex(13, preview_size_x, fNodeWidth, fNodeHeight + 20.0, false);
+
+					bTriggerOpenProject = false;
+					bOpenProjectsFromWelcome = false;
+				}
+			}
+			ImGui::SameLine();
+			if (ImGui::StyleButton("Cancel", ImVec2(ImGui::GetContentRegionAvail().x - 10.0f, 0.0f)))
+			{
+				//Cancel.
+				bTriggerOpenProject = false;
+				if (bOpenProjectsFromWelcome)
+				{
+					bWelcomeScreen_Window = true;
+					bStoryboardWindow = false;
+					bOpenProjectsFromWelcome = false;
+				}
+			}
+
+			ImGui::SetWindowFontScale(1.0);
+			ImGui::Text("");
+
+			bImGuiGotFocus = true;
+			ImGui::Indent(-10);
+			ImGui::EndPopup();
+
+			bBlockNextMouseCheck = true;
+		}
+	}
+}

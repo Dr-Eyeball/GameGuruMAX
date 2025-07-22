@@ -1455,6 +1455,18 @@ struct weaponProjectileBaseType
 	int overridespotlighting;
 	int cacheProjectile;
 	bool cacheLoaded;
+
+	int iAtlasWidth = 0;
+	int iAtlasHeight = 0;
+	cstr WPE_Effect = "";
+	cstr WPE_Explosion = "";
+	uint32_t WPE_Root = 0;
+	uint32_t WPE_MeshID = -1;
+	float fDecalFrame = 0;
+	float fDecalSpeed = 1.0f;
+	int decalid = -1;
+	int explosion_decalid = -1;
+
 	// Constructor
 	weaponProjectileBaseType ( )
 	{
@@ -1538,6 +1550,16 @@ struct weaponProjectileBaseType
 		 mode = 0;
 		 name_s = "";
 		 activeFlag = 0;
+		 iAtlasWidth = 0;
+		 iAtlasHeight = 0;
+		 WPE_Effect = "";
+		 WPE_Explosion = "";
+		 WPE_MeshID = -1;
+		 fDecalFrame = 0;
+		 fDecalSpeed = 1.0f;
+		 decalid = -1;
+		 explosion_decalid = -1;
+		 WPE_Root = 0;
 	}
 	// End of Constructor
 
@@ -1592,7 +1614,9 @@ struct weaponProjectileType
 	float yTurnSpeed_f;
 	float zTurnSpeed_f;
 	float acceleration_f;
-
+	float fDecalFrame = 0;
+	float fDecalSpeed = 1.0f;
+	uint32_t WPE_Root = 0;
 
 	// Constructor
 	weaponProjectileType ( )
@@ -1636,6 +1660,10 @@ struct weaponProjectileType
 		 obj = 0;
 		 activeFlag = 0;
 		 baseType = 0;
+		 fDecalFrame = 0;
+		 fDecalSpeed = 1.0f;
+		 WPE_Root = 0;
+
 	}
 	// End of Constructor
 
@@ -3407,9 +3435,14 @@ struct globalstype
 	float realshadowdistancehigh;
 	int editorusemediumshadows;
 	float CurveDistanceScaler;
+	int ConvertToDDS;
+	int ConvertToDDSMaxSize;
 	// Constructor
 	globalstype ( )
 	{
+		ConvertToDDS = 0;
+		ConvertToDDSMaxSize = 2048;
+
 		CurveDistanceScaler = 250; // 200;
 		 realshadowdistance = 5000.0f;
 		 realshadowdistancehigh = 5000.0f;
@@ -6494,6 +6527,11 @@ struct entityeleproftype
 	int weaponpropres2;
 	int blendmode;
 	cstr explodable_decalname;
+	bool bUseFPESettings;
+	cstr thumb_aimain_s;
+	int thumb_id;
+	int systemwide_lua;
+	int isobjective_alwaysactive;
 	// Constructor
 	entityeleproftype ( )
 	{
@@ -6650,6 +6688,11 @@ struct entityeleproftype
 		 //aiinit_s = "";
 		 name_s = "";
 		 explodable_decalname = "";
+		 bUseFPESettings = true;
+		 thumb_aimain_s = "";
+		 thumb_id = 0;
+		 systemwide_lua = 0;
+		 isobjective_alwaysactive = 0;
 	}
 	// End of Constructor
 
@@ -6991,10 +7034,15 @@ struct entitytype
 	std::vector<int> iPreScannedVisible;
 	int iPreScanVisibleCurrent;
 	int iWasSpawnedInGame;
+	int iThumbnail;
+	int old_bankindex;
+
 	#endif
 	// Constructor
 	entitytype ( )
 	{
+		 old_bankindex = 0;
+		 iThumbnail = 0;
 		 iWasSpawnedInGame = 0;
 		 iPreScanVisibleCurrent = 0;
 		 iPreScannedVisible.clear();
@@ -7597,6 +7645,7 @@ struct gunsettingstype
 	int disablerunandshoot;
 	int meleewithrightclick;
 	int blockwithrightclick;
+	int meleequickrepeat;
 	int altpoolindex;
 	int poolindex;
 	int isempty;
@@ -7935,6 +7984,7 @@ struct gunsettingstype
 		 disablerunandshoot = 0;
 		 blockwithrightclick = 0;
 		 meleewithrightclick = 0;
+		 meleequickrepeat = 0;
 		 ismelee = 0;
 		 altmeleenoscorch = 0;
 		 altmeleerange = 0;

@@ -23,7 +23,7 @@
 #include <thread>
 
 extern "C" HANDLE GG_CreateFile( LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile );
-extern "C" int GG_GetRealPath( char* fullPath, int create );
+extern "C" int GG_GetRealPath( char* fullPath, int create, bool bIgnoreAdditional = false);
 
 #define PETESTIMAGEUSAGE
 

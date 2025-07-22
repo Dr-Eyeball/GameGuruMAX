@@ -1488,6 +1488,95 @@ luaMessage** ppLuaMessages = NULL;
 	 return 0;
  }
 
+ int SetEntityExplodable(lua_State* L)
+ {
+	 lua = L;
+	 int n = lua_gettop(L);
+	 if (n < 2) return 0;
+	 int iEntityIndex = lua_tonumber(L, 1);
+	 if (iEntityIndex > 0)
+	 {
+		 int iValue = lua_tonumber(L, 2);
+		 t.entityelement[iEntityIndex].eleprof.explodable = iValue;
+	 }
+	 return 0;
+ }
+ int SetExplosionDamage(lua_State* L)
+ {
+	 lua = L;
+	 int n = lua_gettop(L);
+	 if (n < 2) return 0;
+	 int iEntityIndex = lua_tonumber(L, 1);
+	 if (iEntityIndex > 0)
+	 {
+		 int iValue = lua_tonumber(L, 2);
+		 t.entityelement[iEntityIndex].eleprof.explodedamage = iValue;
+	 }
+	 return 0;
+ }
+ int SetExplosionHeight(lua_State* L)
+ {
+	 lua = L;
+	 int n = lua_gettop(L);
+	 if (n < 2) return 0;
+	 int iEntityIndex = lua_tonumber(L, 1);
+	 if (iEntityIndex > 0)
+	 {
+		 int iValue = lua_tonumber(L, 2);
+		 t.entityelement[iEntityIndex].eleprof.explodeheight = iValue;
+	 }
+	 return 0;
+ }
+ //PE: SetCustomExplosion(e,effectname) sound is using <Sound5>. SetCustomExplosionShould only be called one time.
+ int SetCustomExplosion(lua_State* L)
+ {
+	 lua = L;
+	 int n = lua_gettop(L);
+	 if (n < 2) return 0;
+	 int iEntityIndex = lua_tonumber(L, 1);
+	 if (iEntityIndex > 0)
+	 {
+		 const char* pEffect = lua_tostring(L, 2);
+		 if (!pEffect)
+			 return 0;
+		 t.entityelement[iEntityIndex].eleprof.explodable_decalname = pEffect;
+		 //PE: Init effects.
+		 if (t.entityelement[iEntityIndex].soundset6 > 0) deleteinternalsound(t.entityelement[iEntityIndex].soundset6);
+		 t.entityelement[iEntityIndex].soundset6 = loadinternalsoundcore(t.entityelement[iEntityIndex].eleprof.soundset6_s.Get(), 1);
+		
+		 if (t.entityelement[iEntityIndex].eleprof.explodable_decalname.Len() > 0)
+		 {
+			 cstr explodename = t.entityelement[iEntityIndex].eleprof.explodable_decalname;
+			 if (explodename.Len() > 0)
+			 {
+				 for (int i = 1; i <= g.decalmax; i++)
+				 {
+					 if (t.decal[i].name_s == explodename)
+					 {
+						 int alreadyactive = t.decal[i].active;
+						 t.decal[i].active = 1;
+						 t.decal[i].newparticle.iMaxCache = 2; //PE: For now only 2 cached custom explosions.
+						 if (alreadyactive != 1)
+						 {
+							 //PE: Never change t. variables in lua.
+							 cstr oldtdecal_s = t.decal_s;
+							 int oldtdecalid = t.decalid;
+							 t.decal_s = t.decal[i].name_s;
+							 t.decalid = i;
+							 decal_load();
+							 t.decalid = oldtdecalid;
+							 t.decal_s = oldtdecal_s;
+						 }
+						 break;
+					 }
+				 }
+			 }
+		 }
+	 }
+	 return 0;
+ }
+
+
  int GetEntityExplodable(lua_State* L)
  {
 	 lua = L;
@@ -1514,6 +1603,8 @@ luaMessage** ppLuaMessages = NULL;
 	 if (e > 0)
 	 {
 		 iReturnValue = t.entityelement[e].eleprof.isobjective;
+		 if (t.entityelement[e].eleprof.isobjective_alwaysactive)
+			 iReturnValue = 3;
 	 }
 	 lua_pushinteger(L, iReturnValue);
 	 return 1;
@@ -1716,7 +1807,7 @@ luaMessage** ppLuaMessages = NULL;
 	int n = lua_gettop(L);
 	if ( n < 2 ) return 0;
 	int iEntityIndex = lua_tonumber(L, 1);
-	if (iEntityIndex > 0)
+	if (iEntityIndex > 0 && iEntityIndex < t.entityelement.size())
 	{
 		float fValue = lua_tonumber(L, 2);
 		switch (iDataMode)
@@ -1780,7 +1871,7 @@ luaMessage** ppLuaMessages = NULL;
 		if ( n < 1 ) return 0;
 	}
 	int iEntityIndex = lua_tonumber(L, 1);
-	if ( iEntityIndex > 0 )
+	if ( iEntityIndex > 0 && iEntityIndex < t.entityelement.size() )
 	{
 		if ( iDataMode < 101 )
 		{
@@ -3025,14 +3116,7 @@ luaMessage** ppLuaMessages = NULL;
  float GetLUATerrainHeightEx ( float fX, float fZ )
  {
 	float fReturnHeight = g.gdefaultterrainheight;
-	#ifdef WICKEDENGINE
 	fReturnHeight = BT_GetGroundHeight (0, fX, fZ);
-	#else
-	if (t.terrain.TerrainID > 0)
-	{
-		fReturnHeight = BT_GetGroundHeight (t.terrain.TerrainID, fX, fZ);
-	}
-	#endif
 	return fReturnHeight;
  }
  int GetTerrainHeight(lua_State *L)
@@ -5949,6 +6033,213 @@ int GetObjectExist ( lua_State *L )
 	lua_pushnumber ( L, ObjectExist(lua_tonumber(L, 1)) );
 	return 1;
 }
+
+void gun_PlayObject(int iObjID, float fStart, float fEnd);
+void gun_StopObject(int iObjID);
+void gun_LoopObject(int iObjID, float fStart, float fEnd);
+void gun_SetObjectFrame(int iObjID, float fValue);
+void gun_SetObjectSpeed(int iObjID, float fValue);
+
+float iGunAnimStart = 0;
+float iGunAnimEnd = 0;
+float fOldGunSpeed = 0;
+int iGunAnimMode = 2; // 0 = Play , 1 = Loop, 2 = stop
+extern bool bCustomGunAnimationRunning;
+bool bForceGunUnderWater = false;
+
+void GunInitAnimationSettings(void)
+{
+	iGunAnimStart = 0;
+	iGunAnimEnd = 0;
+	iGunAnimMode = 2;
+	bCustomGunAnimationRunning = false;
+	bForceGunUnderWater = false;
+}
+int ForceGunUnderWater(lua_State* L)
+{
+	int n = lua_gettop(L);
+	if (n < 1) return 0;
+	bForceGunUnderWater = lua_tonumber(L, 1);
+	return 0;
+}
+int GetGunAnimationFramesFromName(lua_State* L)
+{
+	int n = lua_gettop(L);
+	if (n < 1) return 0;
+	char AnimName[512];
+	float fFoundStart = 0, fFoundFinish = 0;
+
+	const char* luastring = lua_tostring(L, 1);
+	if(luastring)
+		strcpy(AnimName, luastring);
+
+	sObject* pObject = GetObjectData(t.currentgunobj);
+	extern int entity_lua_getanimationnamefromobject(sObject * pObject, cstr FindThisName_s, float* fFoundStart, float* fFoundFinish);
+	if (pObject && luastring && entity_lua_getanimationnamefromobject(pObject, AnimName, &fFoundStart, &fFoundFinish) > 0)
+	{
+		lua_pushnumber(L, fFoundStart);
+		lua_pushnumber(L, fFoundFinish);
+	}
+	else
+	{
+		//PE: Try to get it from the current weapon.
+		if (stricmp(AnimName, "reload") == NULL)
+		{
+			if (g.firemodes[t.gunid][0].action.startreload.s > 0 && g.firemodes[t.gunid][0].action.startreload.e >= g.firemodes[t.gunid][0].action.startreload.s)
+			{
+				lua_pushnumber(L, g.firemodes[t.gunid][0].action.startreload.s);
+				lua_pushnumber(L, g.firemodes[t.gunid][0].action.startreload.e);
+				return 2;
+			}
+		}
+		if (stricmp(AnimName, "idle") == NULL)
+		{
+			if (g.firemodes[t.gunid][0].action.idle.s > 0 && g.firemodes[t.gunid][0].action.idle.e >= g.firemodes[t.gunid][0].action.idle.s)
+			{
+				lua_pushnumber(L, g.firemodes[t.gunid][0].action.idle.s);
+				lua_pushnumber(L, g.firemodes[t.gunid][0].action.idle.e);
+				return 2;
+			}
+		}
+		if (stricmp(AnimName, "fire") == NULL)
+		{
+			if (g.firemodes[t.gunid][0].action.start.s > 0 && g.firemodes[t.gunid][0].action.start.e >= g.firemodes[t.gunid][0].action.start.s)
+			{
+				lua_pushnumber(L, g.firemodes[t.gunid][0].action.start.s);
+				lua_pushnumber(L, g.firemodes[t.gunid][0].action.start.e);
+				return 2;
+			}
+		}
+
+		lua_pushnumber(L, 0);
+		lua_pushnumber(L, 0);
+	}
+	return 2;
+}
+int GunAnimationSetFrame(lua_State* L)
+{
+	int n = lua_gettop(L);
+	if (n < 1) return 0;
+	float start = lua_tonumber(L, 1);
+	gun_SetObjectFrame(t.currentgunobj, start);
+	return 0;
+}
+int GunAnimationPlaying(lua_State* L)
+{
+	int n = lua_gettop(L);
+	//if (n < 1) return 0;
+	float frame = GetFrame(t.currentgunobj);
+	if (iGunAnimMode == 0)
+	{
+		//PE: Stop animation when done.
+
+		bool playing = false;
+		if (t.currentgunobj > 0)
+		{
+			sObject* pObject = g_ObjectList[t.currentgunobj];
+			playing = WickedCall_GetAnimationPlayingState(pObject);
+		}
+
+		if (frame >= iGunAnimEnd || !playing)
+		{
+			gun_StopObject(t.currentgunobj);
+			gun_SetObjectFrame(t.currentgunobj, iGunAnimEnd);
+			if (fOldGunSpeed > 1)
+				gun_SetObjectSpeed(t.currentgunobj, fOldGunSpeed);
+			fOldGunSpeed = 0;
+			lua_pushnumber(L, 0);
+			bCustomGunAnimationRunning = false;
+			t.gunmode = 9; //PE: switch to idle.
+			iGunAnimMode = 3;
+		}
+		else
+		{
+			lua_pushnumber(L, 1);
+			bCustomGunAnimationRunning = true;
+		}
+
+	}
+	else if(iGunAnimMode == 1)
+	{
+		//PE: Looping always playing.
+		lua_pushnumber(L, 1);
+		bCustomGunAnimationRunning = true;
+	}
+	else
+	{
+		//PE: Stopped.
+		lua_pushnumber(L, 0);
+		bCustomGunAnimationRunning = false;
+	}
+	return 1;
+
+}
+int SetGunAnimationSpeed(lua_State* L)
+{
+	int n = lua_gettop(L);
+	if (n < 1) return 0;
+	float speed = lua_tonumber(L, 1);
+	if(fOldGunSpeed == 0)
+		fOldGunSpeed = GetSpeed(t.currentgunobj);
+	gun_SetObjectSpeed(t.currentgunobj, speed);
+	return 0;
+}
+int PlayGunAnimation(lua_State* L)
+{
+	lua = L;
+	int n = lua_gettop(L);
+	if (n < 2) return 0;
+	float start = lua_tonumber(L, 1);
+	float end = lua_tonumber(L, 2);
+	if (start > end)
+	{
+		float tmp = start;
+		start = end;
+		end = tmp;
+	}
+	gun_PlayObject(t.currentgunobj, start, end);
+	bCustomGunAnimationRunning = true;
+	iGunAnimStart = start;
+	iGunAnimEnd = end;
+	iGunAnimMode = 0;
+	return 0;
+}
+int StopGunAnimation(lua_State* L)
+{
+	lua = L;
+	int n = lua_gettop(L);
+	gun_StopObject(t.currentgunobj);
+	if (fOldGunSpeed > 1)
+		gun_SetObjectSpeed(t.currentgunobj, fOldGunSpeed);
+	fOldGunSpeed = 0;
+	iGunAnimMode = 2;
+	bCustomGunAnimationRunning = false;
+	t.gunmode = 9; //PE: switch to idle.
+	return 0;
+}
+int LoopGunAnimation(lua_State* L)
+{
+	lua = L;
+	int n = lua_gettop(L);
+	if (n < 2) return 0;
+	float start = lua_tonumber(L, 1);
+	float end = lua_tonumber(L, 2);
+	if (start > end)
+	{
+		float tmp = start;
+		start = end;
+		end = tmp;
+	}
+	gun_LoopObject(t.currentgunobj, start, end);
+	bCustomGunAnimationRunning = true;
+	iGunAnimStart = start;
+	iGunAnimEnd = end;
+	iGunAnimMode = 1;
+	return 0;
+}
+
+
+
 int SetObjectFrame (lua_State* L)
 {
 	lua = L;
@@ -7419,7 +7710,8 @@ int InitScreen(lua_State* L)
 					{
 						char pUserDefinedGlobal[256];
 						sprintf(pUserDefinedGlobal, "g_UserGlobal['%s']", Storyboard.Nodes[nodeid].widget_label[i]);
-						LuaSetString(pUserDefinedGlobal, ""); // can we get from initial_value in screen editor?
+						//PE: We now reuse widget_click_sound for initial_value.
+						LuaSetString(pUserDefinedGlobal, Storyboard.Nodes[nodeid].widget_click_sound[i]); // can we get from initial_value in screen editor?
 					}
 				}
 			}
@@ -7445,6 +7737,17 @@ int DisplayCurrentScreen(lua_State* L)
 	}
 	lua_pushnumber(L, iSpecialLuaReturn);
 	return 1;
+}
+bool g_bEnableGunFireInHUD = false;
+int DisableGunFireInHUD(lua_State* L)
+{
+	g_bEnableGunFireInHUD = false;
+	return 0;
+}
+int EnableGunFireInHUD(lua_State* L)
+{
+	g_bEnableGunFireInHUD = true;
+	return 0;
 }
 bool bDisableKeyToggles = false;
 int DisableBoundHudKeys(lua_State* L)
@@ -8473,7 +8776,7 @@ int SetGamePlayerControlData ( lua_State *L, int iDataMode )
 		case 22 : break;
 		case 23 : t.playercontrol.gravityactive = lua_tonumber(L, 1); break;
 		case 24 : t.playercontrol.plrhitfloormaterial = lua_tonumber(L, 1); break;
-		case 25 : t.playercontrol.underwater = lua_tonumber(L, 1); break;
+		case 25:  t.playercontrol.underwater = lua_tonumber(L, 1); break;
 		case 26 : t.playercontrol.jumpmode = lua_tonumber(L, 1); break;
 		case 27 : t.playercontrol.jumpmodecanaffectvelocitycountdown_f = lua_tonumber(L, 1); break;
 		case 28 : t.playercontrol.speed_f = lua_tonumber(L, 1); break;
@@ -8795,7 +9098,7 @@ int GetGamePlayerControlData ( lua_State *L, int iDataMode )
 		case 22 : break;
 		case 23 : lua_pushnumber ( L, t.playercontrol.gravityactive ); break;
 		case 24 : lua_pushnumber ( L, t.playercontrol.plrhitfloormaterial ); break;
-		case 25 : lua_pushnumber ( L, t.playercontrol.underwater ); break;
+		case 25:  lua_pushnumber(L, t.playercontrol.underwater); break;
 		case 26 : lua_pushnumber ( L, t.playercontrol.jumpmode ); break;
 		case 27 : lua_pushnumber ( L, t.playercontrol.jumpmodecanaffectvelocitycountdown_f ); break;
 		case 28 : lua_pushnumber ( L, t.playercontrol.speed_f ); break;
@@ -10267,13 +10570,39 @@ int WParticleEffectPosition(lua_State* L)
 	float fX = lua_tonumber(L, 2);
 	float fY = lua_tonumber(L, 3);
 	float fZ = lua_tonumber(L, 4);
-
+	float fXa = 0;
+	float fYa = 0;
+	float fZa = 0;
+	bool bRot = false;
+	if (n >= 7)
+	{
+		fXa = lua_tonumber(L, 5);
+		fYa = lua_tonumber(L, 6);
+		fZa = lua_tonumber(L, 7);
+		bRot = true;
+	}
 	Scene& scene = wiScene::GetScene();
 	TransformComponent* root_tranform = scene.transforms.GetComponent(root);
 	if (root_tranform)
 	{
+		float normalizedDegreesX = fmod(fXa, 360.0f);
+		if (fXa < 0)
+			fXa += 360.0f;
+		float rotationRadiansX = fXa * (XM_PI / 180.0f); //PE: to radians
+		float normalizedDegreesY = fmod(fYa, 360.0f);
+		if (fYa < 0)
+			fYa += 360.0f;
+		float rotationRadiansY = fYa * (XM_PI / 180.0f); //PE: to radians
+		float normalizedDegreesZ = fmod(fZa, 360.0f);
+		if (fZa < 0)
+			fZa += 360.0f;
+		float rotationRadiansZ = fZa * (XM_PI / 180.0f); //PE: to radians
+
 		root_tranform->ClearTransform();
 		root_tranform->Translate(XMFLOAT3(fX, fY, fZ));
+		XMFLOAT3 rot = { rotationRadiansX ,rotationRadiansY ,rotationRadiansZ }; //PE: 0 - XM_2PI
+		if(bRot)
+			root_tranform->RotateRollPitchYaw(rot);
 		root_tranform->UpdateTransform();
 	}
 
@@ -10989,7 +11318,6 @@ int SetEntityTexture (lua_State *L) { return SetMaterialData (L, 21); }
 int SetEntityTextureScale (lua_State *L) { return SetMaterialData (L, 22); }
 int SetEntityTextureOffset (lua_State *L) { return SetMaterialData (L, 23); }
 
-
 int GetEntityInZoneWithFilter(lua_State* L)
 {
 	lua = L;
@@ -11015,6 +11343,41 @@ int GetEntityInZoneWithFilter(lua_State* L)
 	t.v = storev;
 	return 0;
 
+}
+
+int IsPointWithinZone(lua_State* L)
+{
+	lua = L;
+	int n = lua_gettop(L);
+	if (n < 4) return 0;
+	int iIsInZone = 0;
+	int iEntityIndex = lua_tonumber(L, 1);
+	if(iEntityIndex>0)
+	{
+		float fX = lua_tonumber(L, 2);
+		float fY = lua_tonumber(L, 3);
+		float fZ = lua_tonumber(L, 4);
+		int waypointindex = t.entityelement[iEntityIndex].eleprof.trigger.waypointzoneindex;
+		if (waypointindex > 0)
+		{
+			if (t.waypoint[waypointindex].active == 1)
+			{
+				if (t.waypoint[waypointindex].style == 2)
+				{
+					t.tpointx_f = fX;
+					t.tpointz_f = fZ;
+					t.tokay = 0; waypoint_ispointinzone ();
+					if (t.tokay != 0)
+					{
+						// the specified point is within specified entity zone
+						iIsInZone = 1;
+					}
+				}
+			}
+		}
+	}
+	lua_pushnumber(L, iIsInZone);
+	return 1;
 }
 
 int SetWeaponArmsVisible(lua_State* L)
@@ -12648,6 +13011,12 @@ void addFunctions()
 	lua_register(lua, "SetEntityUsed", SetEntityUsed);
 	lua_register(lua, "GetEntityObjective", GetEntityObjective);
 	lua_register(lua, "GetEntityExplodable", GetEntityExplodable);
+	lua_register(lua, "SetEntityExplodable", SetEntityExplodable);
+	lua_register(lua, "SetExplosionHeight", SetExplosionHeight);
+	lua_register(lua, "SetExplosionDamage", SetExplosionDamage);
+	lua_register(lua, "SetCustomExplosion", SetCustomExplosion);
+	
+
 	lua_register(lua, "GetEntityCollectable", GetEntityCollectable);
 	lua_register(lua, "GetEntityCollected", GetEntityCollected);
 	lua_register(lua, "GetEntityUsed", GetEntityUsed);
@@ -13683,8 +14052,11 @@ void addFunctions()
 	lua_register(lua, "GetCurrentScreen", GetCurrentScreen);
 	lua_register(lua, "GetCurrentScreenName", GetCurrentScreenName);
 	lua_register(lua, "CheckScreenToggles", CheckScreenToggles);
+	lua_register(lua, "DisableGunFireInHUD", DisableGunFireInHUD);
+	lua_register(lua, "EnableGunFireInHUD", EnableGunFireInHUD);
 	lua_register(lua, "DisableBoundHudKeys", DisableBoundHudKeys);
 	lua_register(lua, "EnableBoundHudKeys", EnableBoundHudKeys);
+	
 	lua_register(lua, "ScreenToggle", ScreenToggle);
 	lua_register(lua, "ScreenToggleByKey", ScreenToggleByKey);
 	lua_register(lua, "GetIfUsingTABScreen", GetIfUsingTABScreen);
@@ -13772,6 +14144,7 @@ void addFunctions()
 	lua_register(lua, "GetWeaponArmsVisible", GetWeaponArmsVisible);
 
 	lua_register(lua, "GetEntityInZoneWithFilter", GetEntityInZoneWithFilter);
+	lua_register(lua, "IsPointWithinZone", IsPointWithinZone);
 
 	// In-game HUD
 	lua_register(lua, "IsPlayerInGame", IsPlayerInGame);
@@ -13795,6 +14168,14 @@ void addFunctions()
 	//Other effects.
 	lua_register(lua, "SetGrassScale", SetGrassScale);
 	lua_register(lua, "GetGrassScale", GetGrassScale);
+	lua_register(lua, "GunAnimationSetFrame", GunAnimationSetFrame);
+	lua_register(lua, "LoopGunAnimation", LoopGunAnimation);
+	lua_register(lua, "StopGunAnimation", StopGunAnimation);
+	lua_register(lua, "PlayGunAnimation", PlayGunAnimation);
+	lua_register(lua, "GunAnimationPlaying", GunAnimationPlaying);
+	lua_register(lua, "GetGunAnimationFramesFromName", GetGunAnimationFramesFromName);
+	lua_register(lua, "SetGunAnimationSpeed", SetGunAnimationSpeed);
+	lua_register(lua, "ForceGunUnderWater", ForceGunUnderWater);
 
 }
 

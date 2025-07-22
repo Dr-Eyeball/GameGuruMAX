@@ -830,6 +830,9 @@ end
 function MoveUp(e,v)
  SendMessageF_moveup(e,v)
 end
+function MoveDown( e, v )
+MoveUp( e, -v )
+end
 function MoveForward(e,v)
  SendMessageF_moveforward(e,v)
 end
@@ -2403,11 +2406,17 @@ MoveAndRotateToXYZ : pointindex, remainingdistance = MoveAndRotateToXYZ(e,movesp
 SetEntityPathRotationMode : SetEntityPathRotationMode(e,mode) -- set to 0 to disable object rotation when it follows a path (defaults to 1 to rotate the object to follow path direction)
 AdjustPositionToGetLineOfSight : success, x, z = AdjustPositionToGetLineOfSight(ignoreobj,x,y,z,targetx,targety,targetz,adjustmentradius)
 RDIsWithinMesh : result = RDIsWithinMesh(x,y,z) -- returns 1 if the XYZ coordinate is on the nav mesh
+RDIsWithinAndOverMesh : result = RDIsWithinAndOverMesh(x,y,z) -- returns 1 if the XYZ coordinate is on the nav mesh and over it
 RDGetYFromMeshPosition : y = RDGetYFromMeshPosition(x,y,z) -- returns the correcy Y coordinate of the nearest polygon surface on the nav mesh at specified position
 RDBlockNavMesh : RDBlockNavMesh(x,y,z,radius,blockmode) -- blocks an area on the nav mesh at specified position and radius, use blockmode of 1 to block
 RDBlockNavMeshWithShape : RDBlockNavMeshWithShape(x,y,z,sizex,blockmode,sizez,angle) -- blocks an area on the nav mesh at specified position and radius, use blockmode of 1 to block
 RDBlockNavMeshWithShape : RDBlockNavMeshWithShape(x,y,z,sizex,blockmode,sizez,angle,adjminy,adjmaxy) -- blocks an area on the nav mesh at specified position and radius, use blockmode of 1 to block
 SetCharacterMode : success = SetCharacterMode (e,mode) -- returns 1 if a character objects 'mode' was successfully changed (mode 1=character, 0=non-character)
+
+NEW MAX ZONE COMMANDS
+GetEntityInZoneWithFilter : result = GetEntityInZoneWithFilter(e) -- returns 1 if any entity is in this zone
+GetEntityInZoneWithFilter : result = GetEntityInZoneWithFilter(e,mode) -- returns 1 if specific entity is in this zone (1 to detect only active objects, 2 to only detect characters that are active, 3 to only detect non-characters that are active, 4 to only detect non static objects, 5 to only detect static objects)
+IsPointWithinZone : result = IsPointWithinZone(e,x,y,z) -- returns 1 if the XYZ coordinate is within specified entity zone
 
 NEW MAX TOKENDROP COMMANDS
 DoTokenDrop : DoTokenDrop(x,y,z,type,duration) -- creates a drop token at X, Y, Z position, with custom type and milliseconds life duration
@@ -2670,15 +2679,16 @@ GetTerrainCollisionDetails( objectId, num )
 -- GetCollectionQuestAttributeLabel : value = GetCollectionQuestAttributeLabel(attribindex) -- returns the label string stored at this position in the attribute list
 -- GetCollectionQuestQuantity : totalquests = GetCollectionQuestQuantity() -- returns total number of quests in the game
 -- GetCollectionQuestAttribute : value = GetCollectionQuestAttribute(questindex,"attrib") -- returns the value stored in the attrib label of the specified quest
--- MakeInventoryContainer : MakeInventoryContainer
--- GetInventoryTotal : GetInventoryTotal
--- GetInventoryName : GetInventoryName
--- GetInventoryExist : GetInventoryExist
--- GetInventoryQuantity : GetInventoryQuantity
--- GetInventoryItem : GetInventoryItem
--- GetInventoryItemID : GetInventoryItemID
--- GetInventoryItemSlot : GetInventoryItemSlot
--- SetInventoryItemSlot : SetInventoryItemSlot
--- MoveInventoryItem : MoveInventoryItem ( from, to, collectionID, slot ) 
--- DeleteAllInventoryContainers : DeleteAllInventoryContainers()
--- AddInventoryItem : AddInventoryItem ( to, collectionID, newe, slot )
+
+-- MakeInventoryContainer : containerindex = MakeInventoryContainer(inventory container name) -- creates a new inventory container
+-- GetInventoryTotal : quantity = GetInventoryTotal() -- returns to total number of inventory slots available
+-- GetInventoryName : string = GetInventoryName(index) -- returns the name of the inventory container at specified index
+-- GetInventoryExist : value = GetInventoryExist(index) -- returns one if the inventory container exists at specified index (HUD "HUD Screen 2" neds to exist)
+-- GetInventoryQuantity : quantity = GetInventoryQuantity(inventory container name) -- returns the number of items inside the specified inventory container)
+-- GetInventoryItem : collectionItemID = GetInventoryItem(inventory container name,index) -- returns the ID of the item at the specified index of the container
+-- GetInventoryItemID : entityelementID = GetInventoryItemID(inventory container name,index) -- returns the Entity ID of the item at the specified index of the container
+-- GetInventoryItemSlot : slotindex = GetInventoryItemSlot(inventory container name,index) -- returns the Slot Index of the item at the specified index of the container
+-- SetInventoryItemSlot : SetInventoryItemSlot(inventory container name,index,newslot) -- sets a new slot index for the item at the specified index of the container
+-- MoveInventoryItem : MoveInventoryItem ( container name from, container name to, collectionID, entityelementID, slot index ) -- moves an item across containers
+-- DeleteAllInventoryContainers : DeleteAllInventoryContainers() -- deletes ALL inventory containers - destructive!
+-- AddInventoryItem : AddInventoryItem ( container name, collectionID, newe, slot index ) -- adds a new item of collection and entityelement value to specified slot in the container

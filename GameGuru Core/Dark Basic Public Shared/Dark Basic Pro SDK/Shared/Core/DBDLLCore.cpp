@@ -405,30 +405,30 @@ void ImGui_RenderLast(void)
 #endif
 
 	//PE: ImGui render if we have a imgui frame.
-	if (bImGuiFrameState && bImGuiReadyToRender) 
+	if (bImGuiFrameState && bImGuiReadyToRender)
 	{
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
 		ImVec2 iOldWindowPadding = ImGui::GetStyle().WindowPadding;
 		bImGuiRenderTargetFocus = false;
 		bool bPopModalOpen = false;
 
-		#ifdef WICKEDENGINE
+#ifdef WICKEDENGINE
 		// Wicked variant only needs size to pass to SetScissorArea function hook
 		ImGui::Begin(TABEDITORNAME, NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 		ImGuiWindow* window = ImGui::GetCurrentWindow();
 		renderTargetAreaPos = ImGui::GetWindowPos();
-		renderTargetAreaSize = ImGui::GetContentRegionAvail() + ImVec2(8,4);
+		renderTargetAreaSize = ImGui::GetContentRegionAvail() + ImVec2(8, 4);
 
 		// account for position and size of main window
 		ImGuiViewport* mainViewport = ImGui::GetMainViewport();
-		renderTargetAreaPos -= (mainViewport->Pos - ImVec2(0,23));
+		renderTargetAreaPos -= (mainViewport->Pos - ImVec2(0, 23));
 		if (!bImGuiInTestGame)
 		{
 			//Dont touch Scissor in test game.
 			fImGuiScissorTopLeft = renderTargetAreaPos;
 			fImGuiScissorBottomRight = renderTargetAreaPos + renderTargetAreaSize;
 		}
-		if (!bPopModalOpen) 
+		if (!bPopModalOpen)
 		{
 			if (OldrenderTargetSize.x != renderTargetAreaSize.x || OldrenderTargetSize.y != renderTargetAreaSize.y ||
 				OldrenderTargetPos.x != renderTargetAreaPos.x || OldrenderTargetPos.y != renderTargetAreaPos.y)
@@ -442,7 +442,7 @@ void ImGui_RenderLast(void)
 
 		//LB: for some reason, no hover window detected when in Welcome Screen (unable to click buttons!)
 		extern int iTriggerWelcomeSystemStuff;
-		if (iTriggerWelcomeSystemStuff>0 )
+		if (iTriggerWelcomeSystemStuff > 0)
 			bImGuiRenderTargetFocus = true;
 
 		ImRect bb = { ImGui::GetWindowContentRegionMin() + ImGui::GetWindowPos(),ImGui::GetWindowContentRegionMax() + ImGui::GetWindowPos() };
@@ -482,13 +482,13 @@ void ImGui_RenderLast(void)
 			extern bool bBoostIconColors;
 			ImVec2 vCurPos = ImGui::GetCursorPos();
 			float fFontSize = ImGui::GetFontSize();
-			int icon_size = ImGui::GetFontSize()*3.0;
+			int icon_size = ImGui::GetFontSize() * 3.0;
 			ImVec2 VIconSize = { (float)icon_size, (float)icon_size };
 			if (ImGui::ImgBtn(TOOL_GOBACK, VIconSize, ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f), ImVec4(1.0f, 1.0f, 1.0f, 0.5f), ImVec4(0.5f, 0.5f, 0.5f, 0.5f), 0, 0, 0, 0, false, false, false, false, false, bBoostIconColors))
 			{
 				g_bCharacterCreatorPlusActivated = false;
 			}
-			if (ImGui::IsItemHovered() ) ImGui::SetTooltip("%s", "Exit Character Creator");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Exit Character Creator");
 		}
 
 		extern bool bImporter_Window;
@@ -496,7 +496,7 @@ void ImGui_RenderLast(void)
 		{
 			extern bool bBoostIconColors;
 			ImVec2 vCurPos = ImGui::GetCursorPos();
-			int icon_size = ImGui::GetFontSize()*3.0;
+			int icon_size = ImGui::GetFontSize() * 3.0;
 			ImVec2 VIconSize = { (float)icon_size, (float)icon_size };
 			if (ImGui::ImgBtn(TOOL_GOBACK, VIconSize, ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f), ImVec4(1.0f, 1.0f, 1.0f, 0.5f), ImVec4(0.5f, 0.5f, 0.5f, 0.5f), 0, 0, 0, 0, false, false, false, false, false, bBoostIconColors))
 			{
@@ -505,7 +505,507 @@ void ImGui_RenderLast(void)
 			}
 			if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Exit Importer");
 		}
+#ifdef PENEWLAYOUT
+		ImVec2 winpos = ImGui::GetWindowPos();
+		ImVec2 winsize = ImGui::GetWindowSize();
+		ImVec2 winsizeavail = ImGui::GetContentRegionAvail();
+#endif
 		ImGui::End();
+
+#ifdef PENEWLAYOUT
+		extern bool bTerrain_Tools_Window;
+		extern bool bWelcomeScreen_Window;
+		extern bool bStoryboardWindow;
+		extern bool bMarketplace_Window;
+		extern bool bScreen_Editor_Window;
+		if ( (pref.iSmallToolbar >= 1) && !g_bCharacterCreatorPlusActivated && !bImporter_Window && !bTerrain_Tools_Window
+			&& !bWelcomeScreen_Window && !bStoryboardWindow && !bMarketplace_Window && !bScreen_Editor_Window)
+		{
+		
+			//PE: VS2022 style
+			float r = pref.status_bar_color.x; // = ImVec4((1.0f / 255.0f) * 14, (1.0f / 255.0f) * 99, (1.0f / 255.0f) * 156, 1.0);
+			float g = pref.status_bar_color.y; // (1.0f / 255.0f) * 99;
+			float b = pref.status_bar_color.z; // (1.0f / 255.0f) * 156;
+			if (pref.current_style == 25)
+			{
+				r = (1.0f / 255.0f) * 43;
+				g = (1.0f / 255.0f) * 79;
+				b = (1.0f / 255.0f) * 106;
+			}
+			else if (pref.current_style != 1)
+			{
+				ImVec4* colors = ImGui::GetStyle().Colors;
+				r = colors[ImGuiCol_WindowBg].x;
+				g = colors[ImGuiCol_WindowBg].y;
+				b = colors[ImGuiCol_WindowBg].z;
+			}
+
+			ImVec4 IconColor = ImVec4(1.0, 1.0, 1.0, 0.8);
+			ImVec4 IconColorSelected = ImVec4(1.0, 1.0, 1.0, 0.9);
+			const ImVec4 bgColor = ImVec4(0.0, 0.0, 0.0, 0.125);
+			const ImVec4 bgColorSelected = ImVec4(r, g, b, 1);
+			if (pref.current_style == 25)
+			{
+				IconColor = ImVec4(1.0, 1.0, 1.0, 0.9);
+				IconColorSelected = ImVec4(1.0, 1.0, 1.0, 1.0);
+			}
+			const float groupspacer = 8.0f;
+			float smalltoolbariconsize = 22.0f;
+			float boxwidth = 200 + groupspacer;
+			float fInputTextWidth = 36.0f;
+			if (pref.iSmallToolbar == 1)
+				fInputTextWidth = 37.0f;
+
+			if (pref.iAdvancedGridModeSettings == 0)
+			{
+				boxwidth += fInputTextWidth;
+			}
+			if (pref.iAdvancedGridModeSettings == 0 && pref.iSmallToolbar == 1)
+				boxwidth -= (smalltoolbariconsize - 2);
+			else
+				boxwidth -= (smalltoolbariconsize - 1);
+
+			ImGuiViewport* viewport = ImGui::GetMainViewport();
+			if (pref.iSmallToolbar == 2)
+			{
+				boxwidth = 40;
+				smalltoolbariconsize = 36.0f;
+				ImGui::SetNextWindowPos(winpos + ImVec2(winsizeavail.x - boxwidth, 22 + ((boxwidth - smalltoolbariconsize)*2.0f)), ImGuiCond_Always, ImVec2(0, 0));
+				ImGui::SetNextWindowSize(ImVec2(smalltoolbariconsize,-1), ImGuiCond_Always);
+			}
+			else if (pref.iSmallToolbar == 3)
+			{
+				boxwidth = 30;
+				ImGui::SetNextWindowPos(winpos + ImVec2(winsizeavail.x - boxwidth, 22 + ((boxwidth - smalltoolbariconsize) * 2.0f)), ImGuiCond_Always, ImVec2(0, 0));
+				ImGui::SetNextWindowSize(ImVec2(smalltoolbariconsize, -1), ImGuiCond_Always);
+			}
+			else if (pref.iSmallToolbar == 4)
+			{
+				int icon_size = 44; // 50;
+				boxwidth = (icon_size * 8.0f) + (groupspacer * 2.0f);
+				smalltoolbariconsize = icon_size;
+				ImVec2 viewPortPos = ImGui::GetMainViewport()->Pos;
+				ImVec2 viewPortSize = ImGui::GetMainViewport()->Size;
+				float fsy = ImGui::CalcTextSize("#").y;
+				int toolbar_size = icon_size + (fsy * 2.0) + 2;
+				float center = (viewPortSize.x * 0.5f) - (boxwidth * 0.5f);
+				float menubarsize = 27.0f + ( (50.0f - icon_size) * 0.5f );
+				ImGui::SetNextWindowPos( viewPortPos + ImVec2(center, menubarsize), ImGuiCond_Always);
+				ImGui::SetNextWindowSize( ImVec2(boxwidth, icon_size) );
+			}
+			else
+			{
+				ImGui::SetNextWindowPos(winpos + ImVec2(winsizeavail.x - boxwidth, 0), ImGuiCond_Always, ImVec2(0, 0));
+			}
+			ImGui::SetNextWindowViewport(viewport->ID);
+			if (pref.iSmallToolbar == 2 || pref.iSmallToolbar == 3 || pref.iSmallToolbar == 4)
+				ImGui::SetNextWindowBgAlpha(0.35f);
+			else
+				ImGui::SetNextWindowBgAlpha(0.0f);
+
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0, 0 });
+			if (pref.iSmallToolbar == 2 || pref.iSmallToolbar == 3)
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+			else
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 0, 0 });
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 0, 0 });
+			ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 0);
+			
+			bool bWidgetEnabled = pref.iEnableDragDropWidgetSelect;
+			void SetWidgetMode(int mode);
+			int GetWidgetMode(void);
+			int GetEntitySelected(void);
+			int GetEntityGridMode(void);
+			int GetActiveEditorObject(void);
+			void GridPopup(ImVec2 wpos);
+			void widget_hide(void);
+			void widget_show_widget(void);
+			bool bAlwaysOpen = true;
+			ImVec2 popup_pos = { 0,0 };
+			uint32_t flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+			if (pref.iSmallToolbar == 4)
+			{
+				flags |= ImGuiWindowFlags_Tooltip;
+			}
+			if (ImGui::Begin("##smalltoolbarineditor", &bAlwaysOpen, flags))
+			{
+				bool bSelected = (GetWidgetMode() == 0 && bWidgetEnabled);
+				ImGui::SetItemAllowOverlap();
+				if (ImGui::ImgBtn(TOOLBAR_POSITION, ImVec2(smalltoolbariconsize, smalltoolbariconsize), bSelected ? bgColorSelected : bgColor, bSelected ? IconColorSelected : IconColor, ImVec4(0.7, 0.7, 0.7, 0.7), ImVec4(0.7, 0.7, 0.7, 0.7), 0, 0, 0, 0, false, false, false, false, false, false))
+				{
+					pref.iEnableDragDropWidgetSelect = true;
+					SetWidgetMode(0);
+					widget_show_widget();
+				}
+
+				if (pref.iSmallToolbar == 1 || pref.iSmallToolbar == 4)
+					ImGui::SameLine();
+				bSelected = (GetWidgetMode() == 1 && bWidgetEnabled);
+				ImGui::SetItemAllowOverlap();
+				if (ImGui::ImgBtn(TOOLBAR_ROTATE, ImVec2(smalltoolbariconsize, smalltoolbariconsize), bSelected ? bgColorSelected : bgColor, bSelected ? IconColorSelected : IconColor, ImVec4(0.7, 0.7, 0.7, 0.7), ImVec4(0.7, 0.7, 0.7, 0.7), 0, 0, 0, 0, false, false, false, false, false, false))
+				{
+					pref.iEnableDragDropWidgetSelect = true;
+					SetWidgetMode(1);
+					widget_show_widget();
+				}
+				if (pref.iSmallToolbar == 1 || pref.iSmallToolbar == 4)
+					ImGui::SameLine();
+				bSelected = (GetWidgetMode() == 2 && bWidgetEnabled);
+				ImGui::SetItemAllowOverlap();
+				if (ImGui::ImgBtn(TOOLBAR_SCALE, ImVec2(smalltoolbariconsize, smalltoolbariconsize), bSelected ? bgColorSelected : bgColor, bSelected ? IconColorSelected : IconColor, ImVec4(0.7, 0.7, 0.7, 0.7), ImVec4(0.7, 0.7, 0.7, 0.7), 0, 0, 0, 0, false, false, false, false, false, false))
+				{
+					pref.iEnableDragDropWidgetSelect = true;
+					SetWidgetMode(2);
+					widget_show_widget();
+				}
+				if (pref.iSmallToolbar == 1 || pref.iSmallToolbar == 4)
+					ImGui::SameLine();
+
+				if (pref.iSmallToolbar == 1 || pref.iSmallToolbar == 4)
+					ImGui::SetCursorPosX(ImGui::GetCursorPosX() + groupspacer);
+				else
+					ImGui::SetCursorPosY(ImGui::GetCursorPosY() + groupspacer);
+
+				extern int iObjectMoveMode;
+				bSelected = false;
+				if (!bWidgetEnabled && iObjectMoveMode == 2)
+					bSelected = true;
+
+				if (ImGui::ImgBtn(TOOLBAR_SURFACE, ImVec2(smalltoolbariconsize, smalltoolbariconsize), bSelected ? bgColorSelected : bgColor, bSelected ? IconColorSelected : IconColor, ImVec4(0.7, 0.7, 0.7, 0.7), ImVec4(0.7, 0.7, 0.7, 0.7), 0, 0, 0, 0, false, false, false, false, false, false))
+				{
+					pref.iEnableDragDropWidgetSelect = false;
+					iObjectMoveMode = 2;
+					widget_hide();
+				}
+				if (pref.iSmallToolbar == 1 || pref.iSmallToolbar == 4)
+					ImGui::SameLine();
+				bSelected = false;
+				if (!bWidgetEnabled && iObjectMoveMode == 0)
+					bSelected = true;
+				if (ImGui::ImgBtn(TOOLBAR_HORI, ImVec2(smalltoolbariconsize, smalltoolbariconsize), bSelected ? bgColorSelected : bgColor, bSelected ? IconColorSelected : IconColor, ImVec4(0.7, 0.7, 0.7, 0.7), ImVec4(0.7, 0.7, 0.7, 0.7), 0, 0, 0, 0, false, false, false, false, false, false))
+				{
+					pref.iEnableDragDropWidgetSelect = false;
+					iObjectMoveMode = 0;
+					widget_hide();
+				}
+				if (pref.iSmallToolbar == 1 || pref.iSmallToolbar == 4)
+					ImGui::SameLine();
+				bSelected = false;
+				if (!bWidgetEnabled && iObjectMoveMode == 1)
+					bSelected = true;
+				if (ImGui::ImgBtn(TOOLBAR_VERT, ImVec2(smalltoolbariconsize, smalltoolbariconsize), bSelected ? bgColorSelected : bgColor, bSelected ? IconColorSelected : IconColor, ImVec4(0.7, 0.7, 0.7, 0.7), ImVec4(0.7, 0.7, 0.7, 0.7), 0, 0, 0, 0, false, false, false, false, false, false))
+				{
+					pref.iEnableDragDropWidgetSelect = false;
+					iObjectMoveMode = 1;
+					widget_hide();
+				}
+				if (pref.iSmallToolbar == 1 || pref.iSmallToolbar == 4)
+					ImGui::SameLine();
+
+				// Snap Mode Toggle
+				bool bSnapSelected = false;
+				if (pref.iGridEnabled == true && pref.iGridMode == 1)
+					bSnapSelected = true;
+				if (GetEntityGridMode() == 1)
+					bSnapSelected = true;
+				if (ImGui::ImgBtn(TOOLBAR_SNAP, ImVec2(smalltoolbariconsize, smalltoolbariconsize), bSnapSelected ? bgColorSelected : bgColor, bSnapSelected ? IconColorSelected : IconColor, ImVec4(0.7, 0.7, 0.7, 0.7), ImVec4(0.7, 0.7, 0.7, 0.7), 0, 0, 0, 0, false, false, false, false, false, false))
+				{
+					SetWidgetMode(4); //Toggle snap on off.
+					if (pref.iGridMode == 0) pref.iGridEnabled = false;
+				}
+
+				if (pref.iSmallToolbar == 1 || pref.iSmallToolbar == 4)
+					ImGui::SameLine();
+
+				if (pref.iSmallToolbar == 1 || pref.iSmallToolbar == 4)
+					ImGui::SetCursorPosX(ImGui::GetCursorPosX() + groupspacer);
+				else
+					ImGui::SetCursorPosY(ImGui::GetCursorPosY() + groupspacer);
+
+				bSelected = false;
+				if (pref.iGridEnabled == true && pref.iGridMode == 2)
+					bSelected = true;
+
+				if (ImGui::ImgBtn(TOOLBAR_GRID, ImVec2(smalltoolbariconsize, smalltoolbariconsize), bSelected ? bgColorSelected : bgColor, bSelected ? IconColorSelected : IconColor, ImVec4(0.7, 0.7, 0.7, 0.7), ImVec4(0.7, 0.7, 0.7, 0.7), 0, 0, 0, 0, false, false, false, false, false, false))
+				{
+					SetWidgetMode(5); //Toggle grid on off.
+					if (pref.iGridMode == 0) pref.iGridEnabled = false;
+				}
+				if (pref.iGridEnabled == true && pref.iGridMode == 2)
+					bSelected = true;
+
+				//PE: Not needed anymore grid settings is always visible in all configurations.
+				/*
+				if (pref.iSmallToolbar == 1 || pref.iSmallToolbar == 4)
+					ImGui::SameLine();
+
+				if (!(pref.iAdvancedGridModeSettings == 0 && (pref.iSmallToolbar == 1 || pref.iSmallToolbar == 2)))
+				{
+					popup_pos = ImGui::GetCursorScreenPos();
+					if (ImGui::ImgBtn(TOOLBAR_GRIDSETTINGS, ImVec2(smalltoolbariconsize, smalltoolbariconsize), bSelected ? bgColorSelected : bgColor, bSelected ? IconColorSelected : IconColor, ImVec4(0.7, 0.7, 0.7, 0.7), ImVec4(0.7, 0.7, 0.7, 0.7), 0, 0, 0, 0, false, false, false, false, false, false))
+					{
+						//PE: Popup grid settings.
+						ImGui::OpenPopup("Grid##GridSettings");
+					}
+				}
+				*/
+				if (pref.iSmallToolbar == 1 || pref.iSmallToolbar == 4)
+					popup_pos.y = ImGui::GetCursorScreenPos().y;
+				else
+					popup_pos.x = ImGui::GetCursorScreenPos().x + smalltoolbariconsize;
+
+				if (pref.iAdvancedGridModeSettings == 0 && (pref.iSmallToolbar == 1 || pref.iSmallToolbar == 2))
+				{
+					if (pref.iSmallToolbar == 1 || pref.iSmallToolbar == 4)
+						ImGui::SameLine();
+					if(pref.iSmallToolbar == 1)
+						ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 2.0f, 1.5f });
+					else
+						ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 1.5f, 1.5f });
+					if (!(pref.iGridEnabled == true && pref.iGridMode == 2))
+					{
+						ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+						ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+					}
+
+					ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2.0f);
+					if (pref.iSmallToolbar == 1)
+						ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 2.0f);
+
+					ImGui::PushItemWidth(fInputTextWidth);
+					std::string precision = "%.2f";
+					if (pref.fEditorGridSizeX >= 100.0f)
+					{
+						precision = "%.1f";
+					}
+					if (ImGui::InputFloat("##XYZgridsizeXYZ", &pref.fEditorGridSizeX, 0.0f, 0.0f, precision.c_str()))
+					{
+						// can never have a grid size below one
+						if (pref.fEditorGridSizeX <= 1) pref.fEditorGridSizeX = 1.0f;
+						// and all grid dimensions the same!
+						pref.fEditorGridOffsetX = 0;
+						pref.fEditorGridOffsetY = 0;
+						pref.fEditorGridOffsetZ = 0;
+						pref.fEditorGridSizeY = pref.fEditorGridSizeX;
+						pref.fEditorGridSizeZ = pref.fEditorGridSizeX;
+					}
+					if (!pref.iTurnOffEditboxTooltip && ImGui::IsItemHovered()) ImGui::SetTooltip("Change Grid Size");
+
+					if (!(pref.iGridEnabled == true && pref.iGridMode == 2))
+					{
+						ImGui::PopItemFlag();
+						ImGui::PopStyleVar();
+					}
+
+					ImGui::PopItemWidth();
+					ImGui::PopStyleVar();
+					if (pref.iSmallToolbar == 2)
+						ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2.0f);
+
+				}
+
+			}
+
+			ImGui::PopStyleVar(5);
+			GridPopup(popup_pos);
+			ImGui::End();
+
+
+			if (pref.iGridEnabled == true && pref.iGridMode == 2)
+			{
+				if (pref.iAdvancedGridModeSettings == 1 || !((pref.iSmallToolbar == 1 || pref.iSmallToolbar == 2)))
+				{
+					bool bButSpacer = true;
+					const float button_width_fix = 5.0f;
+					float but_gadget_size = ImGui::GetFontSize() * 14.0;
+					float input_text_width = 60.0f;
+					int icon_size = 44; // 50;
+					boxwidth = (icon_size * 8.0f) + (groupspacer * 2.0f);
+					smalltoolbariconsize = icon_size;
+					ImVec2 viewPortPos = ImGui::GetMainViewport()->Pos;
+					ImVec2 viewPortSize = ImGui::GetMainViewport()->Size;
+					float fsy = ImGui::CalcTextSize("#").y;
+					int toolbar_size = icon_size + (fsy * 2.0) + 2;
+					float menubarsize = 27.0f + ((50.0f - icon_size) * 0.5f);
+					if (pref.iAdvancedGridModeSettings == 0)
+					{
+						menubarsize += 12.0f;
+						boxwidth = 150.0f;
+						icon_size = 28.0;
+					}
+					else
+					{
+						menubarsize += 2;
+						boxwidth = 620.0f;
+						icon_size = 50.0f;
+					}
+					float center = (viewPortSize.x * 0.5f) - (boxwidth * 0.5f);
+					ImGui::SetNextWindowPos(viewPortPos + ImVec2(center, menubarsize), ImGuiCond_Always);
+					ImGui::SetNextWindowSize(ImVec2(boxwidth, icon_size));
+
+					flags |= ImGuiWindowFlags_Tooltip;
+					flags |= ImGuiWindowFlags_NoBackground;
+
+					if (ImGui::Begin("##additionaltoolbarineditor", &bAlwaysOpen, flags))
+					{
+						int GetEntityObject(int iEntityIndex);
+						void GetEntityPosition(int iEntityIndex, float& x, float& y, float& z);
+						int GetRubberbandSize(void);
+
+						int iEntityIndex = GetEntitySelected();
+						int iActiveObj = GetActiveEditorObject();
+
+						ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 2.0f, 2.0f });
+
+						//PE: Additional window corering the original toolbar.
+						if (pref.iAdvancedGridModeSettings == 0)
+						{
+							// Simple Grid Mode
+							ImGui::Text("Grid Size");
+							float w = ImGui::GetContentRegionAvail().x;
+							float inputsize = w / 4.0f;
+							ImGui::SameLine();
+							//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2((w / 2) - (inputsize / 2), 0.0f));
+							ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2.0f);
+							ImGui::PushItemWidth(input_text_width);
+							ImGui::InputFloat("##XYZgridsizeXYZ2", &pref.fEditorGridSizeX, 0.0f, 0.0f, "%.1f");
+							//if (!pref.iTurnOffEditboxTooltip && ImGui::IsItemHovered()) ImGui::SetTooltip("Change Grid Size");
+							ImGui::PopItemWidth();
+
+							// can never have a grid size below one
+							if (pref.fEditorGridSizeX <= 1) pref.fEditorGridSizeX = 1.0f;
+
+							// and all grid dimensions the same!
+							pref.fEditorGridOffsetX = 0;
+							pref.fEditorGridOffsetY = 0;
+							pref.fEditorGridOffsetZ = 0;
+							pref.fEditorGridSizeY = pref.fEditorGridSizeX;
+							pref.fEditorGridSizeZ = pref.fEditorGridSizeX;
+						}
+						else
+						{
+							// Advanced Grid Mode functions and settings
+							float start_cursor_x = 80.0f;
+							ImGui::Text("Grid Offset");
+							ImGui::SameLine();
+							float w = ImGui::GetContentRegionAvail().x;
+							float inputsize = w / 3.0f;
+							inputsize -= 10.0f; //For text.
+							inputsize -= 5.0f; //For padding.
+
+							//ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2.0f);
+							ImGui::SetCursorPosX(start_cursor_x);
+							ImGui::Text("X");
+							ImGui::SameLine();
+							ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(0.0f, -3.0f));
+							ImGui::PushItemWidth(input_text_width);
+							ImGui::InputFloat("##XYZgridoffsetX", &pref.fEditorGridOffsetX, 0.0f, 0.0f, "%.1f");
+							if (!pref.iTurnOffEditboxTooltip && ImGui::IsItemHovered()) ImGui::SetTooltip("Change Grid Offset X");
+							ImGui::PopItemWidth();
+							ImGui::SameLine();
+							ImGui::Text("Y");
+							ImGui::SameLine();
+							ImGui::PushItemWidth(input_text_width);
+							ImGui::InputFloat("##XYZgridoffsetY", &pref.fEditorGridOffsetY, 0.0f, 0.0f, "%.1f");
+							if (!pref.iTurnOffEditboxTooltip && ImGui::IsItemHovered()) ImGui::SetTooltip("Change Grid Offset Y");
+							ImGui::PopItemWidth();
+							ImGui::SameLine();
+							ImGui::Text("Z");
+							ImGui::SameLine();
+							ImGui::PushItemWidth(input_text_width);
+							ImGui::InputFloat("##XYZgridoffsetZ", &pref.fEditorGridOffsetZ, 0.0f, 0.0f, "%.1f");
+							if (!pref.iTurnOffEditboxTooltip && ImGui::IsItemHovered()) ImGui::SetTooltip("Change Grid Offset Z");
+							ImGui::PopItemWidth();
+							ImGui::SameLine();
+							if (ImGui::StyleButton("Default Grid Settings", ImVec2(284, 0)))
+							{
+								pref.fEditorGridOffsetX = 50;
+								pref.fEditorGridOffsetY = 0;
+								pref.fEditorGridOffsetZ = 50;
+								pref.fEditorGridSizeX = 100;
+								pref.fEditorGridSizeY = 10;
+								pref.fEditorGridSizeZ = 100;
+							}
+
+
+							ImGui::Text("Grid Size");
+							ImGui::SameLine();
+							//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(0.0f, 3.0f));
+							ImGui::SetCursorPosX(start_cursor_x);
+							ImGui::Text("X");
+							ImGui::SameLine();
+							ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(0.0f, -3.0f));
+							ImGui::SameLine();
+							ImGui::PushItemWidth(input_text_width);
+							ImGui::InputFloat("##XYZgridsizeX", &pref.fEditorGridSizeX, 0.0f, 0.0f, "%.1f");
+							if (!pref.iTurnOffEditboxTooltip && ImGui::IsItemHovered()) ImGui::SetTooltip("Change Grid Size X");
+							ImGui::PopItemWidth();
+							ImGui::SameLine();
+							ImGui::Text("Y");
+							ImGui::SameLine();
+							ImGui::PushItemWidth(input_text_width);
+							ImGui::InputFloat("##XYZgridsizeY", &pref.fEditorGridSizeY, 0.0f, 0.0f, "%.1f");
+							if (!pref.iTurnOffEditboxTooltip && ImGui::IsItemHovered()) ImGui::SetTooltip("Change Grid Size Y");
+							ImGui::PopItemWidth();
+							ImGui::SameLine();
+							ImGui::Text("Z");
+							ImGui::SameLine();
+							ImGui::PushItemWidth(input_text_width);
+							ImGui::InputFloat("##XYZgridsizeZ", &pref.fEditorGridSizeZ, 0.0f, 0.0f, "%.1f");
+							if (!pref.iTurnOffEditboxTooltip && ImGui::IsItemHovered()) ImGui::SetTooltip("Change Grid Size Z");
+							ImGui::PopItemWidth();
+
+							bButSpacer = false;
+
+							// clever button to align grid to object (for older levels with arbitary alignments mixed together)
+							if (iEntityIndex > 0 && GetRubberbandSize() == 0)
+							{
+								ImGui::SameLine();
+								//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2((w * 0.5) - ((but_gadget_size * 0.5) + button_width_fix), 0.0f));
+								if (ImGui::StyleButton("Align Offset To Object", ImVec2(140, 0)))
+								{
+									float x = 0;// t.entityelement[iEntityIndex].x;
+									float y = 0;// t.entityelement[iEntityIndex].y;
+									float z = 0;// t.entityelement[iEntityIndex].z;
+									GetEntityPosition(iEntityIndex, x, y, z);
+
+									int iSizeRoundedX = int(x / pref.fEditorGridSizeX) * pref.fEditorGridSizeX;
+									pref.fEditorGridOffsetX = x - iSizeRoundedX;
+									int iSizeRoundedY = int(y / pref.fEditorGridSizeY) * pref.fEditorGridSizeY;
+									pref.fEditorGridOffsetY = y - iSizeRoundedY;
+									int iSizeRoundedZ = int(z / pref.fEditorGridSizeZ) * pref.fEditorGridSizeZ;
+									pref.fEditorGridOffsetZ = z - iSizeRoundedZ;
+								}
+								//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2((w * 0.5) - ((but_gadget_size * 0.5) + button_width_fix), 0.0f));
+								ImGui::SameLine();
+								ImGui::SetCursorPosX(ImGui::GetCursorPosX() - 4.0f);
+								if (ImGui::StyleButton("Align Size To Object", ImVec2(140, 0)))
+								{
+									int obj = GetEntityObject(iEntityIndex);
+									float sx = ObjectSizeX(obj, 1);
+									float sy = ObjectSizeY(obj, 1);
+									float sz = ObjectSizeZ(obj, 1);
+									pref.fEditorGridSizeX = sx;
+									pref.fEditorGridSizeY = sy;
+									pref.fEditorGridSizeZ = sz;
+								}
+							}
+
+							// can never have a grid size below one
+							if (pref.fEditorGridSizeX <= 1) pref.fEditorGridSizeX = 1.0f;
+							if (pref.fEditorGridSizeY <= 1) pref.fEditorGridSizeY = 1.0f;
+							if (pref.fEditorGridSizeZ <= 1) pref.fEditorGridSizeZ = 1.0f;
+						}
+						ImGui::PopStyleVar();
+					}
+					ImGui::End();
+				}
+			}
+		}
+#endif
+
+
 
 		#ifdef SHOWDEBUGMEM
 		ShowMemDebug();
@@ -806,10 +1306,14 @@ void ShowMemDebug(void)
 			fGBMemUsed = (float)SMEMAvailable(1) / 1024.0 / 1024.0;
 
 #ifdef INCLUDEVRAM
-		static float vram = 0;
+		//PE: Always show dedicated VRAM + system RAM GPU use.
+		static float tvram = 0;
 		if (memupdatecount % 13 == 0)
-			vram = GetVramUsage();
-		sprintf(memtmp, "FPS %.1f Mem %.2f VRam %.2f", (ImGui::GetIO().Framerate + oldfps) * 0.5f, fGBMemUsed, vram / 1024.0f);
+		{
+			float GetTotalVramUsage(void);
+			tvram = GetTotalVramUsage();
+		}
+		sprintf(memtmp, "FPS %.1f Mem %.2f VRam %.2f", (ImGui::GetIO().Framerate + oldfps) * 0.5f, fGBMemUsed, tvram / 1024.0f);
 		wide = 210.0f;
 #else
 		//sprintf(memtmp, "FPS: %.1f Mem GB: %.3f", ImGui::GetIO().Framerate, fGBMemUsed);
@@ -5692,5 +6196,28 @@ float GetVramUsage(void)
 	DXGI_QUERY_VIDEO_MEMORY_INFO videoMemoryInfo;
 	adapter->QueryVideoMemoryInfo(g_iActiveAdapterNumber, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &videoMemoryInfo);
 	return (float)videoMemoryInfo.CurrentUsage / 1024.0f / 1024.0f;
+}
+
+float GetTotalVramUsage(void)
+{
+	extern uint32_t g_iActiveAdapterNumber;
+	if (!pFactory)
+		CreateDXGIFactory1(__uuidof(IDXGIFactory4), (void**)&pFactory);
+	if (!adapter)
+		pFactory->EnumAdapters(0, reinterpret_cast<IDXGIAdapter**>(&adapter));
+	DXGI_QUERY_VIDEO_MEMORY_INFO videoMemoryInfo = {};
+	adapter->QueryVideoMemoryInfo(g_iActiveAdapterNumber, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &videoMemoryInfo);
+	float TotalVRam = (float)videoMemoryInfo.CurrentUsage / 1024.0f / 1024.0f;
+
+	DXGI_QUERY_VIDEO_MEMORY_INFO nonLocalVideoMemoryInfo = {};
+	HRESULT hrNonLocal = adapter->QueryVideoMemoryInfo(g_iActiveAdapterNumber, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &nonLocalVideoMemoryInfo);
+	TotalVRam += (float)nonLocalVideoMemoryInfo.CurrentUsage / 1024.0f / 1024.0f;
+
+	//usageInfo.nonLocalUsedMB = (float)nonLocalVideoMemoryInfo.CurrentUsage / 1024.0f / 1024.0f;
+	//usageInfo.nonLocalBudgetMB = (float)nonLocalVideoMemoryInfo.Budget / 1024.0f / 1024.0f;
+	//usageInfo.nonLocalSwappedOutMB = (float)(nonLocalVideoMemoryInfo.Budget - nonLocalVideoMemoryInfo.CurrentUsage) / 1024.0f / 1024.0f;
+	//if (usageInfo.nonLocalSwappedOutMB < 0) usageInfo.nonLocalSwappedOutMB = 0; // Ensure non-negative
+
+	return(TotalVRam);
 }
 #endif

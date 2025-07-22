@@ -1030,6 +1030,9 @@ void lua_showterrain ( void )
 
 void lua_hidewater ( void )
 {
+	if (t.hardwareinfoglobals.nowater == 1)
+		return;
+
 	t.hardwareinfoglobals.nowater=1;
 	if (  ObjectExist(t.terrain.objectstartindex+5) == 1  )  HideObject (  t.terrain.objectstartindex+5 );
 	ODESetDynamicCharacterController (  t.aisystem.objectstartindex,-10000,0,0,0,0,0,0 );
@@ -1037,20 +1040,28 @@ void lua_hidewater ( void )
 	// Wicked Water
 	t.visuals.bWaterEnable = 0;
 	extern void Wicked_Update_Visuals(void* voidvisual);
+	float oldgdefaultwaterheight = g.gdefaultwaterheight;
+	g.gdefaultwaterheight = t.terrain.waterliney_f;
 	Wicked_Update_Visuals((void*)&t.visuals);
+	g.gdefaultwaterheight = oldgdefaultwaterheight;
 }
 
 void lua_showwater ( void )
 {
+	if (t.hardwareinfoglobals.nowater == 0)
+		return;
 	t.hardwareinfoglobals.nowater=0;
 	if (  ObjectExist(t.terrain.objectstartindex+5) == 1  )  ShowObject (  t.terrain.objectstartindex+5 );
 	extern float g_fWaterLineY;
 	ODESetDynamicCharacterController (  t.aisystem.objectstartindex,g_fWaterLineY,0,0,0,0,0,0 );
 
 	// Wicked Water
-	t.visuals.bWaterEnable = 1;
 	extern void Wicked_Update_Visuals(void* voidvisual);
+	t.visuals.bWaterEnable = 1;
+	float oldgdefaultwaterheight = g.gdefaultwaterheight;
+	g.gdefaultwaterheight = t.terrain.waterliney_f;
 	Wicked_Update_Visuals((void*)&t.visuals);
+	g.gdefaultwaterheight = oldgdefaultwaterheight;
 }
 
 void lua_hidehuds ( void )

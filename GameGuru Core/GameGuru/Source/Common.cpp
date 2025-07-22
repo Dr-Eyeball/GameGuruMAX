@@ -691,6 +691,7 @@ void common_init ( void )
 	}
 
 	// Setup Dear ImGui style
+	myDefaultStyles();
 	ImGui::StyleColorsDark();
 	myDarkStyle(NULL); //for bordersize,padding ...
 	myStyle2(NULL); //additional settings before change.
@@ -699,7 +700,21 @@ void common_init ( void )
 	if(pref.current_style == 0)
 		myStyle2(NULL);
 	else if (pref.current_style == 1)
+	{
+		#ifdef PENEWLAYOUT
+		void DarkColorsNoTransparent(void);
+		myStyle2(NULL);
+		DarkColorsNoTransparent();
+		#else
 		myDarkStyle(NULL);
+		#endif
+	}
+	#ifdef PENEWLAYOUT
+	else if (pref.current_style == 9)
+	{
+		myDarkStyle(NULL);
+	}
+	#endif
 	else if (pref.current_style == 2)
 		ImGui::StyleColorsClassic();
 	else if (pref.current_style == 3)
@@ -2562,6 +2577,16 @@ void FPSC_LoadSETUPINI (bool bUseMySystemFolder)
 						g.globals.CurveDistanceScaler = t.value1;
 					}
 
+					t.tryfield_s = "converttodds"; if (t.field_s == t.tryfield_s)
+					{
+						g.globals.ConvertToDDS = t.value1;
+					}
+
+					t.tryfield_s = "converttoddsmaxsize"; if (t.field_s == t.tryfield_s)
+					{
+						g.globals.ConvertToDDSMaxSize = t.value1;
+					}
+
 					// DOCDOC: editorusemediumshadows = Sets the editor to render medium level shadows while editing
 					t.tryfield_s = "editorusemediumshadows"; if (t.field_s == t.tryfield_s)  g.globals.editorusemediumshadows = t.value1;
 
@@ -3164,7 +3189,7 @@ void FPSC_LoadSETUPINI (bool bUseMySystemFolder)
 						}
 					}
 
-					// DOCDOC: melee key = Not Used
+					// DOCDOC: melee key = Specifies melee key for this weapon
 					if (t.field_s == "melee key")  g.ggunmeleekey = t.value1;
 
 					// DOCDOC: switchtoalt = Not Used

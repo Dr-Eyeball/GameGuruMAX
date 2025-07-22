@@ -161,6 +161,18 @@ void WickedCall_InitImageManagement(LPSTR pRootFolder)
 	g_rootFolder = pRootFolder;
 }
 
+void WickedCall_FreeImage_By_MasterID(uint32_t masterid)
+{
+	for (int i = 0; i < g_imageList.size(); i++)
+	{
+		sImageList* pImage = &g_imageList[i];
+		if (pImage->MasterObject == masterid)
+		{
+			WickedCall_FreeImage(pImage);
+		}
+	}
+}
+
 void WickedCall_FreeImage(sImageList* pImage)
 {
 	if ( pImage )
@@ -183,6 +195,7 @@ void WickedCall_FreeImage(sImageList* pImage)
 			//wiResourceManager::Clear() <-- clears everything!!
 			//pImage->image.swap(); what frees all resources created with the wiResourceManager::Load call?
 			pImage->image = NULL;
+			pImage->MasterObject = 0;
 		}
 	}
 }
@@ -252,7 +265,7 @@ int WickedCall_FindImageIndexInList(std::string pFilenameToFind, LPSTR pFullRela
 	// return result
 	return iImageIndex;
 }
-
+uint32_t SetMasterObject = 0;
 void WickedCall_AddImageToList(std::shared_ptr<wiResource> image, eImageResType eType, std::string pFilenameRef, int iKbused)
 {
 	sImageList newImage;
@@ -261,6 +274,13 @@ void WickedCall_AddImageToList(std::shared_ptr<wiResource> image, eImageResType 
 	newImage.iMemUsedKB = iKbused;
 	newImage.pName = new char[strlen(pFilenameRef.c_str()) + 1];
 	strcpy(newImage.pName, pFilenameRef.c_str());
+
+	//PE: Mark masterobject this image belong to.
+	// > 50000 < 70000
+	if(SetMasterObject > 50000 && SetMasterObject < 70000)
+		newImage.MasterObject = SetMasterObject;
+	else
+		newImage.MasterObject = 0;
 
 	// add loaded image to existing list slot, or add a new one
 	int i = 0;
@@ -386,7 +406,8 @@ std::shared_ptr<wiResource> WickedCall_LoadImage(std::string pFilenameToLoadIN, 
 		//else
 		//{
 		extern bool CheckForWorkshopFile(LPSTR);
-		bCalledFromWickedLoadImage = true;
+		if(t.importer.importerActive == 0) //PE: Need the real texture name in importer not prefer dds (fbx can include a .png but is a dds).
+			bCalledFromWickedLoadImage = true;
 		CheckForWorkshopFile (VirtualFilename);
 		if ( pFilenameToLoad[ pFilenameToLoad.length() - 1] != VirtualFilename[strlen(VirtualFilename) - 1])
 		{
@@ -421,7 +442,13 @@ std::shared_ptr<wiResource> WickedCall_LoadImage(std::string pFilenameToLoadIN, 
 			std::vector<uint8_t> data;
 			if (wiHelper::FileRead(VirtualFilename, data))
 			{
-				image = wiResourceManager::Load(pFilenameToLoad, 0, data.data(), data.size());
+				//PE: Now controlled in setup.ini so always (1 << 2)
+				//setup.ini:
+				//ConvertToDDS = 1
+				//ConvertToDDSMaxsize = 2048
+
+				uint32_t flag = 1 << 2; //IMPORT_CONVERT_TO_DDS
+				image = wiResourceManager::Load(pFilenameToLoad, flag, data.data(), data.size());
 				data.clear();
 			}
 			if (image != NULL)
@@ -2025,6 +2052,23 @@ void WickedCall_TextureMesh(sMesh* pMesh)
 
 						pObjectMaterial->textures[MaterialComponent::BASECOLORMAP].name = sFoundFinalPathAndFilename;
 						pObjectMaterial->textures[MaterialComponent::BASECOLORMAP].resource = WickedCall_LoadImage(pObjectMaterial->textures[MaterialComponent::BASECOLORMAP].name);
+						if (!pObjectMaterial->textures[MaterialComponent::BASECOLORMAP].resource)
+						{
+							//PE: If prefer dds and got png in filename it fails, try dds version.
+							char texturename[MAX_PATH];
+							strcpy(texturename, sFoundFinalPathAndFilename.c_str());
+							int iLen = strlen(texturename);
+							if (iLen > 4 &&
+								texturename[iLen - 3] == 'p' ||
+								texturename[iLen - 3] == 'P')
+							{
+								texturename[iLen - 3] = 'd';
+								texturename[iLen - 2] = 'd';
+								texturename[iLen - 1] = 's';
+								pObjectMaterial->textures[MaterialComponent::BASECOLORMAP].name = texturename;
+								pObjectMaterial->textures[MaterialComponent::BASECOLORMAP].resource = WickedCall_LoadImage(pObjectMaterial->textures[MaterialComponent::BASECOLORMAP].name);
+							}
+						}
 						if (pObjectMaterial->textures[MaterialComponent::BASECOLORMAP].resource)
 						{
 							//PE: save full path as g_pWickedTexturePath is lost later.
@@ -2066,6 +2110,24 @@ void WickedCall_TextureMesh(sMesh* pMesh)
 
 							pObjectMaterial->textures[MaterialComponent::NORMALMAP].name = sFoundFinalPathAndFilename;
 							pObjectMaterial->textures[MaterialComponent::NORMALMAP].resource = WickedCall_LoadImage(pObjectMaterial->textures[MaterialComponent::NORMALMAP].name);
+							if (!pObjectMaterial->textures[MaterialComponent::NORMALMAP].resource)
+							{
+								//PE: If prefer dds and got png in filename it fails, try dds version.
+								char texturename[MAX_PATH];
+								strcpy(texturename, sFoundFinalPathAndFilename.c_str());
+								int iLen = strlen(texturename);
+								if (iLen > 4 &&
+									texturename[iLen - 3] == 'p' ||
+									texturename[iLen - 3] == 'P')
+								{
+									texturename[iLen - 3] = 'd';
+									texturename[iLen - 2] = 'd';
+									texturename[iLen - 1] = 's';
+									pObjectMaterial->textures[MaterialComponent::NORMALMAP].name = texturename;
+									pObjectMaterial->textures[MaterialComponent::NORMALMAP].resource = WickedCall_LoadImage(pObjectMaterial->textures[MaterialComponent::NORMALMAP].name);
+								}
+							}
+
 							if (pObjectMaterial->textures[MaterialComponent::NORMALMAP].resource)
 							{
 								//Set normal intensity.
@@ -2108,6 +2170,24 @@ void WickedCall_TextureMesh(sMesh* pMesh)
 
 							pObjectMaterial->textures[MaterialComponent::SURFACEMAP].name = sFoundFinalPathAndFilename;
 							pObjectMaterial->textures[MaterialComponent::SURFACEMAP].resource = WickedCall_LoadImage(pObjectMaterial->textures[MaterialComponent::SURFACEMAP].name);
+							if (!pObjectMaterial->textures[MaterialComponent::SURFACEMAP].resource)
+							{
+								//PE: If prefer dds and got png in filename it fails, try dds version.
+								char texturename[MAX_PATH];
+								strcpy(texturename, sFoundFinalPathAndFilename.c_str());
+								int iLen = strlen(texturename);
+								if (iLen > 4 &&
+									texturename[iLen - 3] == 'p' ||
+									texturename[iLen - 3] == 'P')
+								{
+									texturename[iLen - 3] = 'd';
+									texturename[iLen - 2] = 'd';
+									texturename[iLen - 1] = 's';
+									pObjectMaterial->textures[MaterialComponent::SURFACEMAP].name = texturename;
+									pObjectMaterial->textures[MaterialComponent::SURFACEMAP].resource = WickedCall_LoadImage(pObjectMaterial->textures[MaterialComponent::SURFACEMAP].name);
+								}
+							}
+
 							if (pObjectMaterial->textures[MaterialComponent::SURFACEMAP].resource)
 							{
 								//Set roughness,metalness intensity.
@@ -2140,8 +2220,27 @@ void WickedCall_TextureMesh(sMesh* pMesh)
 								wiJobSystem::context ctx;
 								wiJobSystem::Wait(ctx);
 							}
+
 							pObjectMaterial->textures[MaterialComponent::DISPLACEMENTMAP].name = sFoundFinalPathAndFilename;
 							pObjectMaterial->textures[MaterialComponent::DISPLACEMENTMAP].resource = WickedCall_LoadImage(pObjectMaterial->textures[MaterialComponent::DISPLACEMENTMAP].name);
+							if (!pObjectMaterial->textures[MaterialComponent::DISPLACEMENTMAP].resource)
+							{
+								//PE: If prefer dds and got png in filename it fails, try dds version.
+								char texturename[MAX_PATH];
+								strcpy(texturename, sFoundFinalPathAndFilename.c_str());
+								int iLen = strlen(texturename);
+								if (iLen > 4 &&
+									texturename[iLen - 3] == 'p' ||
+									texturename[iLen - 3] == 'P')
+								{
+									texturename[iLen - 3] = 'd';
+									texturename[iLen - 2] = 'd';
+									texturename[iLen - 1] = 's';
+									pObjectMaterial->textures[MaterialComponent::DISPLACEMENTMAP].name = texturename;
+									pObjectMaterial->textures[MaterialComponent::DISPLACEMENTMAP].resource = WickedCall_LoadImage(pObjectMaterial->textures[MaterialComponent::DISPLACEMENTMAP].name);
+								}
+							}
+
 							if (pObjectMaterial->textures[MaterialComponent::DISPLACEMENTMAP].resource)
 							{
 								pObjectMaterial->parallaxOcclusionMapping = 0.05f;
@@ -2178,7 +2277,10 @@ void WickedCall_TextureMesh(sMesh* pMesh)
 							}
 							else
 							{
-								sFoundFinalPathAndFilename = sFoundTexturePath + WickedGetEmissiveName().Get();
+								//PE: Get a crash here ?
+								std::string ename = WickedGetEmissiveName().Get();
+								sFoundFinalPathAndFilename = sFoundTexturePath;
+								sFoundFinalPathAndFilename = sFoundFinalPathAndFilename + ename;
 								if (FileExistPrefDDS((LPSTR)sFoundFinalPathAndFilename.c_str()) == 0)
 								{
 									sFoundFinalPathAndFilename = g_pWickedTexturePath + WickedGetEmissiveName().Get();
@@ -2198,6 +2300,24 @@ void WickedCall_TextureMesh(sMesh* pMesh)
 							pObjectMaterial->textures[MaterialComponent::EMISSIVEMAP].name = sFoundFinalPathAndFilename;
 							pObjectMaterial->textures[MaterialComponent::EMISSIVEMAP].resource = WickedCall_LoadImage(pObjectMaterial->textures[MaterialComponent::EMISSIVEMAP].name);
 							float fEmissive = WickedGetEmissiveStrength();
+							if (!pObjectMaterial->textures[MaterialComponent::EMISSIVEMAP].resource)
+							{
+								//PE: If prefer dds and got png in filename it fails, try dds version.
+								char texturename[MAX_PATH];
+								strcpy(texturename, sFoundFinalPathAndFilename.c_str());
+								int iLen = strlen(texturename);
+								if (iLen > 4 &&
+									texturename[iLen - 3] == 'p' ||
+									texturename[iLen - 3] == 'P')
+								{
+									texturename[iLen - 3] = 'd';
+									texturename[iLen - 2] = 'd';
+									texturename[iLen - 1] = 's';
+									pObjectMaterial->textures[MaterialComponent::EMISSIVEMAP].name = texturename;
+									pObjectMaterial->textures[MaterialComponent::EMISSIVEMAP].resource = WickedCall_LoadImage(pObjectMaterial->textures[MaterialComponent::EMISSIVEMAP].name);
+								}
+							}
+
 							if (pObjectMaterial->textures[MaterialComponent::EMISSIVEMAP].resource)
 							{
 								//Set Emissive intensity.
@@ -2219,7 +2339,8 @@ void WickedCall_TextureMesh(sMesh* pMesh)
 							}
 
 							//PE: Moved here , We cant setup Emissive color before Emissive texture.
-							if (dwEmmisiveColor != -1)
+							//PE: Always use dwEmmisiveColor if bWickedMaterialActive.
+							//if (dwEmmisiveColor != -1)
 							{
 								pMesh->mMaterial.Emissive.r = ((dwEmmisiveColor & 0xff000000) >> 24) / 255.0f;;
 								pMesh->mMaterial.Emissive.g = ((dwEmmisiveColor & 0x00ff0000) >> 16) / 255.0f;
@@ -7186,7 +7307,40 @@ uint32_t WickedCall_LoadWiScene(char* filename, bool attached, char* changename,
 	return root;
 }
 
-//iAction = 1 Burst all. 2 = Pause. - 3 = Resume. - 4 = Restart
+uint32_t WickedCall_LoadWPE(char* filename)
+{
+	Scene& scene = wiScene::GetScene();
+	uint32_t root = 0;
+	uint32_t count_before = scene.emitters.GetCount();
+
+	char path[MAX_PATH];
+	strcpy(path, filename);
+	GG_GetRealPath(path, 0);
+
+	WickedCall_LoadWiScene(path, false, NULL, NULL);
+	uint32_t count_after = scene.emitters.GetCount();
+	if (count_before != count_after)
+	{
+		Entity emitter = scene.emitters.GetEntity(scene.emitters.GetCount() - 1);
+		if (scene.emitters.GetCount() > 0)
+		{
+			HierarchyComponent* hier = scene.hierarchy.GetComponent(emitter);
+			if (hier)
+			{
+				root = hier->parentID;
+			}
+		}
+		wiEmittedParticle* ec = scene.emitters.GetComponent(emitter);
+		if (ec)
+		{
+			ec->Restart();
+			ec->SetVisible(false);
+		}
+	}
+	return root;
+}
+
+//iAction = 1 Burst all. 2 = Pause. - 3 = Resume. - 4 = Restart - 5 - visible - 6 = not visible. - 7 = pause emit - 8 = resume emit
 void WickedCall_PerformEmitterAction(int iAction, uint32_t emitter_root)
 {
 
@@ -7224,11 +7378,45 @@ void WickedCall_PerformEmitterAction(int iAction, uint32_t emitter_root)
 						ec->Restart();
 						break;
 					}
+					case 5:
+					{
+						ec->SetVisible(true);
+						break;
+					}
+					case 6:
+					{
+						ec->SetVisible(false);
+						break;
+					}
+					case 7:
+					{
+						ec->SetEmitPaused(true);
+						break;
+					}
+					case 8:
+					{
+						ec->SetEmitPaused(false);
+						break;
+					}
 				}
 			}
 		}
 	}
 
+}
+
+bool WickedCall_ParticleEffectPosition(uint32_t root, float fX, float fY, float fZ)
+{
+	Scene& scene = wiScene::GetScene();
+	TransformComponent* root_tranform = scene.transforms.GetComponent(root);
+	if (root_tranform)
+	{
+		root_tranform->ClearTransform();
+		root_tranform->Translate(XMFLOAT3(fX, fY, fZ));
+		root_tranform->UpdateTransform();
+		return true;
+	}
+	return false;
 }
 
 //#define WPEDebug

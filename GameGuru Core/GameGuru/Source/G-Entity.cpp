@@ -3713,7 +3713,8 @@ void entity_hasbulletrayhit(void)
 	{
 		if (t.tttriggerdecalimpact >= 10 && t.tttriggerdecalimpact != 16 && t.bulletrayhite >= 0 )
 		{
-			if (t.bulletrayhite == 0 || t.entityelement[t.bulletrayhite].staticflag == 1)
+			if (t.bulletrayhite == 0 || t.entityelement[t.bulletrayhite].staticflag == 1 ||
+				(t.entityelement[t.bulletrayhite].staticflag == 0 && t.entityelement[t.bulletrayhite].eleprof.isimmobile == 1) )
 			{
 				int iMaterialIndex = t.tttriggerdecalimpact - 10;
 				bulletholes_add(iMaterialIndex, t.brayx2_f, t.brayy2_f, t.brayz2_f, vecRayHitNormal.x, vecRayHitNormal.y, vecRayHitNormal.z);
@@ -3723,6 +3724,7 @@ void entity_hasbulletrayhit(void)
 
 	// trigger decal at impact coordinate
 	//entity_triggerdecalatimpact ( t.brayx2_f, t.brayy2_f, t.brayz2_f );
+	t.tfromtheplayer = 1;
 	if (t.bulletrayhite > 0)
 	{
 		// if entity producing decal, ensure the right one being used
@@ -3733,6 +3735,7 @@ void entity_hasbulletrayhit(void)
 		// default logic
 		entity_triggerdecalatimpact (t.brayx2_f, t.brayy2_f, t.brayz2_f);
 	}
+	t.tfromtheplayer = 0;
 }
 
 void entity_hitentity ( int e, int obj )
@@ -3802,7 +3805,7 @@ void entity_triggerdecalatimpact ( float fX, float fY, float fZ )
 		{
 			if ( t.playercontrol.startviolent != 0 && g.quickparentalcontrolmode != 2 ) 
 			{
-#ifdef WICKEDPARTICLESYSTEM
+				#ifdef WICKEDPARTICLESYSTEM
 				t.decalid = t.decalglobal.bloodsplatid; t.decalorient = 0;
 				if (t.decal[t.decalid].newparticle.bWPE)
 				{
@@ -3812,7 +3815,7 @@ void entity_triggerdecalatimpact ( float fX, float fY, float fZ )
 					decalelement_create();
 				}
 				else
-#endif
+				#endif
 				{
 					for (t.iter = 1; t.iter <= 3 + Rnd(1); t.iter++)
 					{
@@ -3824,15 +3827,28 @@ void entity_triggerdecalatimpact ( float fX, float fY, float fZ )
 
 		// play material impact sound
 		t.tmatindex = 0 ; if (  t.tttriggerdecalimpact >= 10  )  t.tmatindex = t.tttriggerdecalimpact-10;
-		#ifdef WICKEDENGINE
 		t.tsoundtrigger = t.material[t.tmatindex].matsound_id[matSound_LandHard][0];
-		#else
-		t.tsoundtrigger = t.material[t.tmatindex].impactid;
-		#endif
 		t.tspd_f=t.material[t.tmatindex].freq;
 		t.tsx_f=g.decalx ; t.tsy_f=g.decaly ; t.tsz_f=g.decalz;
 		t.tvol_f = 100.0f ; material_triggersound ( 0 );
 		t.tsoundtrigger=0;
+
+		// optionally, if player start marker specified an impact sound, and player made this sound, play it here
+		if (t.tfromtheplayer==1 && t.tfromtheplayerentityelementid>0)
+		{
+			if (t.tttriggerdecalimpact == 2)
+			{
+				// soft (blood)
+				t.tsoundtrigger = t.entityelement[t.tfromtheplayerentityelementid].soundset2;
+			}
+			else
+			{
+				// hard (all other surfaces)
+				t.tsoundtrigger = t.entityelement[t.tfromtheplayerentityelementid].soundset1;
+			}
+			material_triggersound (0);
+			t.tsoundtrigger = 0;
+		}
 	}
 }
 
@@ -4441,13 +4457,23 @@ void entity_createobj ( void )
 		#endif
 
 		#ifdef WICKEDENGINE
+		if (t.tupdatee != -1 && t.entityelement[t.tupdatee].eleprof.bUseFPESettings)
+		{
+			//PE: Make sure to copy over master object to entity material.
+			//PE: This also insures that bUseInstancing is used for all object that have this flag.
+			sObject* pMasterObject = g_ObjectList[t.sourceobj];
+			int iMasterID = t.entityelement[t.tupdatee].bankindex;
+			if (pMasterObject && iMasterID > 0 && iMasterID < t.entityprofile.size())
+			{
+				Wicked_Copy_Material_To_Grideleprof((void*)pMasterObject, 0, &t.entityelement[t.tupdatee].eleprof);
+			}
+		}
 		extern bool bUseInstancing;
 		extern int iUseMasterObjectID;
 		extern bool bNextObjectMustBeClone;
 		//PE: InstanceObject - If this object has a custom "Materials" always create as clone.
 		if (t.tupdatee != -1)
 		{
-			if (t.entityelement[t.tupdatee].eleprof.bCustomWickedMaterialActive) bCreateAsClone = true;
 			WickedSetElementId(t.tupdatee);
 			WickedSetEntityId(t.entityelement[t.tupdatee].bankindex);
 			iUseMasterObjectID = t.sourceobj;
