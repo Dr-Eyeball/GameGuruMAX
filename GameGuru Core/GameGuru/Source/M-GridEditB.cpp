@@ -28719,13 +28719,15 @@ void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_gridel
 			{
 				if (elementID > 0)
 				{
+					int obj = t.entityelement[elementID].obj;
 					ImGui::TextCenter("Decal Speed");
 					ImGui::PushItemWidth(-10);
 					int tmpint = t.entityelement[elementID].fDecalSpeed * 100.0; // 1.0 = normal.
 					if (ImGui::MaxSliderInputInt("##Decal Speed", &tmpint, 1, 200, "Decal Speed"))
 					{
 						t.entityelement[elementID].fDecalSpeed = (float)tmpint / 100.0;
-						SetupDecalObject(t.tobj, elementID);
+						if(obj > 0)
+							SetupDecalObject(obj, elementID);
 					}
 					t.entityelement[elementID].fDecalSpeed = (float)tmpint / 100.0;
 					ImGui::PopItemWidth();
@@ -28739,7 +28741,8 @@ void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_gridel
 						if (tmpint > 100) tmpint = 100;
 						if (tmpint < 0) tmpint = 0;
 						t.entityelement[elementID].fDecalOpacity = (float)tmpint / 100.0;
-						SetupDecalObject(t.tobj, elementID);
+						if (obj > 0)
+							SetupDecalObject(obj, elementID);
 					}
 					t.entityelement[elementID].fDecalOpacity = (float)tmpint / 100.0;
 					ImGui::PopItemWidth();
@@ -38327,26 +38330,35 @@ bool DoTreeNodeBehavior(LPSTR behaviorscriptname, bool bMoveCameraToObjectPositi
 
 void SetupDecalObject(int obj, int elementID)
 {
-	//PE: Always use custom material or FPE settings.
-	return;
 	//SetAlphaMappingOn(obj, 100.0);
-	SetObjectTransparency(obj, 6);
-	SetObjectLight(obj, 0);
+
+	bool bUseFPE = false;
+	if (elementID > 0 && t.entityelement[elementID].eleprof.bUseFPESettings)
+		bUseFPE = true;
+
+	if (bUseFPE)
+	{
+		SetObjectTransparency(obj, 6);
+		SetObjectLight(obj, 0);
+	}
 	sObject* pObject = g_ObjectList[obj];
 	if (pObject)
 	{
 		//PE: SetObjectCull(t.tobj, 1); Dont work.
 		//PE: iCullMode need to be zero in wicked ?
-		for (int iMesh = 0; iMesh < pObject->iMeshCount; iMesh++)
-		{
-			if (pObject->ppMeshList[iMesh]) pObject->ppMeshList[iMesh]->iCullMode = 0;
-		}
-		WickedCall_SetObjectCullmode(pObject);
-		WickedCall_SetObjectCastShadows(pObject, false); //PE: No shadows on particles for now.
 
+		if (bUseFPE)
+		{
+			for (int iMesh = 0; iMesh < pObject->iMeshCount; iMesh++)
+			{
+				if (pObject->ppMeshList[iMesh]) pObject->ppMeshList[iMesh]->iCullMode = 0;
+			}
+			WickedCall_SetObjectCullmode(pObject);
+			WickedCall_SetObjectCastShadows(pObject, false); //PE: No shadows on particles for now.
+		}
 		
+
 		//if(!t.entityelement[elementID].eleprof.bCustomWickedMaterialActive) // ZJ: Only reset this if not using custom materials for this decal.
-		if (t.entityelement[elementID].eleprof.bUseFPESettings) // ZJ: Only reset this if not using custom materials for this decal.
 		{
 			//PE: Use unlit shader.
 			for (int iMesh = 0; iMesh < pObject->iMeshCount; iMesh++)
@@ -38354,17 +38366,18 @@ void SetupDecalObject(int obj, int elementID)
 				sMesh* pMesh = pObject->ppMeshList[iMesh];
 				if (pMesh)
 				{
-					pMesh->mMaterial.Diffuse.r = 1.5;
-					pMesh->mMaterial.Diffuse.g = 1.5;
-					pMesh->mMaterial.Diffuse.b = 1.5;
-					pMesh->mMaterial.Diffuse.a = 1.0;
+					if (bUseFPE)
+					{
+						pMesh->mMaterial.Diffuse.r = 1.5;
+						pMesh->mMaterial.Diffuse.g = 1.5;
+						pMesh->mMaterial.Diffuse.b = 1.5;
+						pMesh->mMaterial.Diffuse.a = 1.0;
 
-					pMesh->mMaterial.Diffuse.a = 1.0;
-					pMesh->mMaterial.Emissive.r = 1.0;
-					pMesh->mMaterial.Emissive.g = 1.0;
-					pMesh->mMaterial.Emissive.b = 1.0;
-					pMesh->mMaterial.Emissive.a = 1.0;
-
+						pMesh->mMaterial.Emissive.r = 1.0;
+						pMesh->mMaterial.Emissive.g = 1.0;
+						pMesh->mMaterial.Emissive.b = 1.0;
+						pMesh->mMaterial.Emissive.a = 1.0;
+					}
 					wiScene::MeshComponent* mesh = wiScene::GetScene().meshes.GetComponent(pMesh->wickedmeshindex);
 					if (mesh)
 					{
@@ -38372,7 +38385,8 @@ void SetupDecalObject(int obj, int elementID)
 						wiScene::MaterialComponent* pObjectMaterial = wiScene::GetScene().materials.GetComponent(materialEntity);
 						if (pObjectMaterial)
 						{
-							pObjectMaterial->SetReflectance(0.0f);
+							if (bUseFPE)
+								pObjectMaterial->SetReflectance(0.0f);
 							pObjectMaterial->shaderType = wiScene::MaterialComponent::SHADERTYPE_UNLIT; //PE: Yes 1:1 mapping and no light,env...
 							pObjectMaterial->SetDirty(true);
 						}
