@@ -5670,11 +5670,13 @@ void fpe_thread_function(void)
 			strcat(fpe_file, item->m_sName.Get());
 			//HANDLE hfile = GG_CreateFile(fpe_file, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 			//We already have the full path so.
-			HANDLE hfile = CreateFileA(fpe_file, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-			if (hfile != INVALID_HANDLE_VALUE)
-			{
-				CloseHandle(hfile);
+			//PE: getVectorFileContent already check if it exists.
+			//HANDLE hfile = CreateFileA(fpe_file, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+			//if (hfile != INVALID_HANDLE_VALUE)
+			//{
+			//	CloseHandle(hfile);
 
+			{
 				std::vector<std::string> fpe_vector;
 				if (getVectorFileContent(fpe_file, fpe_vector, true))
 				{
@@ -5686,23 +5688,30 @@ void fpe_thread_function(void)
 						item->m_bIsGroupObject = 1;
 
 					//Get info.
+					#ifdef INCLUDEPOLYGONSORT
 					std::string model = GetLineParameterFromVectorFile("model=", fpe_vector, true);
 					if (model.length() > 0)
 						item->m_sFPEModel = model.c_str();
 					else
+					#endif
 						item->m_sFPEModel = "";
 
-					std::string textured = GetLineParameterFromVectorFile("textured=", fpe_vector, true); //Not used yet.
-					if (textured.length() > 0)
-						item->m_sFPETextured = textured.c_str();
-					else
+					//PE: Currently not used in advanced fpe search.
+					//std::string textured = GetLineParameterFromVectorFile("textured=", fpe_vector, true); //Not used yet.
+					//if (textured.length() > 0)
+					//	item->m_sFPETextured = textured.c_str();
+					//else
 						item->m_sFPETextured = "";
 
 					//Ignore there , and dont display thumbs, dont work anyway.
+					#ifdef INCLUDEPOLYGONSORT
 					std::string s_ischaractercreator = GetLineParameterFromVectorFile("charactercreator=", fpe_vector, true);
+					#endif
 					item->m_bIsCharacterCreator = 0;
+					#ifdef INCLUDEPOLYGONSORT
 					if (s_ischaractercreator.length() > 0 && atoi(s_ischaractercreator.c_str()) == 1)
 						item->m_bIsCharacterCreator = 1;
+					#endif
 
 					#ifdef INCLUDEPOLYGONSORT
 					std::string s_ischaracter = GetLineParameterFromVectorFile("ischaracter=", fpe_vector, true);
