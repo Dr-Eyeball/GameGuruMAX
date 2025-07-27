@@ -11783,6 +11783,7 @@ void Wicked_Change_Object_Material(void* pVObject, int mode, entityeleproftype *
 							for (int i = 0; i < cshaders.size(); i++)
 							{
 								bool bSelected = false;
+								if (i == 4) continue; //PE: Internal use for now.
 								if (cshaders[i].bActive)
 								{
 									if (pObjectMaterial->customShaderID == i)
@@ -11805,6 +11806,14 @@ void Wicked_Change_Object_Material(void* pVObject, int mode, entityeleproftype *
 											pObjectMaterial->customShaderParam2 = 0.3f;
 											pObjectMaterial->customShaderParam3 = 2.0f;
 										}
+										if (i == 4)
+										{
+											pObjectMaterial->customShaderParam1 = 2.0; //THICKNESS_FACTOR
+											pObjectMaterial->customShaderParam2 = 3000; //FADE_DISTANCE
+											pObjectMaterial->customShaderParam3 = 0.4f; //POWER_EXPONENT
+											pObjectMaterial->customShaderParam4 = 0.4f; //BASE ALPHA
+										}
+
 										importer_set_all_material_shader_id(pObjectMaterial->customShaderID, pObjectMaterial->customShaderParam1, pObjectMaterial->customShaderParam2, pObjectMaterial->customShaderParam3, pObjectMaterial->customShaderParam4, pObjectMaterial->customShaderParam5, pObjectMaterial->customShaderParam6, pObjectMaterial->customShaderParam7);
 										bHaveMaterialUpdate = true;
 									}
@@ -11850,6 +11859,15 @@ void Wicked_Change_Object_Material(void* pVObject, int mode, entityeleproftype *
 								param1 = "Transmission";
 								param2 = "Refraction";
 								param3 = "Brighten";
+							}
+
+							if (pObjectMaterial->customShaderID == 4)
+							{
+								numpar = 4;
+								param1 = "Thickness";
+								param2 = "Fade Dist";
+								param3 = "Power Exp";
+								param4 = "Min Alpha";
 							}
 
 							if (numpar > 0)
@@ -12938,6 +12956,18 @@ void importer_set_all_material_shader_id(int shaderID,float p1, float p2, float 
 		}
 	}
 }
+
+void importer_set_all_material_shader_id(int obj, int shaderID, float p1, float p2, float p3, float p4, float p5, float p6, float p7)
+{
+	int objectnumber = t.importer.objectnumber;
+	int active = t.importer.importerActive;
+	t.importer.objectnumber = obj;
+	t.importer.importerActive = 1;
+	importer_set_all_material_shader_id(shaderID, p1, p2, p3, p4, p5, p6, p7);
+	t.importer.importerActive = active;
+	t.importer.objectnumber = objectnumber;
+}
+
 
 void importer_set_all_material_cast_shadow(bool bCastShadow)
 {

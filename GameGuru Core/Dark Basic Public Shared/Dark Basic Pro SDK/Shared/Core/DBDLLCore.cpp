@@ -811,6 +811,51 @@ void ImGui_RenderLast(void)
 			GridPopup(popup_pos);
 			ImGui::End();
 
+			bool GetEnableEmptyLevelMode(void);
+			if (GetEnableEmptyLevelMode())
+			{
+				extern float fEmptyLevelFloorY;
+				extern bool bEmptyLevelGrid;
+
+				flags |= ImGuiWindowFlags_Tooltip;
+				flags |= ImGuiWindowFlags_NoBackground;
+				flags |= ImGuiWindowFlags_NoScrollbar;
+
+				float boxwidth = 190;
+
+				//boxwidth = 120.0f;
+				int icon_size = 44.0f;
+				float menubarsize = 27.0f + ((50.0f - icon_size) * 0.5f);
+				ImVec2 viewPortPos = ImGui::GetMainViewport()->Pos;
+				//ImVec2 viewPortSize = ImGui::GetMainViewport()->Size;
+				//float center = (viewPortSize.x * 0.5f) - (boxwidth * 0.5f);
+				//winsizeavail.x - boxwidth
+				ImVec2 placeit = ImVec2(winpos.x + (winsizeavail.x - boxwidth), viewPortPos.y + menubarsize);
+				ImGui::SetNextWindowPos(placeit, ImGuiCond_Always, ImVec2(0, 0));
+
+				//ImGui::SetNextWindowPos(viewPortPos + ImVec2(center, menubarsize), ImGuiCond_Always);
+				ImGui::SetNextWindowSize(ImVec2(boxwidth, 50));
+
+				if (ImGui::Begin("##additionalEnableEmptyLevelMode", &bAlwaysOpen, flags))
+				{
+					ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 2.0f, 2.0f });
+
+					ImGui::Checkbox(" Floor Grid", &bEmptyLevelGrid);
+
+					ImGui::Text("Pos Floor Y");
+					ImGui::SameLine();
+					ImGui::SetCursorPos(ImGui::GetCursorPos() - ImVec2(0.0f, 3.0f));
+					ImGui::PushItemWidth(70);
+					if (ImGui::InputFloat("##fEmptyLevelFloorY", &fEmptyLevelFloorY, -100000.0f, 100000.0f, "%.2f")) //"%.2f"
+					{
+
+					}
+					ImGui::PopItemWidth();
+					ImGui::PopStyleVar();
+				}
+				ImGui::End();
+
+			}
 
 			if (pref.iGridEnabled == true && pref.iGridMode == 2)
 			{

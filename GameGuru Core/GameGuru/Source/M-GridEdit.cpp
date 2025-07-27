@@ -593,6 +593,9 @@ extern int iLastUpdateVeg;
 #endif
 #endif
 
+float fEmptyLevelFloorY = 0;
+bool bEmptyLevelGrid = false;
+
 // moved here so Classic would compile
 bool Shooter_Tools_Window_Active = false;
 void DeleteWaypointsAddedToCurrentCursor(void);
@@ -601,6 +604,7 @@ float ImGuiGetMouseX(void);
 float ImGuiGetMouseY(void);
 void RotateAndMoveRubberBand(int iActiveObj, float fMovedActiveObjectX, float fMovedActiveObjectY, float fMovedActiveObjectZ, GGQUATERNION quatRotationEvent); //float fMovedActiveObjectRX, float fMovedActiveObjectRY, float fMovedActiveObjectRZ);
 void SetStartPositionsForRubberBand(int iActiveObj);
+void EmptyMessages(void);
 
 #ifdef WICKEDENGINE
 	void HandleObjectDeletion();
@@ -1653,6 +1657,9 @@ bool commonexecutable_loop_for_game(void)
 	}
 	if (iLaunchAfterSync == 202)
 	{
+		int iGridObj = g.ebeobjectbankoffset + 1000;
+		if (ObjectExist(iGridObj))
+			DeleteObject(iGridObj);
 		bImGuiInTestGame = true;
 		g_bDisableQuitFlag = true;
 		extern bool	g_bDrawSpritesFirst;
@@ -2423,6 +2430,10 @@ void mapeditorexecutable_loop(void)
 			}
 			else
 			{
+				int iGridObj = g.ebeobjectbankoffset + 1000;
+				if (ObjectExist(iGridObj))
+					DeleteObject(iGridObj);
+
 				bImGuiInTestGame = true;
 				bool bTestInVRMode = false;
 				if (iLaunchAfterSync == 20) bTestInVRMode = true;
@@ -14097,7 +14108,185 @@ void mapeditorexecutable_loop(void)
 						t.gamevisuals.bEndableTerrainDrawing = t.visuals.bEndableTerrainDrawing;
 				}
 				ImGui::Columns(1);
+
+				/*
+				if (t.visuals.bEnableEmptyLevelMode)
+				{
+					ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(0.0f, 12.0f));
+					ImGui::Text("Level Floor Y");
+					ImGui::SameLine();
+					ImGui::SetCursorPos(ImGui::GetCursorPos() - ImVec2(0.0f, 3.0f));
+					if (ImGui::InputFloat("##fEmptyLevelFloorY", &fEmptyLevelFloorY, -10000.0f, 10000.0f, "%.0f")) //"%.2f"
+					{
+
+					}
+					ImGui::Checkbox("Display Grid", &bEmptyLevelGrid);
+				}
+				*/
 			}
+
+			int iGridObj = g.ebeobjectbankoffset + 1000;
+			if (!bImGuiInTestGame && bEmptyLevelGrid)
+			{
+				if (!ObjectExist(iGridObj))
+				{
+					//PE: TODO need to exclude this mesh from select outline.
+					WickedCall_PresetObjectRenderLayer(GGRENDERLAYERS_CURSOROBJECT);
+					MakeObjectPlane(iGridObj, 6000, 6000);
+					WickedCall_PresetObjectRenderLayer(GGRENDERLAYERS_NORMAL);
+					XRotateObject(iGridObj, 90);
+					DisableObjectZDepth(iGridObj);
+					sObject* pObject = GetObjectData(iGridObj);
+					if (pObject)
+					{
+						WickedCall_SetObjectCastShadows(pObject, false);
+						WickedCall_SetObjectLightToUnlit(pObject, (int)wiScene::MaterialComponent::SHADERTYPE_UNLIT);
+						WickedCall_SetObjectDisableDepth(pObject, true);
+					}
+
+					float ShaderParam1 = 2.0; //THICKNESS_FACTOR
+					float ShaderParam2 = 3000; //FADE_DISTANCE
+					float ShaderParam3 = 0.4f; //POWER_EXPONENT
+					float ShaderParam4 = 0.4f; //BASE ALPHA
+					void importer_set_all_material_shader_id(int obj, int shaderID, float p1, float p2, float p3, float p4, float p5, float p6, float p7);
+					importer_set_all_material_shader_id(iGridObj, 4, ShaderParam1, ShaderParam2, ShaderParam3, ShaderParam4, 0, 0, 0);
+				}
+				float camx = CameraPositionX();
+				float camy = CameraPositionY();
+				float camz = CameraPositionZ();
+				PositionObject(iGridObj, camx, fEmptyLevelFloorY, camz);
+
+			}
+			else if (!bEmptyLevelGrid)
+			{
+				if (ObjectExist(iGridObj))
+				{
+					DeleteObject(iGridObj);
+				}
+			}
+
+			//PE: This looks better way more slow so...
+			/*
+			if (bEmptyLevelGrid)
+			{
+				float camx = CameraPositionX();
+				float camz = CameraPositionZ();
+
+				const int GridSizeX = 3000;
+				const int GridSizeZ = 3000;
+
+				int SnapTo1 = 100;
+				float centerx1 = (float)((int)camx / SnapTo1) * (float)SnapTo1;
+				float centerz1 = (float)((int)camz / SnapTo1) * (float)SnapTo1;
+
+				wiRenderer::RenderableLine line1;
+				line1.color_start.x = 0.99f;
+				line1.color_start.y = 0.99f;
+				line1.color_start.z = 0.99f;
+				line1.color_end = line1.color_start;
+
+				float base_alpha1 = 0.3f;
+				float power_exponent1 = 2.5f;
+
+				for (int z = -GridSizeZ; z <= GridSizeZ; z += SnapTo1)
+				{
+					line1.start.y = fEmptyLevelFloorY;
+					line1.end.y = fEmptyLevelFloorY;
+
+					line1.start.x = centerx1 - GridSizeX;
+					line1.start.z = centerz1 + z;
+					line1.end.x = centerx1 + GridSizeX;
+					line1.end.z = centerz1 + z;
+
+					float zdist_norm = (float)z / (float)GridSizeZ;
+					float normalized_distance = std::abs(zdist_norm);
+					float fade = 1.0f - normalized_distance;
+
+					line1.color_start.w = base_alpha1 * fade;
+					line1.color_end.w = base_alpha1 * fade;
+
+					wiRenderer::DrawLineDepth(line1);
+				}
+
+				for (int x = -GridSizeX; x <= GridSizeX; x += SnapTo1)
+				{
+					line1.start.y = fEmptyLevelFloorY;
+					line1.end.y = fEmptyLevelFloorY;
+
+					line1.start.x = centerx1 + x;
+					line1.start.z = centerz1 - GridSizeZ;
+					line1.end.x = centerx1 + x;
+					line1.end.z = centerz1 + GridSizeZ;
+
+					float xdist_norm = (float)x / (float)GridSizeX;
+					float normalized_distance = std::abs(xdist_norm);
+					float fade = 1.0f - normalized_distance;
+
+					line1.color_start.w = base_alpha1 * fade;
+					line1.color_end.w = base_alpha1 * fade;
+
+					wiRenderer::DrawLineDepth(line1);
+				}
+
+				int SnapTo2 = 50;
+				float centerx2 = centerx1;
+				float centerz2 = centerz1;
+
+				wiRenderer::RenderableLine line2;
+				line2.color_start.x = 0.5f;
+				line2.color_start.y = 0.5f;
+				line2.color_start.z = 0.5f;
+				line2.color_end = line2.color_start;
+
+				float base_alpha2 = 0.20f;
+				float power_exponent2 = 6.5f;
+
+				for (int z = -GridSizeZ; z <= GridSizeZ; z += SnapTo2)
+				{
+					float world_z_pos = centerz2 + z;
+					if (fmod(std::abs(world_z_pos), SnapTo1) < 0.001f) continue;
+
+					line2.start.y = fEmptyLevelFloorY;
+					line2.end.y = fEmptyLevelFloorY;
+
+					line2.start.x = centerx2 - GridSizeX;
+					line2.start.z = centerz2 + z;
+					line2.end.x = centerx2 + GridSizeX;
+					line2.end.z = centerz2 + z;
+
+					float zdist_norm = (float)z / (float)GridSizeZ;
+					float normalized_distance = std::abs(zdist_norm);
+					float fade = 1.0f - normalized_distance;
+					line2.color_start.w = base_alpha2 * fade;
+					line2.color_end.w = base_alpha2 * fade;
+
+					wiRenderer::DrawLineDepth(line2);
+				}
+
+				for (int x = -GridSizeX; x <= GridSizeX; x += SnapTo2)
+				{
+					float world_x_pos = centerx2 + x;
+					if (fmod(std::abs(world_x_pos), SnapTo1) < 0.001f) continue;
+
+					line2.start.y = fEmptyLevelFloorY;
+					line2.end.y = fEmptyLevelFloorY;
+
+					line2.start.x = centerx2 + x;
+					line2.start.z = centerz2 - GridSizeZ;
+					line2.end.x = centerx2 + x;
+					line2.end.z = centerz2 + GridSizeZ;
+
+					float xdist_norm = (float)x / (float)GridSizeX;
+					float normalized_distance = std::abs(xdist_norm);
+					float fade = 1.0f - normalized_distance;
+
+					line2.color_start.w = base_alpha2 * fade;
+					line2.color_end.w = base_alpha2 * fade;
+
+					wiRenderer::DrawLineDepth(line2);
+				}
+			}
+			*/
 
 			//Drag/Drop to remove objects.
 			ImRect bb = { ImGui::GetWindowContentRegionMin()+ImGui::GetWindowPos(),ImGui::GetWindowContentRegionMax() + ImGui::GetWindowPos() };

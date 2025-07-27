@@ -9962,7 +9962,14 @@ float BT_GetGroundHeight ( unsigned long value, float x, float z )
 		else return GGORIGIN_Y;
 	}
 	else
+	{
+		if (t.visuals.bEnableEmptyLevelMode)
+		{
+			extern float fEmptyLevelFloorY;
+			return fEmptyLevelFloorY;
+		}
 		return GGORIGIN_Y;
+	}
 	#endif
 
 	/* g_pTerrain no longer used
@@ -9985,7 +9992,7 @@ float BT_GetGroundHeight ( unsigned long value, float x, float z, bool dsadsadsa
 {
 	#ifdef GGTERRAIN_USE_NEW_TERRAIN
 	extern int g_iDisableTerrainSystem;
-	if (g_iDisableTerrainSystem == 0)
+	if (g_iDisableTerrainSystem == 0 && t.visuals.bEnableEmptyLevelMode == false)
 	{
 
 		float height;
@@ -9993,7 +10000,14 @@ float BT_GetGroundHeight ( unsigned long value, float x, float z, bool dsadsadsa
 		else return GGORIGIN_Y;
 	}
 	else
+	{
+		if (t.visuals.bEnableEmptyLevelMode)
+		{
+			extern float fEmptyLevelFloorY;
+			return fEmptyLevelFloorY;
+		}
 		return GGORIGIN_Y;
+	}
 	#endif
 
 	/* g_pTerrain no longer used
