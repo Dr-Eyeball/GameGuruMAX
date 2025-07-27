@@ -53581,6 +53581,10 @@ void ReloadEntityIDInSitu ( int entIndex)
 	t.entobj = g.entitybankoffset + entIndex;
 	if (ObjectExist(t.entobj) == 1) DeleteObject(t.entobj);
 
+	//PE: Also make sure we clear the master object textures in VRAM so they can be reloaded.
+	void WickedCall_FreeImage_By_MasterID(uint32_t masterid);
+	WickedCall_FreeImage_By_MasterID(t.entobj);
+
 	// set entity name and reload it in
 	t.entdir_s = "";
 	//if (strnicmp(t.entitybank_s[entIndex].Get(), "projectbank", 11) != NULL) 
