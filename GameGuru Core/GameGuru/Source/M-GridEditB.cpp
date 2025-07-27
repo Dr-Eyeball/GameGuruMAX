@@ -535,7 +535,7 @@ extern int g_iAbortedAsEntityIsGroupCreate;
 bool bDigAHoleToHWND = false;
 bool g_bSelectedMapImageTypeSpecialHelp = false;
 bool bSortProjects = true;
-bool bResetProjectThumbnails = true;
+bool bResetProjectThumbnails = false; //PE: bSortProjects will set this no need to start with true.
 int g_iCheckExistingFilesModifiedDelayed = 0;
 ImRect g_rStealMonitorArea;
 bool bUpgradeAndBackupOldProject = false;
@@ -35513,6 +35513,8 @@ void Welcome_Screen(void)
 								bValid = true;
 							if (!bShowAvtiveProject && !projectbank_active[i])
 								bValid = true;
+							if (bSortProjects)
+								bValid = false;
 
 							if (bValid && !pestrcasestr((char *)projectbank_list[i].c_str(), "_backup_"))
 							{
@@ -48288,6 +48290,7 @@ void GetProjectList(char *path, bool bGetThumbs)
 		projectbank_list.clear();
 		projectbank_imageid.clear();
 		projectbank_image.clear();
+		projectbank_active.clear();
 
 		cLastProjectList = path;
 		LPSTR pOldDir = GetDir();
@@ -48340,10 +48343,13 @@ void GetProjectList(char *path, bool bGetThumbs)
 					if (!bIgnore)
 					{
 						projectbank_list.push_back(folder.Get());
-						if (!bGetThumbs)
-						{
+						projectbank_active.push_back(true);
+
+						//PE: We are always sorting , so just set all to CLICK HERE.
+						//if (!bGetThumbs)
+						//{
 							projectbank_image.push_back(""); //Just use CLICK HERE.
-						}
+						//}
 						projectbank_imageid.push_back(0);
 					}
 				}
@@ -48351,11 +48357,18 @@ void GetProjectList(char *path, bool bGetThumbs)
 		}
 		SetDir(pOldDir);
 
+		//PE: No need to read it here, as we need to do that after sorting.
+		
 		//Find project thumbs.
+		/*
 		if (bGetThumbs)
 		{
+			projectbank_active.resize(projectbank_list.size());
+
 			for (int i = 0; i < projectbank_list.size(); i++)
 			{
+				projectbank_active[i] = true;
+
 				if (!pestrcasestr((char *)projectbank_list[i].c_str(), "_backup_"))
 				{
 					char project[MAX_PATH];
@@ -48475,6 +48488,9 @@ void GetProjectList(char *path, bool bGetThumbs)
 								}
 							}
 							projectbank_image.push_back(bestfound.Get());
+							if (checkproject.project_inactive)
+								projectbank_active[i] = false;
+
 						}
 						else
 						{
@@ -48493,6 +48509,7 @@ void GetProjectList(char *path, bool bGetThumbs)
 				}
 			}
 		}
+		*/
 	}
 }
 
