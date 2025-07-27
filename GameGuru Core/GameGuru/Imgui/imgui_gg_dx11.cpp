@@ -5317,6 +5317,7 @@ void ChangeGGFont(const char *cpcustomfont, int iIDEFontSize)
 
 void AddRemoteProjectFonts(void)
 {
+	void timestampactivity(int i, char* desc_s);
 	extern StoryboardStruct Storyboard;
 	extern std::vector< std::pair<ImFont*, std::string>> StoryboardFonts;
 	bool bAddedFonts = false;
@@ -5359,6 +5360,10 @@ void AddRemoteProjectFonts(void)
 							//Add font.
 							if (!bAlreadyThere)
 							{
+								char msg[MAX_PATH];
+								sprintf(msg, "Adding Font: %s", file);
+								timestampactivity(0, msg);
+
 								char path[MAX_PATH];
 								strcpy(path, destination);
 								strcat(path, file);
@@ -5376,6 +5381,7 @@ void AddRemoteProjectFonts(void)
 			if (bAddedFonts)
 			{
 				//ImGui_ImplDX11_CreateDeviceObjects();
+				timestampactivity(0, "ImGui_ImplDX11_CreateFontsTexture();");
 				ImGui_ImplDX11_CreateFontsTexture();
 				//PE: old frame could have our old font texture , so disable it until newframe.
 				bBlockImGuiUntilNewFrame = true;

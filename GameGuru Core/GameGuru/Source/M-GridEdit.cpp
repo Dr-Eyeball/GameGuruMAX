@@ -2165,6 +2165,13 @@ void mapeditorexecutable_loop(void)
 	{
 		switch (iLaunchAfterSync)
 		{
+			case 699:
+			{
+				iLaunchAfterSync = 0;
+				void AddRemoteProjectFonts(void);
+				AddRemoteProjectFonts();
+				break;
+			}
 			case 203: //PE: trigger a WM_SIZE so resolution,scissor,targetarea all match.
 			{
 				iLaunchAfterSync = 0;

@@ -47987,8 +47987,9 @@ void load_storyboard(char *name)
 		ReloadLensFlareImages();
 
 		//PE: Add custom fonts from remote project.
-		void AddRemoteProjectFonts(void);
-		AddRemoteProjectFonts();
+		iLaunchAfterSync = 699;
+		//void AddRemoteProjectFonts(void);
+		//AddRemoteProjectFonts();
 
 	}
 	else
