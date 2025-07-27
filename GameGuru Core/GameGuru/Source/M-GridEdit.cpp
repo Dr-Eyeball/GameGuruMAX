@@ -398,6 +398,7 @@ bool bForceUndo = false;
 bool bForceRedo = false;
 int iLaunchAfterSync = 0;
 bool bTriggerFovUpdate = false;
+bool bKeepWindowsResponding = false;
 int iLaunchAfterSyncAction = 0;
 bool bLaunchTestGameAfterLoad = false;
 bool bLaunchSaveStandalonefterLoad = false;
@@ -2052,7 +2053,17 @@ void mapeditorexecutable_loop(void)
 			t.tsplashstatusprogress_s = "LOAD DELAYED COMMON ASSETS";
 			timestampactivity(0, t.tsplashstatusprogress_s.Get());
 			version_splashtext_statusupdate ();
+			::SetCursor(::LoadCursor(NULL, IDC_WAIT));
+			ImGuiIO& io = ImGui::GetIO();
+			io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+			bKeepWindowsResponding = true;
+
 			common_loadcommonassets_delayed (0);
+
+			bKeepWindowsResponding = false;
+			io.ConfigFlags &= ~ImGuiConfigFlags_NoMouseCursorChange;
+			::SetCursor(::LoadCursor(NULL, IDC_ARROW));
+
 			g_bCommonAssetsLoadOnce = false;
 		}
 	}
@@ -2190,6 +2201,13 @@ void mapeditorexecutable_loop(void)
 			}
 			case 502: //Do the actual level load.
 			{
+
+				::SetCursor(::LoadCursor(NULL, IDC_WAIT));
+				ImGuiIO& io = ImGui::GetIO();
+				io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+
+				bKeepWindowsResponding = true;
+
 				g.projectfilename_s = sNextLevelToLoad;
 			
 				extern bool g_bAllowBackwardCompatibleConversion;
@@ -2270,6 +2288,11 @@ void mapeditorexecutable_loop(void)
 				csForceKey = "o";
 				bTerrain_Tools_Window = false;
 				Entity_Tools_Window = true;
+
+				bKeepWindowsResponding = false;
+				io.ConfigFlags &= ~ImGuiConfigFlags_NoMouseCursorChange;
+				::SetCursor(::LoadCursor(NULL, IDC_ARROW));
+
 				break;
 			}
 			case 2: //Open
@@ -15413,6 +15436,11 @@ void mapeditorexecutable_loop(void)
 			{
 				case 503: //Save the actual map here!
 				{
+					::SetCursor(::LoadCursor(NULL, IDC_WAIT));
+					ImGuiIO& io = ImGui::GetIO();
+					io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+					bKeepWindowsResponding = true;
+
 					iLaunchAfterSync = 0;
 					if (iLaunchAfterSyncAction == 11)
 					{
@@ -15433,10 +15461,21 @@ void mapeditorexecutable_loop(void)
 					gridedit_save_map();
 					g.projectmodified = 0; gridedit_changemodifiedflag();
 					g.projectmodifiedstatic = 0;
+
+					bKeepWindowsResponding = false;
+					io.ConfigFlags &= ~ImGuiConfigFlags_NoMouseCursorChange;
+					::SetCursor(::LoadCursor(NULL, IDC_ARROW));
+
 					break;
 				}
 				case 504: //Save the actual map here!
 				{
+
+					::SetCursor(::LoadCursor(NULL, IDC_WAIT));
+					ImGuiIO& io = ImGui::GetIO();
+					io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+					bKeepWindowsResponding = true;
+
 					iLaunchAfterSync = 0;
 					gridedit_save_map();
 					g.projectmodified = 0; gridedit_changemodifiedflag();
@@ -15476,6 +15515,11 @@ void mapeditorexecutable_loop(void)
 					}
 
 					iLaunchAfterSyncAction = 0;
+
+					bKeepWindowsResponding = false;
+					io.ConfigFlags &= ~ImGuiConfigFlags_NoMouseCursorChange;
+					::SetCursor(::LoadCursor(NULL, IDC_ARROW));
+
 					break;
 				}
 
@@ -28346,14 +28390,23 @@ void gridedit_save_test_map ( void )
 	timestampactivity(0,"SAVETESTMAP: Save map");
 	mapfile_savemap ( );
 
+	if (bKeepWindowsResponding)
+		EmptyMessages();
+
 	//  Settings specific to the player
 	timestampactivity(0,"SAVETESTMAP: Save player config");
 	mapfile_saveplayerconfig ( );
+
+	if (bKeepWindowsResponding)
+		EmptyMessages();
 
 	//  Save entity elements
 	timestampactivity(0,"SAVETESTMAP: Save elements");
 	entity_savebank ( );
 	entity_savebank_ebe ( );
+
+	if (bKeepWindowsResponding)
+		EmptyMessages();
 
 	//PE: Must remove , t.entityprofile[t.entid].ismarker == 12 && systemwide.
 	extern StoryboardStruct Storyboard;
@@ -28389,6 +28442,10 @@ void gridedit_save_test_map ( void )
 
 	entity_saveelementsdata ( false );
 
+	if (bKeepWindowsResponding)
+		EmptyMessages();
+
+
 	//PE: Restore systemwidelua.
 	for (int i = 1; i <= g.entityelementlist; i++)
 	{
@@ -28408,6 +28465,9 @@ void gridedit_save_test_map ( void )
 	//PE: Save systemwidelua.ele
 	if (strlen(Storyboard.gamename) > 0)
 	{
+		if (bKeepWindowsResponding)
+			EmptyMessages();
+
 		timestampactivity(0, "saving systemwidelua.ele");
 		cstr storeoldELEfile = t.elementsfilename_s;
 		char collectionELEfilename[MAX_PATH];
@@ -28430,6 +28490,9 @@ void gridedit_save_test_map ( void )
 			bool bForCollectionELE = true;
 			entity_saveelementsdata(bForCollectionELE);
 
+			if (bKeepWindowsResponding)
+				EmptyMessages();
+
 			g.entityelementlist = iStoreEntEleCount;
 			t.entityelement = storeentityelement;
 			storeentityelement.clear();
@@ -28441,9 +28504,15 @@ void gridedit_save_test_map ( void )
 	timestampactivity(0,"SAVETESTMAP: Save waypoints");
 	waypoint_savedata ( );
 
+	if (bKeepWindowsResponding)
+		EmptyMessages();
+
 	//  Save editor configuration
 	timestampactivity(0,"SAVETESTMAP: Save config");
 	editor_savecfg ( );
+
+	if (bKeepWindowsResponding)
+		EmptyMessages();
 
 	//  Save terrain
 	timestampactivity(0,"SAVETESTMAP: Save terrain textures");
@@ -28455,6 +28524,10 @@ void gridedit_save_test_map ( void )
 	t.tfilewater_s=g.mysystem.levelBankTestMap_s+"watermask.dds"; //"levelbank\\testmap\\watermask.dds";
 	#endif
 	terrain_savetextures ( );
+
+	if (bKeepWindowsResponding)
+		EmptyMessages();
+
 	#ifdef WICKEDENGINE
 	t.tfileveggrass_s=g.mysystem.levelBankTestMap_s+"TTR0XR0\\vegmaskgrass.dat";
 	#else
@@ -28462,10 +28535,18 @@ void gridedit_save_test_map ( void )
 	#endif
 	timestampactivity(0,"SAVETESTMAP: Save terrain veg");
 	grass_savegrass ( );
+
+	if (bKeepWindowsResponding)
+		EmptyMessages();
+
 	timestampactivity(0,"SAVETESTMAP: Save terrain height data");
 	t.tfile_s=g.mysystem.levelBankTestMap_s+"m.dat";
 	#ifdef WICKEDENGINE
 	terrain_save ( t.tfile_s.Get() );
+
+	if (bKeepWindowsResponding)
+		EmptyMessages();
+
 	#else
 	terrain_save();
 	#endif
@@ -28499,11 +28580,20 @@ void gridedit_save_map ( void )
 	// Save only to TESTMAP area (for map testing)
 	gridedit_save_test_map ( );
 
+	if (bKeepWindowsResponding)
+		EmptyMessages();
+
 	// Now store all part-files into main FPM project
 	mapfile_saveproject_fpm ( );
 
+	if (bKeepWindowsResponding)
+		EmptyMessages();
+
 	// Add Latest project To Recent List
 	gridedit_updateprojectname ( );
+
+	if (bKeepWindowsResponding)
+		EmptyMessages();
 
 	// Clear status Text (  )
 	t.statusbar_s="" ; popup_text_close();
@@ -29176,6 +29266,9 @@ void gridedit_load_map ( void )
 	timestampactivity(0, "GGTerrain_RemoveAllFlatAreas:1");
 	GGTerrain_RemoveAllFlatAreas();
 
+	if (bKeepWindowsResponding)
+		EmptyMessages();
+
 	//  Use large prompt
 	t.statusbar_s=t.strarr_s[367]; 
 	popup_text(t.statusbar_s.Get());
@@ -29214,6 +29307,9 @@ void gridedit_load_map ( void )
 		//  Clear map first
 		gridedit_clear_map ( );
 
+		if (bKeepWindowsResponding)
+			EmptyMessages();
+
 		// 121115 - Reset memory tracker
 		gridedit_resetmemortracker ( );
 
@@ -29238,23 +29334,43 @@ void gridedit_load_map ( void )
 		//  Load entity bank and elements
 		popup_text_change(t.strarr_s[611].Get());
 		entity_loadbank ( );
+		if (bKeepWindowsResponding)
+			EmptyMessages();
+
 		timestampactivity(0, "s:entity_loadelementsdata()");
 		entity_loadelementsdata ( );
+
+		if (bKeepWindowsResponding)
+			EmptyMessages();
+
 		timestampactivity(0, "e:entity_loadelementsdata()");
 		t.editor.replacefilepresent_s="";
 
 		//  Load waypoints
 		popup_text_change(t.strarr_s[612].Get());
 		waypoint_loaddata ( );
+
+		if (bKeepWindowsResponding)
+			EmptyMessages();
+
 		waypoint_recreateobjs ( );
+
+		if (bKeepWindowsResponding)
+			EmptyMessages();
 
 		//  Load data
 		popup_text_change(t.strarr_s[613].Get());
 		mapfile_loadmap ( );
 
+		if (bKeepWindowsResponding)
+			EmptyMessages();
+
 		//  Load player settings
 		timestampactivity(0,"Load player config");
 		mapfile_loadplayerconfig ( );
+
+		if (bKeepWindowsResponding)
+			EmptyMessages();
 
 		//  Load terrain
 		popup_text_change(t.strarr_s[610].Get());
@@ -29262,12 +29378,21 @@ void gridedit_load_map ( void )
 		terrain_createactualterrain ( );
 		terrain_loaddata ( );
 
+		if (bKeepWindowsResponding)
+			EmptyMessages();
+
 		// ensure firerate settings updated with any overrides set by developer mode changes
 		entity_init_overwritefireratesettings();
+
+		if (bKeepWindowsResponding)
+			EmptyMessages();
 
 		//  Update remaining map data before editing
 		timestampactivity(0, "Reset Editor.");
 		gridedit_updatemapbeforeedit ( );
+
+		if (bKeepWindowsResponding)
+			EmptyMessages();
 
 		//  Load editor configuration
 		int iOldGE = t.grideditselect;
@@ -29309,6 +29434,9 @@ void gridedit_load_map ( void )
 		#endif
 		editor_filllibrary ( );
 
+		if (bKeepWindowsResponding)
+			EmptyMessages();
+
 		//  Add Latest project To Recent List
 		gridedit_updateprojectname ( );
 	}
@@ -29330,6 +29458,9 @@ void gridedit_load_map ( void )
 		t.inputsys.donewflat=1;
 		gridedit_new_map ( );
 	}
+
+	if (bKeepWindowsResponding)
+		EmptyMessages();
 
 	//  Popup warning if load found some missing files
 	if ( g.timestampactivityflagged == 1 ) 
@@ -29488,6 +29619,10 @@ void gridedit_load_map ( void )
 	extern int iInstancedTotal;
 	iInstancedTotal = 0;
 	#endif
+
+	if (bKeepWindowsResponding)
+		EmptyMessages();
+
 	for ( t.e = 1 ; t.e <=  g.entityelementlist; t.e++ )
 	{
 		//PE: DEBUG - Crash here at 654 level have (1200+) : United Tribes of Gahkistahn.fpm
@@ -29504,6 +29639,12 @@ void gridedit_load_map ( void )
 		//}
 
 		t.tupdatee=t.e ; gridedit_updateentityobj ( );
+
+		if (t.e % 20 == 0)
+		{
+			if (bKeepWindowsResponding)
+				EmptyMessages();
+		}
 	}
 	timestampactivity(0, "End Setup objects:");
 	
@@ -29557,6 +29698,9 @@ void gridedit_load_map ( void )
 	// Level has finished loading, so no longer need to store the smart object dummy OBJs
 	extern std::vector<int> g_smartObjectDummyEntities;
 	g_smartObjectDummyEntities.clear();
+
+	if (bKeepWindowsResponding)
+		EmptyMessages();
 
 	// call files modify check function and reset file timestamp map
 	extern void CheckExistingFilesModified(bool);
@@ -31201,6 +31345,11 @@ void GridPopup(ImVec2 wpos)
 }
 #endif
 
+bool GetEnableEmptyLevelMode(void)
+{
+	return t.visuals.bEnableEmptyLevelMode;
+}
+
 void GetConvertSettings(int *maxwidth,int *active)
 {
 	*active = g.globals.ConvertToDDS;
@@ -31230,4 +31379,23 @@ int GetActiveEditorObject( void )
 	}
 	return(iActiveObj);
 }
+
+void EmptyMessages(void)
+{
+	//PE: Empty messages , so windows dont think we are dead. ( perhaps remember QUIT ? )
+	MSG msg = { 0 };
+	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+	{
+		//PE: No WM_QUIT while saving/loading levels.
+		if (msg.message != WM_QUIT)
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+	}
+}
+
+
+
+
 
