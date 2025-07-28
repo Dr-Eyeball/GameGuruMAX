@@ -1,5 +1,5 @@
 -- LUA Script - precede every function and global member with lowercase name of script + '_main'
--- Object Collider v6 
+-- Object Collider v7 
 -- DESCRIPTION: The attached object will detect collisions with object and/or terrain.
 -- DESCRIPTION: [TERRAIN_DISTANCE=10(0,100)]
 -- DESCRIPTION: [#COLLISION_FORCE=0.05(0.00,0.1)]
@@ -7,7 +7,7 @@
 -- DESCRIPTION: [@DETECTION_TRIGGER=1(1=Off, 2=On)] to activate logic linked or IfUsed Entities
 -- DESCRIPTION: [@FORCE_BOUNCE=1(1=Off, 2=On)] to bounce object
 -- DESCRIPTION: [@DESTROY_COLLIDER=1(1=Off, 2=On)] to delete the colliding object
--- DESCRIPTION: [#DESTROY_DELAY=1.0(0.0,5.0)] delay time to deletion
+-- DESCRIPTION: [#DESTROY_DELAY=0.5(0.0,5.0)] delay time to deletion
 -- DESCRIPTION: [@@USER_GLOBAL_AFFECTED$=""(0=globallist)] User Global that will be affected by a collision
 -- DESCRIPTION: [AFFECTED_VALUE=10(0,100)]
 -- DESCRIPTION: [@VALUE_PROCESS=1(1=Add, 2=Deduct)]
@@ -72,6 +72,7 @@ function object_collider_init(e)
 	checkInterval[e] = 100
 	terColPos[e] = 0
 	timeNow[e] = math.huge
+	checkTimer[e] = nil
 	playonce[e] = 0
 	doonce[e] = 0
 	collisionlist[e] = {}
@@ -83,16 +84,15 @@ function object_collider_init(e)
 end
 
 function object_collider_main(e)
-	timeNow[e] = g_Time
 	
 	if checkTimer[e] == nil then 
-		checkTimer[e] = timeNow[e] + 1000 
+		checkTimer[e] = g_Time + 1000 
 		initialise[e] = true
 		terColPos[e] = { x = 0, y = 0, z = 0 }				
 	elseif 
-		timeNow[e] > checkTimer[e] then
+		g_Time > checkTimer[e] then
 			initialise[e] = false
-			checkTimer[e] = timeNow[e] + 50
+			checkTimer[e] = g_Time + 50
 			CheckForCollision(e)
 	elseif
 		initialise[e] then
@@ -103,6 +103,7 @@ function object_collider_main(e)
 			if g_Time > collidetimer[e] then 
 				Destroy(collidedEnt[e])
 				collidedEnt[e] = 0
+				collidetimer[e] = math.huge
 			end
 		end	
 	end	
@@ -138,7 +139,7 @@ function CheckForCollision(e,checkOnly)
 									PushObject(g_Entity[e]['obj'],math.random(0,0.01), math.random(0.1,1.9), math.random(0,0.01), math.random(0,1),  math.random(0,3),  math.random(0,1) )	
 								end
 							end	
-							resettimer[e] = g_Time + 500
+							resettimer[e] = g_Time + 300
 							doonce[e] = 1
 						end						
 					end
@@ -170,7 +171,7 @@ function CheckForCollision(e,checkOnly)
 								_G["g_UserGlobal['"..collider[e].user_global_affected.."']"] = currentvalue[e] - collider[e].affected_value
 							end
 						end	
-						resettimer[e] = g_Time + 500
+						resettimer[e] = g_Time + 300
 						doonce[e] = 1
 					end
 					if collider[e].force_bounce == 2 then
