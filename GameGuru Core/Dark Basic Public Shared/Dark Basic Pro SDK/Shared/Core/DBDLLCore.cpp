@@ -523,9 +523,9 @@ void ImGui_RenderLast(void)
 		{
 		
 			//PE: VS2022 style
-			float r = pref.status_bar_color.x; // = ImVec4((1.0f / 255.0f) * 14, (1.0f / 255.0f) * 99, (1.0f / 255.0f) * 156, 1.0);
-			float g = pref.status_bar_color.y; // (1.0f / 255.0f) * 99;
-			float b = pref.status_bar_color.z; // (1.0f / 255.0f) * 156;
+			float r = pref.highlight_color.x; // = ImVec4((1.0f / 255.0f) * 14, (1.0f / 255.0f) * 99, (1.0f / 255.0f) * 156, 1.0);
+			float g = pref.highlight_color.y; // (1.0f / 255.0f) * 99;
+			float b = pref.highlight_color.z; // (1.0f / 255.0f) * 156;
 			if (pref.current_style == 25)
 			{
 				r = (1.0f / 255.0f) * 43;
@@ -822,7 +822,10 @@ void ImGui_RenderLast(void)
 				flags |= ImGuiWindowFlags_NoScrollbar;
 
 				float boxwidth = 190;
-
+				if (pref.iAdvancedGridModeSettings == 0)
+				{
+					boxwidth = 230;
+				}
 				//boxwidth = 120.0f;
 				int icon_size = 44.0f;
 				float menubarsize = 27.0f + ((50.0f - icon_size) * 0.5f);

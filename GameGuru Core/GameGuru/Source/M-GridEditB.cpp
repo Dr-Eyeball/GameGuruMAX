@@ -11163,98 +11163,134 @@ void ProcessPreferences(void)
 
 			if (pref.current_style == 1)
 			{
-				//VS2022 colors.
-				//pref.status_bar_color
-				float ChangeColor[4];
-				ChangeColor[0] = pref.status_bar_color.x;
-				ChangeColor[1] = pref.status_bar_color.y;
-				ChangeColor[2] = pref.status_bar_color.z;
-				ChangeColor[3] = 1.0f;
-
-				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
-				ImGui::Text("Statusbar and highlight color: ");
-				ImGui::SameLine();
-
-				ImGui::PushItemWidth(32);
-				ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 1);
-				bool open_popup = ImGui::ColorButton("##statusbarHighlight", pref.status_bar_color , 0, ImVec2(32, 18));
-				if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Change the status bar and highlight colors");
-				ImGui::PopItemWidth();
-				if (open_popup) ImGui::OpenPopup("##statusbarHighlight");
-				if (ImGui::BeginPopup("##statusbarHighlight", ImGuiWindowFlags_NoMove))
+				for (int i = 0; i < 2; i++)
 				{
-					if (ImGui::ColorPicker4("##statusbarHighlight", &ChangeColor[0], ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview))
+
+					float ChangeColor[4];
+					if (i == 0)
 					{
-						pref.status_bar_color.x = ChangeColor[0];
-						pref.status_bar_color.y = ChangeColor[1];
-						pref.status_bar_color.z = ChangeColor[2];
+						//VS2022 colors.
+						ChangeColor[0] = pref.status_bar_color.x;
+						ChangeColor[1] = pref.status_bar_color.y;
+						ChangeColor[2] = pref.status_bar_color.z;
+						ChangeColor[3] = 1.0f;
+					}
+					else
+					{
+						ChangeColor[0] = pref.highlight_color.x;
+						ChangeColor[1] = pref.highlight_color.y;
+						ChangeColor[2] = pref.highlight_color.z;
+						ChangeColor[3] = 1.0f;
+					}
+
+					std::string label = "";
+					if (i == 0) label = "Statusbar color: ";
+					else label = "Highlight color: ";
+
+					float fixed_pos_x = ImGui::GetCursorPosX();
+
+					ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
+					ImGui::Text(label.c_str());
+					ImGui::SameLine();
+
+					ImGui::PushItemWidth(32);
+					ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 1);
+					ImGui::SetCursorPosX(fixed_pos_x+120.0f);
+
+					if (i == 0) label = "##statusbarHighlightpopup";
+					else label = "##Highlightpopup";
+
+					ImVec4* colorvaluechange;
+					if (i == 0)
+						colorvaluechange = &pref.status_bar_color;
+					else
+						colorvaluechange = &pref.highlight_color;
+
+					std::string tooltip = "";
+					if (i == 0) tooltip = "Change the status bar colors";
+					else tooltip = "Change the highlight colors";
+
+					bool open_popup = ImGui::ColorButton(label.c_str(), *colorvaluechange, 0, ImVec2(32, 18));
+					if (ImGui::IsItemHovered()) ImGui::SetTooltip(tooltip.c_str());
+					ImGui::PopItemWidth();
+					if (open_popup) ImGui::OpenPopup(label.c_str());
+					if (ImGui::BeginPopup(label.c_str(), ImGuiWindowFlags_NoMove))
+					{
+						if (ImGui::ColorPicker4(label.c_str(), &ChangeColor[0], ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview))
+						{
+							ImVec4 colorselect = ImVec4(ChangeColor[0], ChangeColor[1], ChangeColor[2], 1);
+							*colorvaluechange = colorselect;
+							change_colors = true;
+						}
+						ImGui::EndPopup();
+					}
+
+					ImGui::SameLine();
+
+					ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 8);
+
+					if (i == 0) label = "##statusbarHighlightdefault";
+					else  label = "##Highlightdefault";
+
+					ImVec4 colorselect = ImVec4((1.0f / 255.0f) * 14, (1.0f / 255.0f) * 99, (1.0f / 255.0f) * 156, 1.0);
+					if (ImGui::ColorButton(std::string(label + "1").c_str(), colorselect, 0, ImVec2(18, 18)))
+					{
+						*colorvaluechange = colorselect;
 						change_colors = true;
 					}
-					ImGui::EndPopup();
+
+					ImGui::SameLine();
+					colorselect = ImVec4((1.0f / 255.0f) * 202, (1.0f / 255.0f) * 81, 0, 1.0);
+					if (ImGui::ColorButton(std::string(label + "2").c_str(), colorselect, 0, ImVec2(18, 18)))
+					{
+						*colorvaluechange = colorselect;
+						change_colors = true;
+					}
+
+					ImGui::SameLine();
+					colorselect = ImVec4((1.0f / 255.0f) * 18, (1.0f / 255.0f) * 117, (1.0f / 255.0f) * 58, 1.0);
+					if (ImGui::ColorButton(std::string(label + "3").c_str(), colorselect, 0, ImVec2(18, 18)))
+					{
+						*colorvaluechange = colorselect;
+						change_colors = true;
+					}
+
+					ImGui::SameLine();
+					colorselect = ImVec4((1.0f / 255.0f) * 92, (1.0f / 255.0f) * 53, (1.0f / 255.0f) * 174, 1.0);
+					if (ImGui::ColorButton(std::string(label + "4").c_str(), colorselect, 0, ImVec2(18, 18)))
+					{
+						*colorvaluechange = colorselect;
+						change_colors = true;
+					}
+
+					ImGui::SameLine();
+					colorselect = ImVec4((1.0f / 255.0f) * 166, (1.0f / 255.0f) * 45, (1.0f / 255.0f) * 25, 1.0);
+					if (ImGui::ColorButton(std::string(label + "5").c_str(), colorselect, 0, ImVec2(18, 18)))
+					{
+						*colorvaluechange = colorselect;
+						change_colors = true;
+					}
+
+					ImGui::SameLine();
+					colorselect = ImVec4((1.0f / 255.0f) * 79, (1.0f / 255.0f) * 79, (1.0f / 255.0f) * 79, 1.0);
+					if (ImGui::ColorButton(std::string(label + "6").c_str(), colorselect, 0, ImVec2(18, 18)))
+					{
+						*colorvaluechange = colorselect;
+						change_colors = true;
+					}
+
+					ImGui::SameLine();
+					colorselect = ImVec4(0, 0, 0, 1.0);
+					if (ImGui::ColorButton(std::string(label + "7").c_str(), colorselect, 0, ImVec2(18, 18)))
+					{
+						*colorvaluechange = colorselect;
+						change_colors = true;
+					}
 				}
-
-				ImGui::SameLine();
-
-				ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 8);
-
-				ImVec4 colorselect = ImVec4((1.0f / 255.0f) * 14, (1.0f / 255.0f) * 99, (1.0f / 255.0f) * 156, 1.0);
-				if (ImGui::ColorButton("##statusbarHighlightdefault1", colorselect, 0, ImVec2(18, 18)))
-				{
-					pref.status_bar_color = colorselect;
-					change_colors = true;
-				}
-
-				ImGui::SameLine();
-				colorselect = ImVec4((1.0f / 255.0f) * 202, (1.0f / 255.0f) * 81, 0 , 1.0);
-				if (ImGui::ColorButton("##statusbarHighlightdefault2", colorselect, 0, ImVec2(18, 18)))
-				{
-					pref.status_bar_color = colorselect;
-					change_colors = true;
-				}
-
-				ImGui::SameLine();
-				colorselect = ImVec4((1.0f / 255.0f) * 18, (1.0f / 255.0f) * 117, (1.0f / 255.0f) * 58, 1.0);
-				if (ImGui::ColorButton("##statusbarHighlightdefault3", colorselect, 0, ImVec2(18, 18)))
-				{
-					pref.status_bar_color = colorselect;
-					change_colors = true;
-				}
-
-				ImGui::SameLine();
-				colorselect = ImVec4((1.0f / 255.0f) * 92, (1.0f / 255.0f) * 53, (1.0f / 255.0f) * 174, 1.0);
-				if (ImGui::ColorButton("##statusbarHighlightdefault4", colorselect, 0, ImVec2(18, 18)))
-				{
-					pref.status_bar_color = colorselect;
-					change_colors = true;
-				}
-
-				ImGui::SameLine();
-				colorselect = ImVec4((1.0f / 255.0f) * 166, (1.0f / 255.0f) * 45, (1.0f / 255.0f) * 25, 1.0);
-				if (ImGui::ColorButton("##statusbarHighlightdefault6", colorselect, 0, ImVec2(18, 18)))
-				{
-					pref.status_bar_color = colorselect;
-					change_colors = true;
-				}
-
-				ImGui::SameLine();
-				colorselect = ImVec4((1.0f / 255.0f) * 79, (1.0f / 255.0f) * 79, (1.0f / 255.0f) * 79, 1.0);
-				if (ImGui::ColorButton("##statusbarHighlightdefault5", colorselect, 0, ImVec2(18, 18)))
-				{
-					pref.status_bar_color = colorselect;
-					change_colors = true;
-				}
-
-				ImGui::SameLine();
-				colorselect = ImVec4( 0, 0, 0, 1.0);
-				if (ImGui::ColorButton("##statusbarHighlightdefault7", colorselect, 0, ImVec2(18, 18)))
-				{
-					pref.status_bar_color = colorselect;
-					change_colors = true;
-				}
-
-
 				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
 			}
+
+
 			bTmp = pref.iEnableCustomColors;
 			if (ImGui::Checkbox("Enable Custom Colors", &bTmp)) 
 			{
