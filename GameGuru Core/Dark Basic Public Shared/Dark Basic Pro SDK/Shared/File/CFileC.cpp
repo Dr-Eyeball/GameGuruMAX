@@ -32,6 +32,7 @@
 int fileRedirectSetup = 0;
 FILE *pLogFile = 0;
 char szRootDir[ MAX_PATH ];
+bool bRootDirWriteable = false;
 char szWriteDir[ MAX_PATH ];
 char szBeforeChangeWriteDir[MAX_PATH] = "\0";
 char szAddWriteDirAdditional[MAX_PATH];
@@ -227,6 +228,22 @@ void FileRedirectSetup()
 	strcpy( szRootDir, szDrive );
 	strcat( szRootDir, szDir ); 
 
+	bRootDirWriteable = false;
+	char TestWrite[MAX_PATH];
+	strcpy(TestWrite, szRootDir);
+	strcat(TestWrite, "test.tst");
+	FILE* testFile = fopen(TestWrite, "w");
+	if (testFile)
+	{
+		fprintf(testFile, "test");
+		fclose(testFile);
+	}
+	if (FileExist(TestWrite) == 1)
+	{
+		DeleteAFile(TestWrite);
+		bRootDirWriteable = true;
+	}
+
 	// set write directory string
 	if (g_bUseRootAsWriteAreaForStandaloneGames == true)
 	{
@@ -356,6 +373,7 @@ int GG_GetRealPath( char* fullPath, int create, bool bIgnoreAdditional)
 	}
 	*ptr2 = 0;
 
+
 	// check if this path is accessing the install folder
 	int rootLen = strlen( szRootDir );
 
@@ -366,7 +384,16 @@ int GG_GetRealPath( char* fullPath, int create, bool bIgnoreAdditional)
 		char newPath[ MAX_PATH ];
 		if(g_bSetWriteAsRootTemp==true)
 		{
-			strcpy_s(newPath, MAX_PATH, szRootDir);
+			//PE: Mainly used for debug.log , but must be sure we can actually write here.
+			if (bRootDirWriteable)
+			{
+				strcpy_s(newPath, MAX_PATH, szRootDir);
+			}
+			else
+			{
+				//PE: Else use szRootWriteDir.
+				strcpy_s(newPath, MAX_PATH, szRootWriteDir);
+			}
 		}
 		else
 		{
