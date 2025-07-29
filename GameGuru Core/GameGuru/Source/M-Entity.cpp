@@ -9730,6 +9730,7 @@ void preload_wicked_particle_effect(newparticletype* pParticle, int decal_id)
 					uint32_t root = 0;
 					Entity new_root = 0;
 					uint32_t count_before = scene.emitters.GetCount();
+					uint32_t mat_count_before = scene.materials.GetCount();
 
 					char path[MAX_PATH];
 					strcpy(path, pParticle->emittername.Get());
@@ -9748,6 +9749,7 @@ void preload_wicked_particle_effect(newparticletype* pParticle, int decal_id)
 					if (count_before != count_after)
 					{
 						Entity emitter = scene.emitters.GetEntity(scene.emitters.GetCount() - 1);
+						Entity matemitter = scene.materials.GetEntity(scene.materials.GetCount() - 1);
 						if (scene.emitters.GetCount() > 0)
 						{
 							HierarchyComponent* hier = scene.hierarchy.GetComponent(emitter);
@@ -9762,6 +9764,28 @@ void preload_wicked_particle_effect(newparticletype* pParticle, int decal_id)
 							//ec->Restart();
 							ec->SetVisible(true);
 						}
+
+						if (master_root > 0)
+						{
+							//PE: resource sometimes empty when using Entity_Duplicate.
+							int from = mat_count_before;
+							int to = scene.materials.GetCount();
+							for (; from < to; from++)
+							{
+								for (int a = 0; a < MaterialComponent::EMISSIVEMAP; a++)
+								{
+									if (scene.materials[from].textures[a].name.size() > 0)
+									{
+										if (!scene.materials[from].textures[a].resource)
+										{
+											scene.materials[from].textures[a].resource = WickedCall_LoadImage(scene.materials[from].textures[a].name);
+										}
+									}
+								}
+								scene.materials[from].SetDirty();
+							}
+						}
+
 					}
 					if (root != 0)
 					{
