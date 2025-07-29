@@ -233,11 +233,82 @@ void FileRedirectSetup()
 		// use exe location for standalone games
 		strcpy(szWriteDir, szRootDir);
 		strcpy(szRootWriteDir, szRootDir);
+
+		//PE: Check if we can write access to this folder. normally not if installed in \programfiles
+		char TestWrite[MAX_PATH];
+		strcpy(TestWrite, szWriteDir);
+		strcat(TestWrite, "test.tst");
+		FILE* testFile = fopen(TestWrite, "w");
+		if (testFile)
+		{
+			fprintf(testFile, "test");
+			fclose(testFile);
+		}
+		if (FileExist(TestWrite) == 1)
+		{
+			DeleteAFile(TestWrite);
+		}
+		else
+		{
+			//PE: Second pri. standalone own document folder.
+			bool bFail = false;
+			if (!SHGetSpecialFolderPath(NULL, szWriteDir, CSIDL_MYDOCUMENTS, TRUE))
+			{
+				//PE: This happened for a user , even when they got the document folder ? , try the new way.
+				HRESULT result = SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, szWriteDir);
+				if (result != S_OK)
+				{
+					bFail = true;
+				}
+			}
+			if (!bFail)
+			{
+				strcat_s(szWriteDir, MAX_PATH, "\\GameGuruApps\\");
+				strcat_s(szWriteDir, MAX_PATH, szEXE);
+				strcat_s(szWriteDir, MAX_PATH, "\\");
+				strcpy_s(szRootWriteDir, MAX_PATH, szWriteDir);
+
+				GG_CreatePath(szWriteDir);
+
+				strcpy(TestWrite, szWriteDir);
+				strcat(TestWrite, "test.tst");
+				FILE* testFile = fopen(TestWrite, "w");
+				if (testFile)
+				{
+					fprintf(testFile, "test");
+					fclose(testFile);
+				}
+				if (FileExist(TestWrite) == 1)
+				{
+					DeleteAFile(TestWrite);
+				}
+				else
+				{
+					bFail = true;
+				}
+			}
+			if(bFail)
+			{
+				//PE: Last pri. whatever works.
+				if (FileRedirectChangeWritableArea(szEXE) == true)
+				{
+					//PE: pref.cCustomWriteFolder works as szWriteDir also set szRootWriteDir.
+					strcpy_s(szRootWriteDir, MAX_PATH, szWriteDir);
+					return;
+				}
+				FileRedirectRestoreWritableArea(szEXE);
+			}
+		}
 	}
 	else
 	{
 		// szWriteDir and szRootWriteDir set in FileRedirectChangeWritableArea
-		if (FileRedirectChangeWritableArea (szEXE) == true) return;
+		if (FileRedirectChangeWritableArea(szEXE) == true)
+		{
+			//PE: pref.cCustomWriteFolder works as szWriteDir also set szRootWriteDir.
+			strcpy_s(szRootWriteDir, MAX_PATH, szWriteDir);
+			return;
+		}
 		FileRedirectRestoreWritableArea(szEXE);
 	}
 
