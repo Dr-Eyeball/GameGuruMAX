@@ -1,25 +1,37 @@
 -- LUA Script - precede every function and global member with lowercase name of script + '_main'
--- PARTICLE_TOGGLER v1 by Necrym59
+-- PARTICLE_TOGGLER v2 by Necrym59
 -- DESCRIPTION: When this entity is triggered it will activate and toggle a named particle on or off
 -- DESCRIPTION: Attach to an object and logic link from a switch or zone to activate.
 -- DESCRIPTION: [PARTICLE_NAME$=""] particle name
+-- DESCRIPTION: [@TRIGGER=1(1=External, 2=Proximity)]
+-- DESCRIPTION: [PROXIMITY_RANGE=1000]
 
 local lower = string.lower
 local particle_toggler		= {}
 local particle_name			= {}
+local trigger				= {}
+local proximity_range		= {}
 local particle_no			= {}
+local reset					= {}
+local doonce				= {}
 local status				= {}
 	
-function particle_toggler_properties(e, particle_name)
+function particle_toggler_properties(e, particle_name, trigger, proximity_range)
 	particle_toggler[e].particle_name = string.lower(particle_name)
+	particle_toggler[e].trigger = trigger
+	particle_toggler[e].proximity_range = proximity_range
 end
  
 function particle_toggler_init(e)
 	particle_toggler[e] = {}
 	particle_toggler[e].particle_name = ""
+	particle_toggler[e].trigger = 1
+	particle_toggler[e].proximity_range = 1000
 	particle_toggler[e].particle_no = 0
 	
 	status[e] = "init"
+	doonce[e] = 0
+	reset[e] = math.huge
 end
  
 function particle_toggler_main(e)	
@@ -38,6 +50,15 @@ function particle_toggler_main(e)
 		status[e] = "Off"
 	end
 	
+	if particle_toggler[e].trigger == 2 then
+		if GetPlayerDistance(e) < particle_toggler[e].proximity_range and status[e] == "Off" then
+			SetActivated(e,1)
+		end
+		if GetPlayerDistance(e) > particle_toggler[e].proximity_range and status[e] == "On" then
+			SetActivated(e,1)
+		end
+	end	
+	
 	if g_Entity[e]['activated'] == 1 and status[e] == "Off" then	
 		SetActivated(particle_toggler[e].particle_no,1)
 		Show(particle_toggler[e].particle_no)
@@ -49,4 +70,6 @@ function particle_toggler_main(e)
 		status[e] = "Off"
 		SetActivated(e,0)
 	end
+	
+	
 end
