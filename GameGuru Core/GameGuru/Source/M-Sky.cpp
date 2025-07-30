@@ -29,6 +29,20 @@ void sky_init ( void )
 	char pOldDir[MAX_PATH];
 	strcpy(pOldDir, GetDir());
 
+	//PE: skybank not really needed if using "none" or simulated
+	char checkfolder[MAX_PATH];
+	strcpy(checkfolder, pOldDir);
+	strcat(checkfolder, "\\skybank");
+	if (!PathExist(checkfolder))
+	{
+		Dim(t.skybank_s, 1);
+		t.skybank_s[0] = "None";
+		// Default sky settings
+		t.sky.currenthour_f = 12.0;
+		t.sky.daynightprogress = 0;
+		return;
+	}
+
 	// get local and remote locations of skybank
 	SetDir ("skybank");
 	char pLocalSkyDir[MAX_PATH];
@@ -192,11 +206,29 @@ void sky_skyspec_init(bool bResetVisuals)
 		// Load sky spec for light position and color
 		t.terrain.skyshader_s = "";
 		t.terrain.skyscrollshader_s = "";
-		t.skyname_s = t.skybank_s[g.skyindex];
 		t.terrain.sunskyscrollspeedx_f = 0.0;
 		t.terrain.sunskyscrollspeedz_f = 0.0;
+		if (g.skyindex >= t.skybank_s.size())
+		{
+			if (t.skybank_s.size() == 0)
+			{
+				Dim(t.skybank_s, 1);
+				t.skybank_s[0] = "None";
+			}
+			g.skyindex = 0;
+			return;
+		}
+		t.skyname_s = t.skybank_s[g.skyindex];
 		timestampactivity(0, cstr(cstr("Loading skyspec.txt:") + t.skyname_s).Get());
-		OpenToRead(1, cstr(cstr("skybank\\") + t.skyname_s + "\\skyspec.txt").Get());
+
+		cstr skypath = cstr(cstr("skybank\\") + t.skyname_s + "\\skyspec.txt");
+		if (!DB_FileExist(skypath.Get()))
+		{
+			//PE: Just ignore if skybox is not there. and set to none.
+			g.skyindex = 0;
+			return;
+		}
+		OpenToRead(1, skypath.Get());
 		Dim(t.value_f, 3); t.valuei = 0;
 		do
 		{

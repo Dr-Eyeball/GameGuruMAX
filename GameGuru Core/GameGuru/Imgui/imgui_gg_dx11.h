@@ -661,6 +661,7 @@ struct preferences {
 	int iCheckFilesModifiedOnFocus = 1;
 	int iSmallToolbar = 0;
 	ImVec4 status_bar_color = ImVec4((1.0f / 255.0f) * 14, (1.0f / 255.0f) * 99, (1.0f / 255.0f) * 156, 1.0);
+	ImVec4 highlight_color = status_bar_color;
 };
 
 // can be moved to preferences (Lee needs to know the sequence to add to prefs properly, and the consequences) :)

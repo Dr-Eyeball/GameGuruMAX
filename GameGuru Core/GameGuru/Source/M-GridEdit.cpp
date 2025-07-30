@@ -398,6 +398,7 @@ bool bForceUndo = false;
 bool bForceRedo = false;
 int iLaunchAfterSync = 0;
 bool bTriggerFovUpdate = false;
+bool bKeepWindowsResponding = false;
 int iLaunchAfterSyncAction = 0;
 bool bLaunchTestGameAfterLoad = false;
 bool bLaunchSaveStandalonefterLoad = false;
@@ -592,6 +593,9 @@ extern int iLastUpdateVeg;
 #endif
 #endif
 
+float fEmptyLevelFloorY = 0;
+bool bEmptyLevelGrid = false;
+
 // moved here so Classic would compile
 bool Shooter_Tools_Window_Active = false;
 void DeleteWaypointsAddedToCurrentCursor(void);
@@ -600,6 +604,7 @@ float ImGuiGetMouseX(void);
 float ImGuiGetMouseY(void);
 void RotateAndMoveRubberBand(int iActiveObj, float fMovedActiveObjectX, float fMovedActiveObjectY, float fMovedActiveObjectZ, GGQUATERNION quatRotationEvent); //float fMovedActiveObjectRX, float fMovedActiveObjectRY, float fMovedActiveObjectRZ);
 void SetStartPositionsForRubberBand(int iActiveObj);
+void EmptyMessages(void);
 
 #ifdef WICKEDENGINE
 	void HandleObjectDeletion();
@@ -1652,6 +1657,9 @@ bool commonexecutable_loop_for_game(void)
 	}
 	if (iLaunchAfterSync == 202)
 	{
+		int iGridObj = g.ebeobjectbankoffset + 1000;
+		if (ObjectExist(iGridObj))
+			DeleteObject(iGridObj);
 		bImGuiInTestGame = true;
 		g_bDisableQuitFlag = true;
 		extern bool	g_bDrawSpritesFirst;
@@ -2052,7 +2060,17 @@ void mapeditorexecutable_loop(void)
 			t.tsplashstatusprogress_s = "LOAD DELAYED COMMON ASSETS";
 			timestampactivity(0, t.tsplashstatusprogress_s.Get());
 			version_splashtext_statusupdate ();
+			::SetCursor(::LoadCursor(NULL, IDC_WAIT));
+			ImGuiIO& io = ImGui::GetIO();
+			io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+			bKeepWindowsResponding = true;
+
 			common_loadcommonassets_delayed (0);
+
+			bKeepWindowsResponding = false;
+			io.ConfigFlags &= ~ImGuiConfigFlags_NoMouseCursorChange;
+			::SetCursor(::LoadCursor(NULL, IDC_ARROW));
+
 			g_bCommonAssetsLoadOnce = false;
 		}
 	}
@@ -2165,6 +2183,13 @@ void mapeditorexecutable_loop(void)
 	{
 		switch (iLaunchAfterSync)
 		{
+			case 699:
+			{
+				iLaunchAfterSync = 0;
+				void AddRemoteProjectFonts(void);
+				AddRemoteProjectFonts();
+				break;
+			}
 			case 203: //PE: trigger a WM_SIZE so resolution,scissor,targetarea all match.
 			{
 				iLaunchAfterSync = 0;
@@ -2183,6 +2208,13 @@ void mapeditorexecutable_loop(void)
 			}
 			case 502: //Do the actual level load.
 			{
+
+				::SetCursor(::LoadCursor(NULL, IDC_WAIT));
+				ImGuiIO& io = ImGui::GetIO();
+				io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+
+				bKeepWindowsResponding = true;
+
 				g.projectfilename_s = sNextLevelToLoad;
 			
 				extern bool g_bAllowBackwardCompatibleConversion;
@@ -2263,6 +2295,11 @@ void mapeditorexecutable_loop(void)
 				csForceKey = "o";
 				bTerrain_Tools_Window = false;
 				Entity_Tools_Window = true;
+
+				bKeepWindowsResponding = false;
+				io.ConfigFlags &= ~ImGuiConfigFlags_NoMouseCursorChange;
+				::SetCursor(::LoadCursor(NULL, IDC_ARROW));
+
 				break;
 			}
 			case 2: //Open
@@ -2393,6 +2430,10 @@ void mapeditorexecutable_loop(void)
 			}
 			else
 			{
+				int iGridObj = g.ebeobjectbankoffset + 1000;
+				if (ObjectExist(iGridObj))
+					DeleteObject(iGridObj);
+
 				bImGuiInTestGame = true;
 				bool bTestInVRMode = false;
 				if (iLaunchAfterSync == 20) bTestInVRMode = true;
@@ -14067,7 +14108,185 @@ void mapeditorexecutable_loop(void)
 						t.gamevisuals.bEndableTerrainDrawing = t.visuals.bEndableTerrainDrawing;
 				}
 				ImGui::Columns(1);
+
+				/*
+				if (t.visuals.bEnableEmptyLevelMode)
+				{
+					ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(0.0f, 12.0f));
+					ImGui::Text("Level Floor Y");
+					ImGui::SameLine();
+					ImGui::SetCursorPos(ImGui::GetCursorPos() - ImVec2(0.0f, 3.0f));
+					if (ImGui::InputFloat("##fEmptyLevelFloorY", &fEmptyLevelFloorY, -10000.0f, 10000.0f, "%.0f")) //"%.2f"
+					{
+
+					}
+					ImGui::Checkbox("Display Grid", &bEmptyLevelGrid);
+				}
+				*/
 			}
+
+			int iGridObj = g.ebeobjectbankoffset + 1000;
+			if (!bImGuiInTestGame && bEmptyLevelGrid)
+			{
+				if (!ObjectExist(iGridObj))
+				{
+					//PE: TODO need to exclude this mesh from select outline.
+					WickedCall_PresetObjectRenderLayer(GGRENDERLAYERS_CURSOROBJECT);
+					MakeObjectPlane(iGridObj, 6000, 6000);
+					WickedCall_PresetObjectRenderLayer(GGRENDERLAYERS_NORMAL);
+					XRotateObject(iGridObj, 90);
+					DisableObjectZDepth(iGridObj);
+					sObject* pObject = GetObjectData(iGridObj);
+					if (pObject)
+					{
+						WickedCall_SetObjectCastShadows(pObject, false);
+						WickedCall_SetObjectLightToUnlit(pObject, (int)wiScene::MaterialComponent::SHADERTYPE_UNLIT);
+						WickedCall_SetObjectDisableDepth(pObject, true);
+					}
+
+					float ShaderParam1 = 2.0; //THICKNESS_FACTOR
+					float ShaderParam2 = 3000; //FADE_DISTANCE
+					float ShaderParam3 = 0.4f; //POWER_EXPONENT
+					float ShaderParam4 = 0.4f; //BASE ALPHA
+					void importer_set_all_material_shader_id(int obj, int shaderID, float p1, float p2, float p3, float p4, float p5, float p6, float p7);
+					importer_set_all_material_shader_id(iGridObj, 4, ShaderParam1, ShaderParam2, ShaderParam3, ShaderParam4, 0, 0, 0);
+				}
+				float camx = CameraPositionX();
+				float camy = CameraPositionY();
+				float camz = CameraPositionZ();
+				PositionObject(iGridObj, camx, fEmptyLevelFloorY, camz);
+
+			}
+			else if (!bEmptyLevelGrid)
+			{
+				if (ObjectExist(iGridObj))
+				{
+					DeleteObject(iGridObj);
+				}
+			}
+
+			//PE: This looks better way more slow so...
+			/*
+			if (bEmptyLevelGrid)
+			{
+				float camx = CameraPositionX();
+				float camz = CameraPositionZ();
+
+				const int GridSizeX = 3000;
+				const int GridSizeZ = 3000;
+
+				int SnapTo1 = 100;
+				float centerx1 = (float)((int)camx / SnapTo1) * (float)SnapTo1;
+				float centerz1 = (float)((int)camz / SnapTo1) * (float)SnapTo1;
+
+				wiRenderer::RenderableLine line1;
+				line1.color_start.x = 0.99f;
+				line1.color_start.y = 0.99f;
+				line1.color_start.z = 0.99f;
+				line1.color_end = line1.color_start;
+
+				float base_alpha1 = 0.3f;
+				float power_exponent1 = 2.5f;
+
+				for (int z = -GridSizeZ; z <= GridSizeZ; z += SnapTo1)
+				{
+					line1.start.y = fEmptyLevelFloorY;
+					line1.end.y = fEmptyLevelFloorY;
+
+					line1.start.x = centerx1 - GridSizeX;
+					line1.start.z = centerz1 + z;
+					line1.end.x = centerx1 + GridSizeX;
+					line1.end.z = centerz1 + z;
+
+					float zdist_norm = (float)z / (float)GridSizeZ;
+					float normalized_distance = std::abs(zdist_norm);
+					float fade = 1.0f - normalized_distance;
+
+					line1.color_start.w = base_alpha1 * fade;
+					line1.color_end.w = base_alpha1 * fade;
+
+					wiRenderer::DrawLineDepth(line1);
+				}
+
+				for (int x = -GridSizeX; x <= GridSizeX; x += SnapTo1)
+				{
+					line1.start.y = fEmptyLevelFloorY;
+					line1.end.y = fEmptyLevelFloorY;
+
+					line1.start.x = centerx1 + x;
+					line1.start.z = centerz1 - GridSizeZ;
+					line1.end.x = centerx1 + x;
+					line1.end.z = centerz1 + GridSizeZ;
+
+					float xdist_norm = (float)x / (float)GridSizeX;
+					float normalized_distance = std::abs(xdist_norm);
+					float fade = 1.0f - normalized_distance;
+
+					line1.color_start.w = base_alpha1 * fade;
+					line1.color_end.w = base_alpha1 * fade;
+
+					wiRenderer::DrawLineDepth(line1);
+				}
+
+				int SnapTo2 = 50;
+				float centerx2 = centerx1;
+				float centerz2 = centerz1;
+
+				wiRenderer::RenderableLine line2;
+				line2.color_start.x = 0.5f;
+				line2.color_start.y = 0.5f;
+				line2.color_start.z = 0.5f;
+				line2.color_end = line2.color_start;
+
+				float base_alpha2 = 0.20f;
+				float power_exponent2 = 6.5f;
+
+				for (int z = -GridSizeZ; z <= GridSizeZ; z += SnapTo2)
+				{
+					float world_z_pos = centerz2 + z;
+					if (fmod(std::abs(world_z_pos), SnapTo1) < 0.001f) continue;
+
+					line2.start.y = fEmptyLevelFloorY;
+					line2.end.y = fEmptyLevelFloorY;
+
+					line2.start.x = centerx2 - GridSizeX;
+					line2.start.z = centerz2 + z;
+					line2.end.x = centerx2 + GridSizeX;
+					line2.end.z = centerz2 + z;
+
+					float zdist_norm = (float)z / (float)GridSizeZ;
+					float normalized_distance = std::abs(zdist_norm);
+					float fade = 1.0f - normalized_distance;
+					line2.color_start.w = base_alpha2 * fade;
+					line2.color_end.w = base_alpha2 * fade;
+
+					wiRenderer::DrawLineDepth(line2);
+				}
+
+				for (int x = -GridSizeX; x <= GridSizeX; x += SnapTo2)
+				{
+					float world_x_pos = centerx2 + x;
+					if (fmod(std::abs(world_x_pos), SnapTo1) < 0.001f) continue;
+
+					line2.start.y = fEmptyLevelFloorY;
+					line2.end.y = fEmptyLevelFloorY;
+
+					line2.start.x = centerx2 + x;
+					line2.start.z = centerz2 - GridSizeZ;
+					line2.end.x = centerx2 + x;
+					line2.end.z = centerz2 + GridSizeZ;
+
+					float xdist_norm = (float)x / (float)GridSizeX;
+					float normalized_distance = std::abs(xdist_norm);
+					float fade = 1.0f - normalized_distance;
+
+					line2.color_start.w = base_alpha2 * fade;
+					line2.color_end.w = base_alpha2 * fade;
+
+					wiRenderer::DrawLineDepth(line2);
+				}
+			}
+			*/
 
 			//Drag/Drop to remove objects.
 			ImRect bb = { ImGui::GetWindowContentRegionMin()+ImGui::GetWindowPos(),ImGui::GetWindowContentRegionMax() + ImGui::GetWindowPos() };
@@ -15406,6 +15625,11 @@ void mapeditorexecutable_loop(void)
 			{
 				case 503: //Save the actual map here!
 				{
+					::SetCursor(::LoadCursor(NULL, IDC_WAIT));
+					ImGuiIO& io = ImGui::GetIO();
+					io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+					bKeepWindowsResponding = true;
+
 					iLaunchAfterSync = 0;
 					if (iLaunchAfterSyncAction == 11)
 					{
@@ -15426,10 +15650,21 @@ void mapeditorexecutable_loop(void)
 					gridedit_save_map();
 					g.projectmodified = 0; gridedit_changemodifiedflag();
 					g.projectmodifiedstatic = 0;
+
+					bKeepWindowsResponding = false;
+					io.ConfigFlags &= ~ImGuiConfigFlags_NoMouseCursorChange;
+					::SetCursor(::LoadCursor(NULL, IDC_ARROW));
+
 					break;
 				}
 				case 504: //Save the actual map here!
 				{
+
+					::SetCursor(::LoadCursor(NULL, IDC_WAIT));
+					ImGuiIO& io = ImGui::GetIO();
+					io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+					bKeepWindowsResponding = true;
+
 					iLaunchAfterSync = 0;
 					gridedit_save_map();
 					g.projectmodified = 0; gridedit_changemodifiedflag();
@@ -15469,6 +15704,11 @@ void mapeditorexecutable_loop(void)
 					}
 
 					iLaunchAfterSyncAction = 0;
+
+					bKeepWindowsResponding = false;
+					io.ConfigFlags &= ~ImGuiConfigFlags_NoMouseCursorChange;
+					::SetCursor(::LoadCursor(NULL, IDC_ARROW));
+
 					break;
 				}
 
@@ -28339,14 +28579,23 @@ void gridedit_save_test_map ( void )
 	timestampactivity(0,"SAVETESTMAP: Save map");
 	mapfile_savemap ( );
 
+	if (bKeepWindowsResponding)
+		EmptyMessages();
+
 	//  Settings specific to the player
 	timestampactivity(0,"SAVETESTMAP: Save player config");
 	mapfile_saveplayerconfig ( );
+
+	if (bKeepWindowsResponding)
+		EmptyMessages();
 
 	//  Save entity elements
 	timestampactivity(0,"SAVETESTMAP: Save elements");
 	entity_savebank ( );
 	entity_savebank_ebe ( );
+
+	if (bKeepWindowsResponding)
+		EmptyMessages();
 
 	//PE: Must remove , t.entityprofile[t.entid].ismarker == 12 && systemwide.
 	extern StoryboardStruct Storyboard;
@@ -28382,6 +28631,10 @@ void gridedit_save_test_map ( void )
 
 	entity_saveelementsdata ( false );
 
+	if (bKeepWindowsResponding)
+		EmptyMessages();
+
+
 	//PE: Restore systemwidelua.
 	for (int i = 1; i <= g.entityelementlist; i++)
 	{
@@ -28401,6 +28654,9 @@ void gridedit_save_test_map ( void )
 	//PE: Save systemwidelua.ele
 	if (strlen(Storyboard.gamename) > 0)
 	{
+		if (bKeepWindowsResponding)
+			EmptyMessages();
+
 		timestampactivity(0, "saving systemwidelua.ele");
 		cstr storeoldELEfile = t.elementsfilename_s;
 		char collectionELEfilename[MAX_PATH];
@@ -28423,6 +28679,9 @@ void gridedit_save_test_map ( void )
 			bool bForCollectionELE = true;
 			entity_saveelementsdata(bForCollectionELE);
 
+			if (bKeepWindowsResponding)
+				EmptyMessages();
+
 			g.entityelementlist = iStoreEntEleCount;
 			t.entityelement = storeentityelement;
 			storeentityelement.clear();
@@ -28434,9 +28693,15 @@ void gridedit_save_test_map ( void )
 	timestampactivity(0,"SAVETESTMAP: Save waypoints");
 	waypoint_savedata ( );
 
+	if (bKeepWindowsResponding)
+		EmptyMessages();
+
 	//  Save editor configuration
 	timestampactivity(0,"SAVETESTMAP: Save config");
 	editor_savecfg ( );
+
+	if (bKeepWindowsResponding)
+		EmptyMessages();
 
 	//  Save terrain
 	timestampactivity(0,"SAVETESTMAP: Save terrain textures");
@@ -28448,6 +28713,10 @@ void gridedit_save_test_map ( void )
 	t.tfilewater_s=g.mysystem.levelBankTestMap_s+"watermask.dds"; //"levelbank\\testmap\\watermask.dds";
 	#endif
 	terrain_savetextures ( );
+
+	if (bKeepWindowsResponding)
+		EmptyMessages();
+
 	#ifdef WICKEDENGINE
 	t.tfileveggrass_s=g.mysystem.levelBankTestMap_s+"TTR0XR0\\vegmaskgrass.dat";
 	#else
@@ -28455,10 +28724,18 @@ void gridedit_save_test_map ( void )
 	#endif
 	timestampactivity(0,"SAVETESTMAP: Save terrain veg");
 	grass_savegrass ( );
+
+	if (bKeepWindowsResponding)
+		EmptyMessages();
+
 	timestampactivity(0,"SAVETESTMAP: Save terrain height data");
 	t.tfile_s=g.mysystem.levelBankTestMap_s+"m.dat";
 	#ifdef WICKEDENGINE
 	terrain_save ( t.tfile_s.Get() );
+
+	if (bKeepWindowsResponding)
+		EmptyMessages();
+
 	#else
 	terrain_save();
 	#endif
@@ -28492,11 +28769,20 @@ void gridedit_save_map ( void )
 	// Save only to TESTMAP area (for map testing)
 	gridedit_save_test_map ( );
 
+	if (bKeepWindowsResponding)
+		EmptyMessages();
+
 	// Now store all part-files into main FPM project
 	mapfile_saveproject_fpm ( );
 
+	if (bKeepWindowsResponding)
+		EmptyMessages();
+
 	// Add Latest project To Recent List
 	gridedit_updateprojectname ( );
+
+	if (bKeepWindowsResponding)
+		EmptyMessages();
 
 	// Clear status Text (  )
 	t.statusbar_s="" ; popup_text_close();
@@ -29169,6 +29455,9 @@ void gridedit_load_map ( void )
 	timestampactivity(0, "GGTerrain_RemoveAllFlatAreas:1");
 	GGTerrain_RemoveAllFlatAreas();
 
+	if (bKeepWindowsResponding)
+		EmptyMessages();
+
 	//  Use large prompt
 	t.statusbar_s=t.strarr_s[367]; 
 	popup_text(t.statusbar_s.Get());
@@ -29207,6 +29496,9 @@ void gridedit_load_map ( void )
 		//  Clear map first
 		gridedit_clear_map ( );
 
+		if (bKeepWindowsResponding)
+			EmptyMessages();
+
 		// 121115 - Reset memory tracker
 		gridedit_resetmemortracker ( );
 
@@ -29231,23 +29523,43 @@ void gridedit_load_map ( void )
 		//  Load entity bank and elements
 		popup_text_change(t.strarr_s[611].Get());
 		entity_loadbank ( );
+		if (bKeepWindowsResponding)
+			EmptyMessages();
+
 		timestampactivity(0, "s:entity_loadelementsdata()");
 		entity_loadelementsdata ( );
+
+		if (bKeepWindowsResponding)
+			EmptyMessages();
+
 		timestampactivity(0, "e:entity_loadelementsdata()");
 		t.editor.replacefilepresent_s="";
 
 		//  Load waypoints
 		popup_text_change(t.strarr_s[612].Get());
 		waypoint_loaddata ( );
+
+		if (bKeepWindowsResponding)
+			EmptyMessages();
+
 		waypoint_recreateobjs ( );
+
+		if (bKeepWindowsResponding)
+			EmptyMessages();
 
 		//  Load data
 		popup_text_change(t.strarr_s[613].Get());
 		mapfile_loadmap ( );
 
+		if (bKeepWindowsResponding)
+			EmptyMessages();
+
 		//  Load player settings
 		timestampactivity(0,"Load player config");
 		mapfile_loadplayerconfig ( );
+
+		if (bKeepWindowsResponding)
+			EmptyMessages();
 
 		//  Load terrain
 		popup_text_change(t.strarr_s[610].Get());
@@ -29255,12 +29567,21 @@ void gridedit_load_map ( void )
 		terrain_createactualterrain ( );
 		terrain_loaddata ( );
 
+		if (bKeepWindowsResponding)
+			EmptyMessages();
+
 		// ensure firerate settings updated with any overrides set by developer mode changes
 		entity_init_overwritefireratesettings();
+
+		if (bKeepWindowsResponding)
+			EmptyMessages();
 
 		//  Update remaining map data before editing
 		timestampactivity(0, "Reset Editor.");
 		gridedit_updatemapbeforeedit ( );
+
+		if (bKeepWindowsResponding)
+			EmptyMessages();
 
 		//  Load editor configuration
 		int iOldGE = t.grideditselect;
@@ -29302,6 +29623,9 @@ void gridedit_load_map ( void )
 		#endif
 		editor_filllibrary ( );
 
+		if (bKeepWindowsResponding)
+			EmptyMessages();
+
 		//  Add Latest project To Recent List
 		gridedit_updateprojectname ( );
 	}
@@ -29323,6 +29647,9 @@ void gridedit_load_map ( void )
 		t.inputsys.donewflat=1;
 		gridedit_new_map ( );
 	}
+
+	if (bKeepWindowsResponding)
+		EmptyMessages();
 
 	//  Popup warning if load found some missing files
 	if ( g.timestampactivityflagged == 1 ) 
@@ -29465,6 +29792,10 @@ void gridedit_load_map ( void )
 	extern int iInstancedTotal;
 	iInstancedTotal = 0;
 	#endif
+
+	if (bKeepWindowsResponding)
+		EmptyMessages();
+
 	for ( t.e = 1 ; t.e <=  g.entityelementlist; t.e++ )
 	{
 		//PE: DEBUG - Crash here at 654 level have (1200+) : United Tribes of Gahkistahn.fpm
@@ -29481,6 +29812,12 @@ void gridedit_load_map ( void )
 		//}
 
 		t.tupdatee=t.e ; gridedit_updateentityobj ( );
+
+		if (t.e % 20 == 0)
+		{
+			if (bKeepWindowsResponding)
+				EmptyMessages();
+		}
 	}
 	timestampactivity(0, "End Setup objects:");
 	
@@ -29534,6 +29871,9 @@ void gridedit_load_map ( void )
 	// Level has finished loading, so no longer need to store the smart object dummy OBJs
 	extern std::vector<int> g_smartObjectDummyEntities;
 	g_smartObjectDummyEntities.clear();
+
+	if (bKeepWindowsResponding)
+		EmptyMessages();
 
 	// call files modify check function and reset file timestamp map
 	extern void CheckExistingFilesModified(bool);
@@ -31178,6 +31518,11 @@ void GridPopup(ImVec2 wpos)
 }
 #endif
 
+bool GetEnableEmptyLevelMode(void)
+{
+	return t.visuals.bEnableEmptyLevelMode;
+}
+
 void GetConvertSettings(int *maxwidth,int *active)
 {
 	*active = g.globals.ConvertToDDS;
@@ -31207,4 +31552,23 @@ int GetActiveEditorObject( void )
 	}
 	return(iActiveObj);
 }
+
+void EmptyMessages(void)
+{
+	//PE: Empty messages , so windows dont think we are dead. ( perhaps remember QUIT ? )
+	MSG msg = { 0 };
+	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+	{
+		//PE: No WM_QUIT while saving/loading levels.
+		if (msg.message != WM_QUIT)
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+	}
+}
+
+
+
+
 

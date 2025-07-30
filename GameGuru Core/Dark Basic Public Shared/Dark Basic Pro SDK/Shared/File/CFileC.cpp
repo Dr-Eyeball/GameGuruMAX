@@ -32,6 +32,7 @@
 int fileRedirectSetup = 0;
 FILE *pLogFile = 0;
 char szRootDir[ MAX_PATH ];
+bool bRootDirWriteable = false;
 char szWriteDir[ MAX_PATH ];
 char szBeforeChangeWriteDir[MAX_PATH] = "\0";
 char szAddWriteDirAdditional[MAX_PATH];
@@ -227,17 +228,104 @@ void FileRedirectSetup()
 	strcpy( szRootDir, szDrive );
 	strcat( szRootDir, szDir ); 
 
+	bRootDirWriteable = false;
+	char TestWrite[MAX_PATH];
+	strcpy(TestWrite, szRootDir);
+	strcat(TestWrite, "test.tst");
+	FILE* testFile = fopen(TestWrite, "w");
+	if (testFile)
+	{
+		fprintf(testFile, "test");
+		fclose(testFile);
+	}
+	if (FileExist(TestWrite) == 1)
+	{
+		DeleteAFile(TestWrite);
+		bRootDirWriteable = true;
+	}
+
 	// set write directory string
 	if (g_bUseRootAsWriteAreaForStandaloneGames == true)
 	{
 		// use exe location for standalone games
 		strcpy(szWriteDir, szRootDir);
 		strcpy(szRootWriteDir, szRootDir);
+
+		//PE: Check if we can write access to this folder. normally not if installed in \programfiles
+		char TestWrite[MAX_PATH];
+		strcpy(TestWrite, szWriteDir);
+		strcat(TestWrite, "test.tst");
+		FILE* testFile = fopen(TestWrite, "w");
+		if (testFile)
+		{
+			fprintf(testFile, "test");
+			fclose(testFile);
+		}
+		if (FileExist(TestWrite) == 1)
+		{
+			DeleteAFile(TestWrite);
+		}
+		else
+		{
+			//PE: Second pri. standalone own document folder.
+			bool bFail = false;
+			if (!SHGetSpecialFolderPath(NULL, szWriteDir, CSIDL_MYDOCUMENTS, TRUE))
+			{
+				//PE: This happened for a user , even when they got the document folder ? , try the new way.
+				HRESULT result = SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, szWriteDir);
+				if (result != S_OK)
+				{
+					bFail = true;
+				}
+			}
+			if (!bFail)
+			{
+				strcat_s(szWriteDir, MAX_PATH, "\\GameGuruApps\\");
+				strcat_s(szWriteDir, MAX_PATH, szEXE);
+				strcat_s(szWriteDir, MAX_PATH, "\\");
+				strcpy_s(szRootWriteDir, MAX_PATH, szWriteDir);
+
+				GG_CreatePath(szWriteDir);
+
+				strcpy(TestWrite, szWriteDir);
+				strcat(TestWrite, "test.tst");
+				FILE* testFile = fopen(TestWrite, "w");
+				if (testFile)
+				{
+					fprintf(testFile, "test");
+					fclose(testFile);
+				}
+				if (FileExist(TestWrite) == 1)
+				{
+					DeleteAFile(TestWrite);
+				}
+				else
+				{
+					bFail = true;
+				}
+			}
+			if(bFail)
+			{
+				//PE: Last pri. whatever works.
+				if (FileRedirectChangeWritableArea(szEXE) == true)
+				{
+					//PE: pref.cCustomWriteFolder works as szWriteDir also set szRootWriteDir.
+					strcpy_s(szRootWriteDir, MAX_PATH, szWriteDir);
+					return;
+				}
+				FileRedirectRestoreWritableArea(szEXE);
+			}
+		}
 	}
 	else
 	{
 		// szWriteDir and szRootWriteDir set in FileRedirectChangeWritableArea
-		if (FileRedirectChangeWritableArea (szEXE) == true) return;
+		if (FileRedirectChangeWritableArea(szEXE) == true)
+		{
+			//PE: pref.cCustomWriteFolder works as szWriteDir also set szRootWriteDir.
+			strcpy_s(szRootWriteDir, MAX_PATH, szWriteDir);
+			return;
+		}
 		FileRedirectRestoreWritableArea(szEXE);
 	}
 
@@ -285,6 +373,7 @@ int GG_GetRealPath( char* fullPath, int create, bool bIgnoreAdditional)
 	}
 	*ptr2 = 0;
 
+
 	// check if this path is accessing the install folder
 	int rootLen = strlen( szRootDir );
 
@@ -295,7 +384,16 @@ int GG_GetRealPath( char* fullPath, int create, bool bIgnoreAdditional)
 		char newPath[ MAX_PATH ];
 		if(g_bSetWriteAsRootTemp==true)
 		{
-			strcpy_s(newPath, MAX_PATH, szRootDir);
+			//PE: Mainly used for debug.log , but must be sure we can actually write here.
+			if (bRootDirWriteable)
+			{
+				strcpy_s(newPath, MAX_PATH, szRootDir);
+			}
+			else
+			{
+				//PE: Else use szRootWriteDir.
+				strcpy_s(newPath, MAX_PATH, szRootWriteDir);
+			}
 		}
 		else
 		{

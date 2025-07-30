@@ -535,7 +535,7 @@ extern int g_iAbortedAsEntityIsGroupCreate;
 bool bDigAHoleToHWND = false;
 bool g_bSelectedMapImageTypeSpecialHelp = false;
 bool bSortProjects = true;
-bool bResetProjectThumbnails = true;
+bool bResetProjectThumbnails = false; //PE: bSortProjects will set this no need to start with true.
 int g_iCheckExistingFilesModifiedDelayed = 0;
 ImRect g_rStealMonitorArea;
 bool bUpgradeAndBackupOldProject = false;
@@ -11163,98 +11163,134 @@ void ProcessPreferences(void)
 
 			if (pref.current_style == 1)
 			{
-				//VS2022 colors.
-				//pref.status_bar_color
-				float ChangeColor[4];
-				ChangeColor[0] = pref.status_bar_color.x;
-				ChangeColor[1] = pref.status_bar_color.y;
-				ChangeColor[2] = pref.status_bar_color.z;
-				ChangeColor[3] = 1.0f;
-
-				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
-				ImGui::Text("Statusbar and highlight color: ");
-				ImGui::SameLine();
-
-				ImGui::PushItemWidth(32);
-				ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 1);
-				bool open_popup = ImGui::ColorButton("##statusbarHighlight", pref.status_bar_color , 0, ImVec2(32, 18));
-				if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", "Change the status bar and highlight colors");
-				ImGui::PopItemWidth();
-				if (open_popup) ImGui::OpenPopup("##statusbarHighlight");
-				if (ImGui::BeginPopup("##statusbarHighlight", ImGuiWindowFlags_NoMove))
+				for (int i = 0; i < 2; i++)
 				{
-					if (ImGui::ColorPicker4("##statusbarHighlight", &ChangeColor[0], ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview))
+
+					float ChangeColor[4];
+					if (i == 0)
 					{
-						pref.status_bar_color.x = ChangeColor[0];
-						pref.status_bar_color.y = ChangeColor[1];
-						pref.status_bar_color.z = ChangeColor[2];
+						//VS2022 colors.
+						ChangeColor[0] = pref.status_bar_color.x;
+						ChangeColor[1] = pref.status_bar_color.y;
+						ChangeColor[2] = pref.status_bar_color.z;
+						ChangeColor[3] = 1.0f;
+					}
+					else
+					{
+						ChangeColor[0] = pref.highlight_color.x;
+						ChangeColor[1] = pref.highlight_color.y;
+						ChangeColor[2] = pref.highlight_color.z;
+						ChangeColor[3] = 1.0f;
+					}
+
+					std::string label = "";
+					if (i == 0) label = "Statusbar color: ";
+					else label = "Highlight color: ";
+
+					float fixed_pos_x = ImGui::GetCursorPosX();
+
+					ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
+					ImGui::Text(label.c_str());
+					ImGui::SameLine();
+
+					ImGui::PushItemWidth(32);
+					ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 1);
+					ImGui::SetCursorPosX(fixed_pos_x+120.0f);
+
+					if (i == 0) label = "##statusbarHighlightpopup";
+					else label = "##Highlightpopup";
+
+					ImVec4* colorvaluechange;
+					if (i == 0)
+						colorvaluechange = &pref.status_bar_color;
+					else
+						colorvaluechange = &pref.highlight_color;
+
+					std::string tooltip = "";
+					if (i == 0) tooltip = "Change the status bar colors";
+					else tooltip = "Change the highlight colors";
+
+					bool open_popup = ImGui::ColorButton(label.c_str(), *colorvaluechange, 0, ImVec2(32, 18));
+					if (ImGui::IsItemHovered()) ImGui::SetTooltip(tooltip.c_str());
+					ImGui::PopItemWidth();
+					if (open_popup) ImGui::OpenPopup(label.c_str());
+					if (ImGui::BeginPopup(label.c_str(), ImGuiWindowFlags_NoMove))
+					{
+						if (ImGui::ColorPicker4(label.c_str(), &ChangeColor[0], ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview))
+						{
+							ImVec4 colorselect = ImVec4(ChangeColor[0], ChangeColor[1], ChangeColor[2], 1);
+							*colorvaluechange = colorselect;
+							change_colors = true;
+						}
+						ImGui::EndPopup();
+					}
+
+					ImGui::SameLine();
+
+					ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 8);
+
+					if (i == 0) label = "##statusbarHighlightdefault";
+					else  label = "##Highlightdefault";
+
+					ImVec4 colorselect = ImVec4((1.0f / 255.0f) * 14, (1.0f / 255.0f) * 99, (1.0f / 255.0f) * 156, 1.0);
+					if (ImGui::ColorButton(std::string(label + "1").c_str(), colorselect, 0, ImVec2(18, 18)))
+					{
+						*colorvaluechange = colorselect;
 						change_colors = true;
 					}
-					ImGui::EndPopup();
+
+					ImGui::SameLine();
+					colorselect = ImVec4((1.0f / 255.0f) * 202, (1.0f / 255.0f) * 81, 0, 1.0);
+					if (ImGui::ColorButton(std::string(label + "2").c_str(), colorselect, 0, ImVec2(18, 18)))
+					{
+						*colorvaluechange = colorselect;
+						change_colors = true;
+					}
+
+					ImGui::SameLine();
+					colorselect = ImVec4((1.0f / 255.0f) * 18, (1.0f / 255.0f) * 117, (1.0f / 255.0f) * 58, 1.0);
+					if (ImGui::ColorButton(std::string(label + "3").c_str(), colorselect, 0, ImVec2(18, 18)))
+					{
+						*colorvaluechange = colorselect;
+						change_colors = true;
+					}
+
+					ImGui::SameLine();
+					colorselect = ImVec4((1.0f / 255.0f) * 92, (1.0f / 255.0f) * 53, (1.0f / 255.0f) * 174, 1.0);
+					if (ImGui::ColorButton(std::string(label + "4").c_str(), colorselect, 0, ImVec2(18, 18)))
+					{
+						*colorvaluechange = colorselect;
+						change_colors = true;
+					}
+
+					ImGui::SameLine();
+					colorselect = ImVec4((1.0f / 255.0f) * 166, (1.0f / 255.0f) * 45, (1.0f / 255.0f) * 25, 1.0);
+					if (ImGui::ColorButton(std::string(label + "5").c_str(), colorselect, 0, ImVec2(18, 18)))
+					{
+						*colorvaluechange = colorselect;
+						change_colors = true;
+					}
+
+					ImGui::SameLine();
+					colorselect = ImVec4((1.0f / 255.0f) * 79, (1.0f / 255.0f) * 79, (1.0f / 255.0f) * 79, 1.0);
+					if (ImGui::ColorButton(std::string(label + "6").c_str(), colorselect, 0, ImVec2(18, 18)))
+					{
+						*colorvaluechange = colorselect;
+						change_colors = true;
+					}
+
+					ImGui::SameLine();
+					colorselect = ImVec4(0, 0, 0, 1.0);
+					if (ImGui::ColorButton(std::string(label + "7").c_str(), colorselect, 0, ImVec2(18, 18)))
+					{
+						*colorvaluechange = colorselect;
+						change_colors = true;
+					}
 				}
-
-				ImGui::SameLine();
-
-				ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 8);
-
-				ImVec4 colorselect = ImVec4((1.0f / 255.0f) * 14, (1.0f / 255.0f) * 99, (1.0f / 255.0f) * 156, 1.0);
-				if (ImGui::ColorButton("##statusbarHighlightdefault1", colorselect, 0, ImVec2(18, 18)))
-				{
-					pref.status_bar_color = colorselect;
-					change_colors = true;
-				}
-
-				ImGui::SameLine();
-				colorselect = ImVec4((1.0f / 255.0f) * 202, (1.0f / 255.0f) * 81, 0 , 1.0);
-				if (ImGui::ColorButton("##statusbarHighlightdefault2", colorselect, 0, ImVec2(18, 18)))
-				{
-					pref.status_bar_color = colorselect;
-					change_colors = true;
-				}
-
-				ImGui::SameLine();
-				colorselect = ImVec4((1.0f / 255.0f) * 18, (1.0f / 255.0f) * 117, (1.0f / 255.0f) * 58, 1.0);
-				if (ImGui::ColorButton("##statusbarHighlightdefault3", colorselect, 0, ImVec2(18, 18)))
-				{
-					pref.status_bar_color = colorselect;
-					change_colors = true;
-				}
-
-				ImGui::SameLine();
-				colorselect = ImVec4((1.0f / 255.0f) * 92, (1.0f / 255.0f) * 53, (1.0f / 255.0f) * 174, 1.0);
-				if (ImGui::ColorButton("##statusbarHighlightdefault4", colorselect, 0, ImVec2(18, 18)))
-				{
-					pref.status_bar_color = colorselect;
-					change_colors = true;
-				}
-
-				ImGui::SameLine();
-				colorselect = ImVec4((1.0f / 255.0f) * 166, (1.0f / 255.0f) * 45, (1.0f / 255.0f) * 25, 1.0);
-				if (ImGui::ColorButton("##statusbarHighlightdefault6", colorselect, 0, ImVec2(18, 18)))
-				{
-					pref.status_bar_color = colorselect;
-					change_colors = true;
-				}
-
-				ImGui::SameLine();
-				colorselect = ImVec4((1.0f / 255.0f) * 79, (1.0f / 255.0f) * 79, (1.0f / 255.0f) * 79, 1.0);
-				if (ImGui::ColorButton("##statusbarHighlightdefault5", colorselect, 0, ImVec2(18, 18)))
-				{
-					pref.status_bar_color = colorselect;
-					change_colors = true;
-				}
-
-				ImGui::SameLine();
-				colorselect = ImVec4( 0, 0, 0, 1.0);
-				if (ImGui::ColorButton("##statusbarHighlightdefault7", colorselect, 0, ImVec2(18, 18)))
-				{
-					pref.status_bar_color = colorselect;
-					change_colors = true;
-				}
-
-
 				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
 			}
+
+
 			bTmp = pref.iEnableCustomColors;
 			if (ImGui::Checkbox("Enable Custom Colors", &bTmp)) 
 			{
@@ -28719,13 +28755,15 @@ void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_gridel
 			{
 				if (elementID > 0)
 				{
+					int obj = t.entityelement[elementID].obj;
 					ImGui::TextCenter("Decal Speed");
 					ImGui::PushItemWidth(-10);
 					int tmpint = t.entityelement[elementID].fDecalSpeed * 100.0; // 1.0 = normal.
 					if (ImGui::MaxSliderInputInt("##Decal Speed", &tmpint, 1, 200, "Decal Speed"))
 					{
 						t.entityelement[elementID].fDecalSpeed = (float)tmpint / 100.0;
-						SetupDecalObject(t.tobj, elementID);
+						if(obj > 0)
+							SetupDecalObject(obj, elementID);
 					}
 					t.entityelement[elementID].fDecalSpeed = (float)tmpint / 100.0;
 					ImGui::PopItemWidth();
@@ -28739,7 +28777,8 @@ void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_gridel
 						if (tmpint > 100) tmpint = 100;
 						if (tmpint < 0) tmpint = 0;
 						t.entityelement[elementID].fDecalOpacity = (float)tmpint / 100.0;
-						SetupDecalObject(t.tobj, elementID);
+						if (obj > 0)
+							SetupDecalObject(obj, elementID);
 					}
 					t.entityelement[elementID].fDecalOpacity = (float)tmpint / 100.0;
 					ImGui::PopItemWidth();
@@ -35510,6 +35549,8 @@ void Welcome_Screen(void)
 								bValid = true;
 							if (!bShowAvtiveProject && !projectbank_active[i])
 								bValid = true;
+							if (bSortProjects)
+								bValid = false;
 
 							if (bValid && !pestrcasestr((char *)projectbank_list[i].c_str(), "_backup_"))
 							{
@@ -38327,26 +38368,35 @@ bool DoTreeNodeBehavior(LPSTR behaviorscriptname, bool bMoveCameraToObjectPositi
 
 void SetupDecalObject(int obj, int elementID)
 {
-	//PE: Always use custom material or FPE settings.
-	return;
 	//SetAlphaMappingOn(obj, 100.0);
-	SetObjectTransparency(obj, 6);
-	SetObjectLight(obj, 0);
+
+	bool bUseFPE = false;
+	if (elementID > 0 && t.entityelement[elementID].eleprof.bUseFPESettings)
+		bUseFPE = true;
+
+	if (bUseFPE)
+	{
+		SetObjectTransparency(obj, 6);
+		SetObjectLight(obj, 0);
+	}
 	sObject* pObject = g_ObjectList[obj];
 	if (pObject)
 	{
 		//PE: SetObjectCull(t.tobj, 1); Dont work.
 		//PE: iCullMode need to be zero in wicked ?
-		for (int iMesh = 0; iMesh < pObject->iMeshCount; iMesh++)
-		{
-			if (pObject->ppMeshList[iMesh]) pObject->ppMeshList[iMesh]->iCullMode = 0;
-		}
-		WickedCall_SetObjectCullmode(pObject);
-		WickedCall_SetObjectCastShadows(pObject, false); //PE: No shadows on particles for now.
 
+		if (bUseFPE)
+		{
+			for (int iMesh = 0; iMesh < pObject->iMeshCount; iMesh++)
+			{
+				if (pObject->ppMeshList[iMesh]) pObject->ppMeshList[iMesh]->iCullMode = 0;
+			}
+			WickedCall_SetObjectCullmode(pObject);
+			WickedCall_SetObjectCastShadows(pObject, false); //PE: No shadows on particles for now.
+		}
 		
+
 		//if(!t.entityelement[elementID].eleprof.bCustomWickedMaterialActive) // ZJ: Only reset this if not using custom materials for this decal.
-		if (t.entityelement[elementID].eleprof.bUseFPESettings) // ZJ: Only reset this if not using custom materials for this decal.
 		{
 			//PE: Use unlit shader.
 			for (int iMesh = 0; iMesh < pObject->iMeshCount; iMesh++)
@@ -38354,17 +38404,18 @@ void SetupDecalObject(int obj, int elementID)
 				sMesh* pMesh = pObject->ppMeshList[iMesh];
 				if (pMesh)
 				{
-					pMesh->mMaterial.Diffuse.r = 1.5;
-					pMesh->mMaterial.Diffuse.g = 1.5;
-					pMesh->mMaterial.Diffuse.b = 1.5;
-					pMesh->mMaterial.Diffuse.a = 1.0;
+					if (bUseFPE)
+					{
+						pMesh->mMaterial.Diffuse.r = 1.5;
+						pMesh->mMaterial.Diffuse.g = 1.5;
+						pMesh->mMaterial.Diffuse.b = 1.5;
+						pMesh->mMaterial.Diffuse.a = 1.0;
 
-					pMesh->mMaterial.Diffuse.a = 1.0;
-					pMesh->mMaterial.Emissive.r = 1.0;
-					pMesh->mMaterial.Emissive.g = 1.0;
-					pMesh->mMaterial.Emissive.b = 1.0;
-					pMesh->mMaterial.Emissive.a = 1.0;
-
+						pMesh->mMaterial.Emissive.r = 1.0;
+						pMesh->mMaterial.Emissive.g = 1.0;
+						pMesh->mMaterial.Emissive.b = 1.0;
+						pMesh->mMaterial.Emissive.a = 1.0;
+					}
 					wiScene::MeshComponent* mesh = wiScene::GetScene().meshes.GetComponent(pMesh->wickedmeshindex);
 					if (mesh)
 					{
@@ -38372,7 +38423,8 @@ void SetupDecalObject(int obj, int elementID)
 						wiScene::MaterialComponent* pObjectMaterial = wiScene::GetScene().materials.GetComponent(materialEntity);
 						if (pObjectMaterial)
 						{
-							pObjectMaterial->SetReflectance(0.0f);
+							if (bUseFPE)
+								pObjectMaterial->SetReflectance(0.0f);
 							pObjectMaterial->shaderType = wiScene::MaterialComponent::SHADERTYPE_UNLIT; //PE: Yes 1:1 mapping and no light,env...
 							pObjectMaterial->SetDirty(true);
 						}
@@ -47973,8 +48025,9 @@ void load_storyboard(char *name)
 		ReloadLensFlareImages();
 
 		//PE: Add custom fonts from remote project.
-		void AddRemoteProjectFonts(void);
-		AddRemoteProjectFonts();
+		iLaunchAfterSync = 699;
+		//void AddRemoteProjectFonts(void);
+		//AddRemoteProjectFonts();
 
 	}
 	else
@@ -48273,6 +48326,7 @@ void GetProjectList(char *path, bool bGetThumbs)
 		projectbank_list.clear();
 		projectbank_imageid.clear();
 		projectbank_image.clear();
+		projectbank_active.clear();
 
 		cLastProjectList = path;
 		LPSTR pOldDir = GetDir();
@@ -48325,10 +48379,13 @@ void GetProjectList(char *path, bool bGetThumbs)
 					if (!bIgnore)
 					{
 						projectbank_list.push_back(folder.Get());
-						if (!bGetThumbs)
-						{
+						projectbank_active.push_back(true);
+
+						//PE: We are always sorting , so just set all to CLICK HERE.
+						//if (!bGetThumbs)
+						//{
 							projectbank_image.push_back(""); //Just use CLICK HERE.
-						}
+						//}
 						projectbank_imageid.push_back(0);
 					}
 				}
@@ -48336,11 +48393,18 @@ void GetProjectList(char *path, bool bGetThumbs)
 		}
 		SetDir(pOldDir);
 
+		//PE: No need to read it here, as we need to do that after sorting.
+		
 		//Find project thumbs.
+		/*
 		if (bGetThumbs)
 		{
+			projectbank_active.resize(projectbank_list.size());
+
 			for (int i = 0; i < projectbank_list.size(); i++)
 			{
+				projectbank_active[i] = true;
+
 				if (!pestrcasestr((char *)projectbank_list[i].c_str(), "_backup_"))
 				{
 					char project[MAX_PATH];
@@ -48460,6 +48524,9 @@ void GetProjectList(char *path, bool bGetThumbs)
 								}
 							}
 							projectbank_image.push_back(bestfound.Get());
+							if (checkproject.project_inactive)
+								projectbank_active[i] = false;
+
 						}
 						else
 						{
@@ -48478,6 +48545,7 @@ void GetProjectList(char *path, bool bGetThumbs)
 				}
 			}
 		}
+		*/
 	}
 }
 
@@ -53565,6 +53633,10 @@ void ReloadEntityIDInSitu ( int entIndex)
 	int parentObj = g.entitybankoffset + entIndex;
 	t.entobj = g.entitybankoffset + entIndex;
 	if (ObjectExist(t.entobj) == 1) DeleteObject(t.entobj);
+
+	//PE: Also make sure we clear the master object textures in VRAM so they can be reloaded.
+	void WickedCall_FreeImage_By_MasterID(uint32_t masterid);
+	WickedCall_FreeImage_By_MasterID(t.entobj);
 
 	// set entity name and reload it in
 	t.entdir_s = "";

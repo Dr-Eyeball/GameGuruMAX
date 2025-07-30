@@ -4394,16 +4394,22 @@ void gun_shoot_oneray ( void )
 				bFireTracer = false;
 				//PE: Weapon always zoom.
 				extern int iTracerPosition;
-				if (iTracerPosition == 1)
+				if (iTracerPosition == 1 || iTracerPosition == 2)
 				{
 					//PE: From below.
-					MoveCameraDown(0,-30);
+					float move = -30;
+					if( iTracerPosition == 2 )
+						move = 30;
+					MoveCameraDown(0, move);
 					MoveCamera(0, 20);
 					tracer_from.x = CameraPositionX();
 					tracer_from.y = CameraPositionY();
 					tracer_from.z = CameraPositionZ();
 					MoveCamera(0, -20);
-					MoveCameraDown(0,30);
+					move = 30;
+					if (iTracerPosition == 2)
+						move = -30;
+					MoveCameraDown(0, move);
 
 					tracer_hit.x = t.x2_f; // t.brayx2_f;
 					tracer_hit.y = t.y2_f; // t.brayy2_f;

@@ -1279,6 +1279,9 @@
     <FxCompile Include="GGTerrain\CustomShaders\objectPS_custom_water.hlsl">
       <Filter>CustomShaders</Filter>
     </FxCompile>
+    <FxCompile Include="GGTerrain\CustomShaders\objectPS_grid.hlsl">
+      <Filter>CustomShaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="GGTerrain\Shaders\PBR\brdf.hlsli">

@@ -1,7 +1,6 @@
 //
 // Wicked Calls - place Wicked commands here so can compile (cannot call from old graphics engine modules, conflicts with its own data types)
 //
-#pragma optimize("", off)
 // Includes
 #include "stdafx.h"
 #include "wickedcalls.h"
