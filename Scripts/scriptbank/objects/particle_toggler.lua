@@ -3,35 +3,31 @@
 -- DESCRIPTION: When this entity is triggered it will activate and toggle a named particle on or off
 -- DESCRIPTION: Attach to an object and logic link from a switch or zone to activate.
 -- DESCRIPTION: [PARTICLE_NAME$=""] particle name
--- DESCRIPTION: [@TRIGGER=1(1=External, 2=Proximity)]
+-- DESCRIPTION: [@TRIGGER_TYPE=1(1=External, 2=Proximity)]
 -- DESCRIPTION: [PROXIMITY_RANGE=1000]
 
 local lower = string.lower
 local particle_toggler		= {}
 local particle_name			= {}
-local trigger				= {}
+local trigger_type			= {}
 local proximity_range		= {}
 local particle_no			= {}
-local reset					= {}
-local doonce				= {}
 local status				= {}
 	
-function particle_toggler_properties(e, particle_name, trigger, proximity_range)
+function particle_toggler_properties(e, particle_name, trigger_type, proximity_range)
 	particle_toggler[e].particle_name = string.lower(particle_name)
-	particle_toggler[e].trigger = trigger
+	particle_toggler[e].trigger_type = trigger_type
 	particle_toggler[e].proximity_range = proximity_range
 end
  
 function particle_toggler_init(e)
 	particle_toggler[e] = {}
 	particle_toggler[e].particle_name = ""
-	particle_toggler[e].trigger = 1
+	particle_toggler[e].trigger_type = 1
 	particle_toggler[e].proximity_range = 1000
 	particle_toggler[e].particle_no = 0
 	
 	status[e] = "init"
-	doonce[e] = 0
-	reset[e] = math.huge
 end
  
 function particle_toggler_main(e)	
@@ -50,7 +46,7 @@ function particle_toggler_main(e)
 		status[e] = "Off"
 	end
 	
-	if particle_toggler[e].trigger == 2 then
+	if particle_toggler[e].trigger_type == 2 then
 		if GetPlayerDistance(e) < particle_toggler[e].proximity_range and status[e] == "Off" then
 			SetActivated(e,1)
 		end
@@ -70,6 +66,4 @@ function particle_toggler_main(e)
 		status[e] = "Off"
 		SetActivated(e,0)
 	end
-	
-	
 end
