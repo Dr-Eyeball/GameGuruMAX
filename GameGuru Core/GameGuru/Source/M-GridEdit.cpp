@@ -29688,70 +29688,54 @@ void gridedit_load_map ( void )
 		}
 	}
 
-	/* there is no duplicate set in workshop, this feature was confusing!!
-	// scan all core scripts used by all entities, and if any are missing
-	// look in trusted workshop item community folders for direct replacements
-	bool bAutoReplaceMissingCoreScriptsWithTrustedWorkshopItems = true;
-	if (bAutoReplaceMissingCoreScriptsWithTrustedWorkshopItems == true)
+	// a new global folder has been introduced, and some script files moved there
+	// so need to ensure older levels using the old location are redirected on load
+	bool bFindAnyMissingScriptsThatMayHaveMovedToGlobalFolder = true;
+	if (bFindAnyMissingScriptsThatMayHaveMovedToGlobalFolder == true)
 	{
-		bool bScriptMissing = false;
 		bool bReplacedScript = false;
 		if (g.entityelementlist > 0)
 		{
 			for (int e = 1; e <= g.entityelementlist; e++)
 			{
-				#ifndef GGMAXEDU
-				if (workshop_verifyandorreplacescript(e,0) == true)
+				LPSTR pOriginal = t.entityelement[e].eleprof.aimain_s.Get();
+				LPSTR pFileOnly = NULL;
+				for (int n = strlen(pOriginal); n > 0; n--)
 				{
-					bReplacedScript = true;
+					if (pOriginal[n] == '\\' || pOriginal[n] == '/')
+					{
+						pFileOnly = pOriginal + n + 1;
+						break;
+					}
 				}
-				#endif
-				char pScriptFile[MAX_PATH];
-				strcpy(pScriptFile, "scriptbank\\");
-				strcat(pScriptFile, t.entityelement[e].eleprof.aimain_s.Get());
-				GG_GetRealPath(pScriptFile, false);
-				if (FileExist(pScriptFile) == 0)
+				if (pFileOnly)
 				{
-					// script finall found to be missing!
-					bScriptMissing = true;
+					char pTryInGlobal[MAX_PATH];
+					strcpy(pTryInGlobal, "global\\");
+					strcat(pTryInGlobal, pFileOnly);
+					char pTryInGlobalAbs[MAX_PATH];
+					strcpy(pTryInGlobalAbs, "scriptbank\\");
+					strcat(pTryInGlobalAbs, pTryInGlobal);
+					GG_GetRealPath(pTryInGlobalAbs, false);
+					if (FileExist(pTryInGlobalAbs) == 1)
+					{
+						// we found a script reference that exists in the global folder
+						// so we use the global folder version!
+						t.entityelement[e].eleprof.aimain_s = pTryInGlobal;
+						bReplacedScript = true;
+					}
 				}
 			}
 		}
 		if (bReplacedScript == true)
 		{
-			strcpy(cTriggerMessage, "Some behaviors have been replaced with newer content");
+			strcpy(cTriggerMessage, "Some behavior(s) have been moved to the new global category");
 			iTriggerMessageDelay = 10;
 			bTriggerMessage = true;
 			iMessageTimer = 0;
 		}
-		else
-		{
-			if (bScriptMissing == true)
-			{
-				#ifndef GGMAXEDU
-				// this can be zero if user is not connected to the Steam Client
-				if (g_workshopItemsList.size() == 0 )
-				{
-					extern int g_iDevToolsOpen;
-					if (g_iDevToolsOpen != 0)
-					{
-						// ensure we do not scare new users - this is normal behavior
-						strcpy(cTriggerMessage, "Some behavior scripts are missing and no alternative workshop content has been found");
-						iTriggerMessageDelay = 20;
-						bTriggerMessage = true;
-						iMessageTimer = 0;
-					}
-				}
-				#else
-				strcpy(cTriggerMessage, "Some behavior scripts are missing");
-				iTriggerMessageDelay = 20;
-				bTriggerMessage = true;
-				iMessageTimer = 0;
-				#endif
-			}
-		}
 	}
-	*/
+	
 	bool bAutoCleanUpOldCommunityCoreReferencesBackToStockLatest = true;
 	if (bAutoCleanUpOldCommunityCoreReferencesBackToStockLatest == true)
 	{
