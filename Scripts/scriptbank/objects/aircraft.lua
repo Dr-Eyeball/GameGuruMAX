@@ -1,4 +1,4 @@
--- Aircraft v40 by Necrym59
+-- Aircraft v41 by Necrym59
 -- DESCRIPTION: Creates a controllable aircraft from an object.
 -- DESCRIPTION: Attach to an object. Set Physics On, Polygon Collision.
 -- DESCRIPTION: [@VEHICLE_TYPE=1(1=Plane,2=Helicopter,3=VTOL-Vehicle)]
@@ -868,8 +868,8 @@ function aircraft_main(e)
 										--SetWeaponPoolAmmo(poolindex,amqty + 500)											
 									end
 								end
-								SetWeaponArmsVisible(1,1,1)
-								SetGamePlayerStateRightMouseHold(2)
+								SetWeaponArmsVisible(1,1,1,2)								
+								SetGamePlayerStateRightMouseHold(2)								
 							end
 						end
 						h.inCab = true
