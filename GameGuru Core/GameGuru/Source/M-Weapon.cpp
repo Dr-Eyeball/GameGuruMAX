@@ -1290,6 +1290,8 @@ void weapon_projectile_setup ( int* piSndForBaseSound, int* piSndForBaseDestroy 
 			{
 				//PE: Need clone but for now.
 				t.WeaponProjectile[t.tNew].WPE_Root = WickedCall_LoadWPE(t.WeaponProjectileBase[t.tNewProjBase].WPE_Effect.Get());
+				//iAction = 1 Burst all. 2 = Pause. - 3 = Resume. - 4 = Restart - 5 - visible - 6 = not visible. - 7 = pause emit - 8 = resume emit
+				WickedCall_PerformEmitterAction(6, t.WeaponProjectile[t.tNew].WPE_Root);
 			}
 
 			// make the tracer object
