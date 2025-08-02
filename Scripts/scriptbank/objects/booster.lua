@@ -1,4 +1,4 @@
--- Booster v2 by Necrym 59
+-- Booster v3 by Necrym 59
 -- DESCRIPTION: The object will give the player a booster or deduction if used.
 -- DESCRIPTION: [PROMPT_TEXT$="E to consume"]
 -- DESCRIPTION: [PROMPT_IF_COLLECTABLE$="E to collect"]
@@ -7,7 +7,7 @@
 -- DESCRIPTION: [PICKUP_RANGE=80(1,100)]
 -- DESCRIPTION: [@PICKUP_STYLE=2(1=Ranged, 2=Accurate)]
 -- DESCRIPTION: [@EFFECT=1(1=Add, 2=Deduct)]
--- DESCRIPTION: [@BOOST_STYLE=1(1=Health Applied, 2=Stamina Timed, 3=Jumping Timed, 4=User Global Timed)]
+-- DESCRIPTION: [@BOOST_STYLE=1(1=Health Applied, 2=Stamina Timed, 3=Jumping Timed, 4=Speed Timed, 5=User Global Timed)]
 -- DESCRIPTION: [BOOST_TIME=5(0,60)] Seconds
 -- DESCRIPTION: [@@USER_GLOBAL_AFFECTED$=""(0=globallist)] eg: MyMana
 -- DESCRIPTION: [@PROMPT_DISPLAY=1(1=Local,2=Screen)]
@@ -36,11 +36,13 @@ local item_highlight = {}
 local use_item_now = {}
 local item_used = {}
 local calcstamina = {}
-local defaultjump = {}
 local calchealth = {}
 local calcjump = {}
+local calcspeed = {}
 local calcglobal = {}
 local defaultglobal = {}
+local defaultjump = {}
+local defaultspeed = {}
 local currentvalue = {}
 local tEnt = {}
 local selectobj = {}
@@ -91,9 +93,11 @@ function booster_init(e)
 	calchealth[e] = 0
 	calcstamina[e] = 0
 	calcjump[e] = 0
+	calcspeed[e] = 0
 	calcglobal[e] = 0
 	defaultglobal[e] = 0
-	defaultjump[e] = 215
+	defaultjump[e] = SetGamePlayerControlJumpmax
+	defaultspeed[e] = GetGamePlayerControlSpeedRatio()
 	currentvalue[e] = 0		
 	tEnt[e] = 0
 	g_tEnt = 0
@@ -169,6 +173,7 @@ function booster_main(e)
 			CollisionOff(e)
 			Hide(e)
 			item_used[e] = 1
+			-- Set boosts calculations
 			if addquantity == 1 then
 				if booster[e].boost_style == 1 then
 					calchealth[e] = g_PlayerHealth + booster[e].quantity
@@ -182,8 +187,13 @@ function booster_main(e)
 					if _G["g_UserGlobal['"..user_defined_global_current.."']"] ~= nil then
 						calcstamina[e] = _G["g_UserGlobal['"..user_defined_global_current.."']"] + booster[e].quantity
 					end
-				end		
-				calcjump[e] = GetGamePlayerControlJumpmax()+booster[e].quantity
+				end
+				if booster[e].boost_style == 3 then	
+					calcjump[e] = GetGamePlayerControlJumpmax()+booster[e].quantity
+				end	
+				if booster[e].boost_style == 4 then	
+					calcspeed[e] = defaultspeed[e] + booster[e].quantity/100
+				end
 				if booster[e].user_global_affected ~= "" then
 					if _G["g_UserGlobal['"..booster[e].user_global_affected.."']"] ~= nil then currentvalue[e] = _G["g_UserGlobal['"..booster[e].user_global_affected.."']"] end
 					defaultglobal[e] = currentvalue[e]
@@ -203,8 +213,13 @@ function booster_main(e)
 					if _G["g_UserGlobal['"..user_defined_global_current.."']"] ~= nil then
 						calcstamina[e] = _G["g_UserGlobal['"..user_defined_global_current.."']"] - booster[e].quantity
 					end
+				end
+				if booster[e].boost_style == 3 then					
+					calcjump[e] = GetGamePlayerControlJumpmax()-booster[e].quantity
 				end	
-				calcjump[e] = GetGamePlayerControlJumpmax()-booster[e].quantity
+				if booster[e].boost_style == 4 then	
+					calcspeed[e] = defaultspeed[e] - booster[e].quantity/100
+				end
 				if booster[e].user_global_affected ~= "" then
 					if _G["g_UserGlobal['"..booster[e].user_global_affected.."']"] ~= nil then currentvalue[e] = _G["g_UserGlobal['"..booster[e].user_global_affected.."']"] end
 					defaultglobal[e] = currentvalue[e]
@@ -213,7 +228,7 @@ function booster_main(e)
 			end		
 		end		
 	end
-
+	-- Process Boosts
 	if g_Time < booster_timer[e] and item_used[e] == 1 then
 		SetPosition(e,g_PlayerPosX,g_PlayerPosY+500,g_PlayerPosZ)
 		local currentvalue = 0
@@ -225,12 +240,15 @@ function booster_main(e)
 				local user_defined_global_current = "MyStamina"
 				if _G["g_UserGlobal['"..user_defined_global_current.."']"] ~= nil then
 					_G["g_UserGlobal['"..user_defined_global_current.."']"] = calcstamina[e]
-				end
+				end				
 			end		
 			if booster[e].boost_style == 3 then
 				SetGamePlayerControlJumpmax(calcjump[e])
-			end		
+			end
 			if booster[e].boost_style == 4 then
+				SetGamePlayerControlSpeedRatio(calcspeed[e])
+			end				
+			if booster[e].boost_style == 5 then
 				if booster[e].user_global_affected ~= "" then					
 					_G["g_UserGlobal['"..booster[e].user_global_affected.."']"] = calcglobal[e]
 				end
@@ -249,16 +267,20 @@ function booster_main(e)
 			end		
 			if booster[e].boost_style == 3 then
 				SetGamePlayerControlJumpmax(calcjump[e])
-			end		
-			if booster[e].boost_style == 4 then	
+			end
+			if booster[e].boost_style == 4 then
+				SetGamePlayerControlSpeedRatio(calcspeed[e])
+			end				
+			if booster[e].boost_style == 5 then	
 				if booster[e].user_global_affected ~= "" then					
 					_G["g_UserGlobal['"..booster[e].user_global_affected.."']"] = calcglobal[e]
 				end
 			end	
 		end
 	end
-
+	-- Reset Defaults and finish
 	if g_Time >= booster_timer[e] then
+		SetGamePlayerControlSpeedRatio(defaultspeed[e])
 		SetGamePlayerControlJumpmax(defaultjump[e])
 		if booster[e].user_global_affected ~= "" then					
 			_G["g_UserGlobal['"..booster[e].user_global_affected.."']"] = defaultglobal[e]
