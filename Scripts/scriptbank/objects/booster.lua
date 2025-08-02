@@ -1,4 +1,4 @@
--- Booster v1 by Necrym 59
+-- Booster v2 by Necrym 59
 -- DESCRIPTION: The object will give the player a booster or deduction if used.
 -- DESCRIPTION: [PROMPT_TEXT$="E to consume"]
 -- DESCRIPTION: [PROMPT_IF_COLLECTABLE$="E to collect"]
@@ -7,7 +7,7 @@
 -- DESCRIPTION: [PICKUP_RANGE=80(1,100)]
 -- DESCRIPTION: [@PICKUP_STYLE=2(1=Ranged, 2=Accurate)]
 -- DESCRIPTION: [@EFFECT=1(1=Add, 2=Deduct)]
--- DESCRIPTION: [@BOOST_STYLE=1(1=Health Value, 2=Speed Boost, 3=Jumping Boost, 4=User Global Boost)]
+-- DESCRIPTION: [@BOOST_STYLE=1(1=Health Applied, 2=Stamina Timed, 3=Jumping Timed, 4=User Global Timed)]
 -- DESCRIPTION: [BOOST_TIME=5(0,60)] Seconds
 -- DESCRIPTION: [@@USER_GLOBAL_AFFECTED$=""(0=globallist)] eg: MyMana
 -- DESCRIPTION: [@PROMPT_DISPLAY=1(1=Local,2=Screen)]
@@ -173,9 +173,16 @@ function booster_main(e)
 				if booster[e].boost_style == 1 then
 					calchealth[e] = g_PlayerHealth + booster[e].quantity
 					if calchealth[e] > g_PlayerStartStrength then calchealth[e] = g_PlayerStartStrength end
-				end	
-				local user_defined_global_current1 = "MyStamina"
-				calcstamina[e] = _G["g_UserGlobal['"..user_defined_global_current1.."']"] + booster[e].quantity
+				end
+				if booster[e].boost_style == 2 then	
+					local user_defined_global_current = "MyStamina"
+					if _G["g_UserGlobal['"..user_defined_global_current.."']"] == nil then
+						PromptDuration("User Globals called 'MyStamina' and 'MyStaminaMax' have not yet been created",3000)				
+					end	
+					if _G["g_UserGlobal['"..user_defined_global_current.."']"] ~= nil then
+						calcstamina[e] = _G["g_UserGlobal['"..user_defined_global_current.."']"] + booster[e].quantity
+					end
+				end		
 				calcjump[e] = GetGamePlayerControlJumpmax()+booster[e].quantity
 				if booster[e].user_global_affected ~= "" then
 					if _G["g_UserGlobal['"..booster[e].user_global_affected.."']"] ~= nil then currentvalue[e] = _G["g_UserGlobal['"..booster[e].user_global_affected.."']"] end
@@ -188,8 +195,15 @@ function booster_main(e)
 					calchealth[e] = g_PlayerHealth - booster[e].quantity
 					if calchealth[e] <= 0 then calchealth[e] = 0 end
 				end	
-				local user_defined_global_current1 = "MyStamina"
-				calcstamina[e] = _G["g_UserGlobal['"..user_defined_global_current1.."']"] - booster[e].quantity
+				if booster[e].boost_style == 2 then	
+					local user_defined_global_current = "MyStamina"
+					if _G["g_UserGlobal['"..user_defined_global_current.."']"] == nil then
+						PromptDuration("User Globals called 'MyStamina' and 'MyStaminaMax' have not been created",3000)				
+					end	
+					if _G["g_UserGlobal['"..user_defined_global_current.."']"] ~= nil then
+						calcstamina[e] = _G["g_UserGlobal['"..user_defined_global_current.."']"] - booster[e].quantity
+					end
+				end	
 				calcjump[e] = GetGamePlayerControlJumpmax()-booster[e].quantity
 				if booster[e].user_global_affected ~= "" then
 					if _G["g_UserGlobal['"..booster[e].user_global_affected.."']"] ~= nil then currentvalue[e] = _G["g_UserGlobal['"..booster[e].user_global_affected.."']"] end
@@ -208,8 +222,10 @@ function booster_main(e)
 				SetPlayerHealthCore(calchealth[e])
 			end
 			if booster[e].boost_style == 2 then
-				local user_defined_global_current1 = "MyStamina"
-				_G["g_UserGlobal['"..user_defined_global_current1.."']"] = calcstamina[e]
+				local user_defined_global_current = "MyStamina"
+				if _G["g_UserGlobal['"..user_defined_global_current.."']"] ~= nil then
+					_G["g_UserGlobal['"..user_defined_global_current.."']"] = calcstamina[e]
+				end
 			end		
 			if booster[e].boost_style == 3 then
 				SetGamePlayerControlJumpmax(calcjump[e])
@@ -225,9 +241,11 @@ function booster_main(e)
 				if calchealth[e] > 0 then SetPlayerHealthCore(calchealth[e]) end
 				if calchealth[e] <= 0 then HurtPlayer(-1,g_PlayerHealth) end
 			end
-			if booster[e].boost_style == 2 then
+			if booster[e].boost_style == 2 then				
 				local user_defined_global_current = "MyStamina"
-				_G["g_UserGlobal['"..user_defined_global_current.."']"] = calcstamina[e]
+				if _G["g_UserGlobal['"..user_defined_global_current.."']"] ~= nil then
+					_G["g_UserGlobal['"..user_defined_global_current.."']"] = calcstamina[e]
+				end
 			end		
 			if booster[e].boost_style == 3 then
 				SetGamePlayerControlJumpmax(calcjump[e])
@@ -238,7 +256,8 @@ function booster_main(e)
 				end
 			end	
 		end
-	end	
+	end
+
 	if g_Time >= booster_timer[e] then
 		SetGamePlayerControlJumpmax(defaultjump[e])
 		if booster[e].user_global_affected ~= "" then					
