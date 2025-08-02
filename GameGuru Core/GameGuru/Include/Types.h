@@ -4074,7 +4074,7 @@ struct visualstype
 	bool bDisableSkybox = false;
 
 	int iEnvProbeResolution = 128;
-
+	float fEnvProbeBrightness = 1.0f;
 	int newperformancepresets = 0;
 
 	cStr customTexturesFolder = "";
@@ -4082,6 +4082,7 @@ struct visualstype
 	// Constructor
 	visualstype ( )
 	{
+		 fEnvProbeBrightness = 1.0f;
 		 iEnvProbeResolution = 128;
 		 LensFlare_f = 0.5f;
 		 SAORadius_f = 0.0f;

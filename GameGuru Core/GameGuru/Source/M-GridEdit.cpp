@@ -1560,6 +1560,10 @@ bool commonexecutable_loop_for_game(void)
 			{
 				ggterrain_extra_params.iUpdateGrass = 1;
 				ggterrain_extra_params.iUpdateTrees = 1;
+				//PE: Also update probe after terrain is done.
+				extern bool g_bLightProbeScaleChanged;
+				g_bLightProbeScaleChanged = true;
+
 			}
 		}
 		iTriggerGrassTreeUpdate--;
@@ -18379,6 +18383,8 @@ void editor_previewmapormultiplayer_afterloopcode ( int iUseVRTest )
 	t.visuals.bLevelVSyncEnabled = t.gamevisuals.bLevelVSyncEnabled;
 	t.visuals.bOcclusionCulling = t.gamevisuals.bOcclusionCulling;
 
+	t.visuals.fEnvProbeBrightness = t.gamevisuals.fEnvProbeBrightness;
+
 	t.visuals.bEnableTerrainChunkCulling = t.gamevisuals.bEnableTerrainChunkCulling;
 	t.visuals.bEnablePointShadowCulling = t.gamevisuals.bEnablePointShadowCulling;
 	t.visuals.bEnableSpotShadowCulling = t.gamevisuals.bEnableSpotShadowCulling;
@@ -31521,6 +31527,11 @@ void GridPopup(ImVec2 wpos)
 bool GetEnableEmptyLevelMode(void)
 {
 	return t.visuals.bEnableEmptyLevelMode;
+}
+
+float GetEnvProbeBrightness(void)
+{
+	return t.visuals.fEnvProbeBrightness;
 }
 
 void GetConvertSettings(int *maxwidth,int *active)

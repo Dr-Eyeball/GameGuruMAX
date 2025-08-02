@@ -9568,6 +9568,20 @@ void imgui_Customize_Sky_V2(int mode)
 			WickedCall_UpdateProbes();
 		}
 
+		ImGui::TextCenter("Global Probe Brightness");
+		fTmp = t.visuals.fEnvProbeBrightness;
+		if (ImGui::SliderFloat("##HDRI Brightness", &fTmp, 0.0, 10.0, "%.2f", 1.0f))
+		{
+			t.visuals.fEnvProbeBrightness = fTmp;
+			t.gamevisuals.fEnvProbeBrightness = t.visuals.fEnvProbeBrightness;
+			Wicked_Update_Visuals((void*)&t.visuals);
+			g.projectmodified = 1;
+			// when sky type changes, refresh env probes
+			extern bool g_bLightProbeScaleChanged;
+			g_bLightProbeScaleChanged = true;
+			WickedCall_UpdateProbes();
+		}
+
 		if ( !bSimulatedSky || t.visuals.bDisableSkybox )
 		{
 		}

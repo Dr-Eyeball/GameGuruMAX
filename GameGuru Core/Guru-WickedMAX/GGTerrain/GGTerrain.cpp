@@ -9465,6 +9465,8 @@ void GGTerrain_EnvProbeWork (float playerX, float playerY, float playerZ)
 		probe->position = globalEnvProbePos;
 		probe->range = globalrange;
 		probe->userdata = 255;
+		float GetEnvProbeBrightness(void);
+		probe->SetBrightness(GetEnvProbeBrightness());
 		probe->SetDirty();
 		wiScene::TransformComponent* pTransform = wiScene::GetScene().transforms.GetComponent(globalEnvProbe);
 		pTransform->ClearTransform();
