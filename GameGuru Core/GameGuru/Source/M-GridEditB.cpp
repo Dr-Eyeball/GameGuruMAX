@@ -38396,7 +38396,7 @@ void SetupDecalObject(int obj, int elementID)
 		}
 		
 
-		//if(!t.entityelement[elementID].eleprof.bCustomWickedMaterialActive) // ZJ: Only reset this if not using custom materials for this decal.
+		if(bUseFPE) //!t.entityelement[elementID].eleprof.bCustomWickedMaterialActive) // ZJ: Only reset this if not using custom materials for this decal.
 		{
 			//PE: Use unlit shader.
 			for (int iMesh = 0; iMesh < pObject->iMeshCount; iMesh++)
