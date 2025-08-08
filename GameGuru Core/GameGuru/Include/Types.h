@@ -7824,7 +7824,7 @@ struct gunsettingstype
 	float tracer_colorB;
 	cStr tracer_imagefile;
 	uint32_t tracer_WPEId;
-
+	bool fake_reload;
 	// Constructor
 	gunsettingstype ( )
 	{
@@ -8025,6 +8025,8 @@ struct gunsettingstype
 		 weaponpropres1 = 0;
 		 weaponpropres2 = 0;
 		 fEmissiveStrength = 1.0f;
+		 fake_reload = false;
+		 tracer_active = false;
 	}
 };
 

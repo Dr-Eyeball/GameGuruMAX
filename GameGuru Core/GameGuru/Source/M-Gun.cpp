@@ -73,6 +73,7 @@ void gun_loaddata ( void )
 	t.gun[t.gunid].settings.tracer_colorG = 0.5f;
 	t.gun[t.gunid].settings.tracer_colorB = 0.1f;
 
+	t.gun[t.gunid].settings.fake_reload = false;
 
 
 	// stores legacy ammo/clip values when move slot weapons to player containers for storage
@@ -1657,6 +1658,9 @@ void gun_loaddata ( void )
 					// New features.		
 					cmpStrConst(t_field_s, "emissivestrength");
 					if (matched) t.gun[t.gunid].settings.fEmissiveStrength = t.value1;
+
+					cmpStrConst(t_field_s, "fakereload");
+					if (matched) t.gun[t.gunid].settings.fake_reload = t.value1;
 
 					// tracers
 					cmpStrConst(t_field_s, "traceractive");
