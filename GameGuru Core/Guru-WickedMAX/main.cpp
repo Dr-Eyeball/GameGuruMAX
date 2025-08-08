@@ -619,6 +619,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if (g_bDisableQuitFlag == false)
 			{
 				int iRet = 0;
+				void timestampactivity(int i, char* desc_s);
+				timestampactivity(0, "WM_CLOSE");
+
 				//PE: Save storyboard if changed.
 				int autosave_storyboard_project(void);
 				iRet = autosave_storyboard_project();

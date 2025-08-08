@@ -2157,6 +2157,7 @@ void entity_loaddata ( void )
 
 		t.entityprofile[t.entid].blendmode = 0;
 
+		t.entityprofile[t.entid].light.fProbeBrightness = 1.0f;
 		#endif
 
 		//  temp variable to hold which physics object we are on from the importer
@@ -6366,7 +6367,9 @@ void c_entity_loadelementsdata ( void )
 						float fFiller;
 						int iFiller;
 						cstr sFiller;
-						t.a = t.a_f = c_ReadFloat(1); fFiller = t.a_f;
+						
+						t.a = t.a_f = c_ReadFloat(1); t.entityelement[t.e].eleprof.light.fProbeBrightness = t.a_f;
+
 						t.a = t.a_f = c_ReadFloat(1); fFiller = t.a_f;
 						t.a = t.a_f = c_ReadFloat(1); fFiller = t.a_f;
 						t.a = t.a_f = c_ReadFloat(1); fFiller = t.a_f;
@@ -6426,6 +6429,9 @@ void c_entity_loadelementsdata ( void )
 							continue;
 						}
 					}
+
+					if (t.entityelement[t.e].eleprof.light.fProbeBrightness == 0)
+						t.entityelement[t.e].eleprof.light.fProbeBrightness = 1.0f;
 
 					// fill in the blanks if load older version
 					if (  t.versionnumberload<103 ) 
@@ -8018,7 +8024,8 @@ void entity_saveelementsdata (bool bForCollectionELE)
 				{
 					writer.WriteString(t.entityelement[ent].eleprof.WEMaterial.WPEffect.Get());
 					//PE: Fillers.
-					writer.WriteFloat(0.0f);
+
+					writer.WriteFloat(t.entityelement[ent].eleprof.light.fProbeBrightness);
 					writer.WriteFloat(0.0f);
 					writer.WriteFloat(0.0f);
 					writer.WriteFloat(0.0f);

@@ -9570,7 +9570,8 @@ void imgui_Customize_Sky_V2(int mode)
 
 		ImGui::TextCenter("Global Probe Brightness");
 		fTmp = t.visuals.fEnvProbeBrightness;
-		if (ImGui::SliderFloat("##HDRI Brightness", &fTmp, 0.0, 10.0, "%.2f", 1.0f))
+		//if (ImGui::SliderFloat("##HDRI Brightness", &fTmp, 0.0, 10.0, "%.2f", 1.0f))
+		if (ImGui::MaxSliderInputFloat("##HDRI Brightness", &fTmp, 0.01f, 10.0f, "Specify the brightness of the global environment probe"))
 		{
 			t.visuals.fEnvProbeBrightness = fTmp;
 			t.gamevisuals.fEnvProbeBrightness = t.visuals.fEnvProbeBrightness;

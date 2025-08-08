@@ -26922,6 +26922,15 @@ void DisplayFPEBehavior(bool readonly, int entid, entityeleproftype* edit_gridel
 			}
 			ImGui::PopItemWidth();
 
+			//PE: min 0.001 , 0 is used to reset to 1.0f.
+			ImGui::TextCenter("Probe Brightness");
+			ImGui::PushItemWidth(-10);
+			if (ImGui::MaxSliderInputFloat("##fLightfProbeBrightness", &edit_grideleprof->light.fProbeBrightness, 0.01f, 10.0f, "Specify the brightness of the environment probe"))
+			{
+				g_bLightProbeScaleChanged = true;
+				bLightChanged = true;
+			}
+			ImGui::PopItemWidth();
 			// and done
 			return;
 		}

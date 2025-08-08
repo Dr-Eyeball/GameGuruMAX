@@ -5739,6 +5739,7 @@ struct entitylighttype
 	float fLightHasProbeX;
 	float fLightHasProbeY;
 	float fLightHasProbeZ;
+	float fProbeBrightness;
 	entitylighttype ( )
 	{
 		 offsetz = 0;
@@ -5751,6 +5752,7 @@ struct entitylighttype
 		 fLightHasProbeX = 0.0f;
 		 fLightHasProbeY = 0.0f;
 		 fLightHasProbeZ = 0.0f;
+		 fProbeBrightness = 1.0f;
 	}
 };
 
