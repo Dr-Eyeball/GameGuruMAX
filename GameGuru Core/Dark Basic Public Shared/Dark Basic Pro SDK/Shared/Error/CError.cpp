@@ -31,7 +31,7 @@ void Message ( int iID, char* szMessage, char* szTitle )
 void RunTimeError ( DWORD dwErrorCode )
 {
 	//C++Conversion
-	char szErrorString[256];
+	char szErrorString[1024];
 	sprintf ( szErrorString , "Runtime Error: %i (%s)" , dwErrorCode, g_strErrorClue );
 	#ifndef NOSTEAMORVIDEO
 	timestampactivity(0, szErrorString); // PE:
@@ -54,7 +54,7 @@ void RunTimeError(DWORD dwErrorCode, LPSTR pExtraErrorString)
 {
 	if ( pExtraErrorString ) 
 	{
-		char szErrorString[256];
+		char szErrorString[1024];
 		sprintf ( szErrorString , "Runtime Error: %i : %s (%s)" , dwErrorCode, pExtraErrorString, g_strErrorClue );
 		#ifndef NOSTEAMORVIDEO
 		timestampactivity(0, szErrorString); // PE:

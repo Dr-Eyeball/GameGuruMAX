@@ -19186,7 +19186,16 @@ void process_entity_library_v2(void)
 						}
 
 						if (dir_name.length() == 0)
-							__debugbreak();
+						{
+							static uint32_t maxerrors = 5;
+							void timestampactivity(int i, char* desc_s);
+							if (maxerrors > 0)
+							{
+								maxerrors--;
+								timestampactivity(0, "DEBUG: dir_name.length() == 0");
+							}
+							//__debugbreak();
+						}
 
 						int is = root_folders.size();
 						if (mem_list_count < 5000 && dir_name.length() < 256 && dir_name.length() > 0 )
