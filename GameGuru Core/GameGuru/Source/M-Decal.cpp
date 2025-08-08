@@ -263,8 +263,15 @@ void decal_load(void)
 			t.decal[t.decalid].newparticle.bParticle_Looping_Animation = false;
 			t.decal[t.decalid].newparticle.bWPE = true;
 			//PE: Preload some effects.
-			void preload_wicked_particle_effect(newparticletype * pParticle, int decal_id);
-			preload_wicked_particle_effect(&t.decal[t.decalid].newparticle, t.decalid);
+			bool preload_wicked_particle_effect(newparticletype * pParticle, int decal_id);
+			if (!preload_wicked_particle_effect(&t.decal[t.decalid].newparticle, t.decalid))
+			{
+				//PE: Bad emitter. continue without WPE.
+				char debug[MAX_PATH];
+				sprintf(debug, "WPE Error Non Burst Decal: - %s", pAbsPathToParticle);
+				timestampactivity(0, debug);
+				t.decal[t.decalid].newparticle.bWPE = false;
+			}
 		}
 	}
 	if (!t.decal[t.decalid].newparticle.bWPE)

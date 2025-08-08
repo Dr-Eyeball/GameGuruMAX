@@ -9705,7 +9705,7 @@ void delete_notused_decal_particles( void )
 
 #ifdef WICKEDPARTICLESYSTEM
 uint32_t WickedCall_LoadWiSceneDirect(Scene& scene2, char* filename, bool attached, char* changename, char* changenameto);
-void preload_wicked_particle_effect(newparticletype* pParticle, int decal_id)
+bool preload_wicked_particle_effect(newparticletype* pParticle, int decal_id)
 {
 #ifdef OPTICK_ENABLE
 	OPTICK_EVENT();
@@ -9715,7 +9715,7 @@ void preload_wicked_particle_effect(newparticletype* pParticle, int decal_id)
 	extern int g_iDisableWParticleSystem;
 	if (g_iDisableWParticleSystem == 1)
 	{
-		return;
+		return false;
 	}
 
 	//PE: Preload effects so there is no delays.
@@ -9806,12 +9806,43 @@ void preload_wicked_particle_effect(newparticletype* pParticle, int decal_id)
 							iParticleEmitter = pParticle->emitterid = root;
 						}
 						if (master_root == 0)
+						{
 							master_root = root;
+							//PE: Validate that decal is a burst only emitter.
+							for (int b = 0; b < scene.emitters.GetCount(); b++)
+							{
+								Entity emitter = scene.emitters.GetEntity(b);
+								HierarchyComponent* hier = scene.hierarchy.GetComponent(emitter);
+								if (hier)
+								{
+									if (hier->parentID == master_root)
+									{
+										wiEmittedParticle* ec = scene.emitters.GetComponent(emitter);
+										if (ec->count > 0.1f)
+										{
+											//PE: This is not a burst emitter reject it.
+											iParticleEmitter = pParticle->emitterid = -1;
+											ready_decals[decal_id][i] = 0;
+
+											WickedCall_PerformEmitterAction(2, root); //PE: Pause
+											WickedCall_PerformEmitterAction(6, root); //PE: Not Visible
+											void DeleteEmitterEffects(uint32_t root);
+											DeleteEmitterEffects(master_root);
+											return false;
+										}
+									}
+								}
+							}
+						}
+
+						WickedCall_PerformEmitterAction(2, root); //PE: Pause
+						WickedCall_PerformEmitterAction(6, root); //PE: Not Visible
 					}
 				}
 			}
 		}
 	}
+	return true;
 }
 #endif
 
@@ -9931,6 +9962,7 @@ void newparticle_updateparticleemitter ( newparticletype* pParticle, float fScal
 					}
 					WickedCall_PerformEmitterAction(3, iParticleEmitter); //PE: Resume
 					WickedCall_PerformEmitterAction(4, iParticleEmitter); //PE: Restart
+					WickedCall_PerformEmitterAction(5, iParticleEmitter); //PE: Visible
 					WickedCall_PerformEmitterAction(1, iParticleEmitter); //PE: Burst All
 					pParticle->bParticle_Fire = false;
 				}
