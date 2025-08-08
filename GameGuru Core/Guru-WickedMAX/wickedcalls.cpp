@@ -7401,7 +7401,6 @@ void WickedCall_PerformEmitterAction(int iAction, uint32_t emitter_root)
 			}
 		}
 	}
-
 }
 
 bool WickedCall_ParticleEffectPosition(uint32_t root, float fX, float fY, float fZ)

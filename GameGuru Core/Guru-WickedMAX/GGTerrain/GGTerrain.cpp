@@ -9012,7 +9012,7 @@ void GGTerrain_InstantEnvProbeRefresh(int iCoolDownIndex)
 	}
 }
 
-void GGTerrain_AddEnvProbeList(float x, float y, float z, float range, float quatx, float quaty, float quatz, float quatw, float sx, float sy, float sz)
+void GGTerrain_AddEnvProbeList(float x, float y, float z, float range, float quatx, float quaty, float quatz, float quatw, float sx, float sy, float sz, float brightness)
 {
 	envProbeItem item;
 	item.position = XMFLOAT3(x, y, z);
@@ -9020,6 +9020,7 @@ void GGTerrain_AddEnvProbeList(float x, float y, float z, float range, float qua
 	item.rotation = XMFLOAT4(quatx, quaty, quatz, quatw);
 	item.size = XMFLOAT3(sx, sy, sz);
 	item.distance = 0;
+	item.brightness = brightness;
 	g_envProbeList.push_back(item);
 }
 
@@ -9236,6 +9237,8 @@ void GGTerrain_EnvProbeWork (float playerX, float playerY, float playerZ)
 						{
 							g_bEnvProbeTrackingUpdate[iRealProbeIndex] = false;
 						}
+
+						probe->SetBrightness(g_envProbeList[p].brightness);
 
 						// update probe with correct scaling
 						pTransform->ClearTransform();
@@ -9468,6 +9471,7 @@ void GGTerrain_EnvProbeWork (float playerX, float playerY, float playerZ)
 		float GetEnvProbeBrightness(void);
 		probe->SetBrightness(GetEnvProbeBrightness());
 		probe->SetDirty();
+		
 		wiScene::TransformComponent* pTransform = wiScene::GetScene().transforms.GetComponent(globalEnvProbe);
 		pTransform->ClearTransform();
 		pTransform->Translate(globalEnvProbePos);

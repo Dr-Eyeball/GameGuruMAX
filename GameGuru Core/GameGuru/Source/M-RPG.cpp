@@ -475,6 +475,8 @@ bool save_rpg_system_quests(char* name)
 	if (g_collectionQuestLabels.size() == 0)
 		return true;
 
+	timestampactivity(0, "saving collection - quests.tsv");
+
 	// save master collection in file (contains all items in all game levels)
 	char collectionfilename[MAX_PATH];
 	strcpy(collectionfilename, "projectbank\\");
@@ -498,7 +500,11 @@ bool save_rpg_system_quests(char* name)
 			strcat(theline, g_collectionQuestLabels[l].Get());
 			strcat(theline, pTab);
 		}
-		theline[strlen(theline) - 1] = 0;
+		
+		//PE: Possible crash here.
+		if (strlen(theline) > 0)
+			theline[strlen(theline) - 1] = 0;
+
 		strcat(theline, pCR);
 		fwrite (theline, strlen (theline) * sizeof (char), 1, collectionFile);
 
@@ -515,11 +521,15 @@ bool save_rpg_system_quests(char* name)
 					strcat(theline, " ");
 				strcat(theline, pTab);
 			}
-			theline[strlen(theline) - 1] = 0;
+			//PE: Possible crash here.
+			if(strlen(theline) > 0)
+				theline[strlen(theline) - 1] = 0;
 			strcat(theline, pCR);
 			fwrite (theline, strlen (theline) * sizeof (char), 1, collectionFile);
 		}
 		fclose(collectionFile);
+		timestampactivity(0, "DONE saving collection - quests.tsv");
+
 	}
 
 	// success
