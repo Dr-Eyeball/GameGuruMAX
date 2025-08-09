@@ -3451,6 +3451,43 @@ void mapfile_savestandalone_stage3 ( void )
 	}
 }
 
+void removeEmptyFolders(const std::string& directoryPath)
+{
+	std::string searchPath = directoryPath + "\\*";
+
+	WIN32_FIND_DATAA findFileData;
+	HANDLE hFind = FindFirstFileA(searchPath.c_str(), &findFileData);
+
+	if (hFind == INVALID_HANDLE_VALUE) {
+		return;
+	}
+	std::vector<std::string> subdirectories;
+
+	do
+	{
+		if (strcmp(findFileData.cFileName, ".") == 0 || strcmp(findFileData.cFileName, "..") == 0)
+		{
+			continue;
+		}
+		if (findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+		{
+			std::string subDirPath = directoryPath + "\\" + findFileData.cFileName;
+			subdirectories.push_back(subDirPath);
+			removeEmptyFolders(subDirPath);
+		}
+	} while (FindNextFileA(hFind, &findFileData) != 0);
+
+	FindClose(hFind);
+
+	for (const auto& subDir : subdirectories)
+	{
+		removeEmptyFolders(subDir);
+	}
+
+	//PE: Try removing current folder , if its empty it will work.
+	RemoveDirectoryA(directoryPath.c_str());
+}
+
 void mapfile_savestandalone_stage4 ( void )
 {
 	// restore dir before proceeding
@@ -3470,6 +3507,15 @@ void mapfile_savestandalone_stage4 ( void )
 			if (FileExist(t.dest_s.Get()) == 1) DeleteAFile(t.dest_s.Get());
 			CopyAFile(pRealSrc, t.dest_s.Get());
 		}
+	}
+
+	//PE: Make sure we dont have a empty folder inside scriptbank.
+	//PE: We do have needed empty folder so cant just run it on everything like 'levelbank' ...
+	t.dest_s = t.exepath_s + t.exename_s + "\\Files\\scriptbank";
+	if (PathExist(t.dest_s.Get()))
+	{
+		//PE: Check if we have any empty folders here.
+		removeEmptyFolders(t.dest_s.Get());
 	}
 
 	// switch to original root to copy exe files and dependencies
