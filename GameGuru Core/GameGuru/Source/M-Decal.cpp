@@ -313,7 +313,7 @@ void decal_load(void)
 void decal_scaninallref ( void )
 {
 	t.decalid = 1;
-	LPSTR pRootDir = GetDir();
+	cstr pRootDir = GetDir();
 	for (int iDecalsInTwoFolders = 0; iDecalsInTwoFolders < 2; iDecalsInTwoFolders++)
 	{
 		char pathToUse[MAX_PATH];
@@ -325,7 +325,7 @@ void decal_scaninallref ( void )
 		if (iDecalsInTwoFolders == 1)
 		{
 			// writable folder - switch to it
-			strcpy(pathToUse, pRootDir);
+			strcpy(pathToUse, pRootDir.Get());
 			GG_GetRealPath(pathToUse, 0);
 			SetDir(pathToUse);
 		}
@@ -368,7 +368,7 @@ void decal_scaninallref ( void )
 	}
 
 	// and restore root folder
-	SetDir(pRootDir);
+	SetDir(pRootDir.Get());
 
 	// report total number of decals
 	g.decalmax = t.decalid - 1;
@@ -382,7 +382,7 @@ void decal_scaninall_findnewlyaddedgun (void)
 	int storedecalid = t.decalid;
 
 	// Scan entire decals folder (again)
-	LPSTR pRootDir = GetDir();
+	cstr pRootDir = GetDir();
 	for (int iDecalsInTwoFolders = 0; iDecalsInTwoFolders < 2; iDecalsInTwoFolders++)
 	{
 		char pathToUse[MAX_PATH];
@@ -394,7 +394,7 @@ void decal_scaninall_findnewlyaddedgun (void)
 		if (iDecalsInTwoFolders == 1)
 		{
 			// writable folder - switch to it
-			strcpy(pathToUse, pRootDir);
+			strcpy(pathToUse, pRootDir.Get());
 			GG_GetRealPath(pathToUse, 0);
 			SetDir(pathToUse);
 		}
@@ -440,7 +440,7 @@ void decal_scaninall_findnewlyaddedgun (void)
 	}
 
 	// and restore root folder
-	SetDir(pRootDir);
+	SetDir(pRootDir.Get());
 
 	// report total number
 	t.strwork = ""; t.strwork = t.strwork + "new total decals=" + Str(g.decalmax);

@@ -5545,7 +5545,65 @@ float c_ReadFloat(int f)
 
 char c_filerror[2] = "";
 
+//PE: We use cstr t.a_s = c_ReadString ( 1 ) , so mem is never freed.
+char c_ReadStringRing[20][1024];
+int c_ReadStringCount = 0;
 LPSTR c_ReadString(int f)
+{
+	if (!c_data) return 0;
+
+	c_ReadStringCount = c_ReadStringCount + 1;
+	if (c_ReadStringCount > 19)
+		c_ReadStringCount = 0;
+	
+	LPSTR pReturnString = 0;
+
+	unsigned char c = 0;
+	DWORD bytes;
+	std::vector<char> WorkString;
+
+	bool eof = false;
+	do
+	{
+		if (c_ReadFile(c_hFile, &c, 1, &bytes, NULL) == 0)
+		{
+			//RunTimeWarning(RUNTIMEERROR_CANNOTREADFROMFILE);
+			return(&c_filerror[0]);
+		}
+		if (bytes == 0)
+		{
+			eof = true;
+		}
+		else if (c >= 32 || c == 9)
+		{
+			WorkString.push_back(c);
+		}
+	} while ((c >= 32 || c == 9) && !eof);
+
+	WorkString.push_back(0);
+
+	if (c == 13)
+	{
+		if (c_ReadFile(c_hFile, &c, 1, &bytes, NULL) == 0)
+		{
+			//RunTimeWarning(RUNTIMEERROR_CANNOTREADFROMFILE);
+			return(&c_filerror[0]);
+		}
+	}
+
+	// Create and return string
+	if (WorkString.size() < 1024)
+	{
+		strcpy(&c_ReadStringRing[c_ReadStringCount][0], &WorkString[0]);
+		pReturnString = &c_ReadStringRing[c_ReadStringCount][0];
+	}
+	else
+		pReturnString = GetReturnStringFromWorkString(&WorkString[0]);
+
+	return pReturnString;
+}
+
+LPSTR c_ReadStringOLD(int f)
 {
 	if (!c_data) return 0;
 
@@ -5592,6 +5650,60 @@ LPSTR c_ReadString(int f)
 
 //PE: We can have 0x0a in soundset4 (entered text) so always use 13 to stop.
 LPSTR c_ReadStringIncl0xA(int f)
+{
+	if (!c_data) return 0;
+
+	c_ReadStringCount = c_ReadStringCount + 1;
+	if (c_ReadStringCount > 19)
+		c_ReadStringCount = 0;
+
+	LPSTR pReturnString = 0;
+
+	unsigned char c = 0;
+	DWORD bytes;
+	std::vector<char> WorkString;
+
+	bool eof = false;
+	do
+	{
+		if (c_ReadFile(c_hFile, &c, 1, &bytes, NULL) == 0)
+		{
+			//RunTimeWarning(RUNTIMEERROR_CANNOTREADFROMFILE);
+			return(&c_filerror[0]);
+		}
+		if (bytes == 0)
+		{
+			eof = true;
+		}
+		else if (c >= 32 || c == 9 || c == 10)
+		{
+			WorkString.push_back(c);
+		}
+	} while ((c >= 32 || c == 9 || c == 10) && !eof);
+
+	WorkString.push_back(0);
+
+	if (c == 13)
+	{
+		if (c_ReadFile(c_hFile, &c, 1, &bytes, NULL) == 0)
+		{
+			//RunTimeWarning(RUNTIMEERROR_CANNOTREADFROMFILE);
+			return(&c_filerror[0]);
+		}
+	}
+
+	// Create and return string
+	if (WorkString.size() < 1024)
+	{
+		strcpy(&c_ReadStringRing[c_ReadStringCount][0], &WorkString[0]);
+		pReturnString = &c_ReadStringRing[c_ReadStringCount][0];
+	}
+	else
+		pReturnString = GetReturnStringFromWorkString(&WorkString[0]);
+	return pReturnString;
+}
+
+LPSTR c_ReadStringIncl0xAOLD(int f)
 {
 	if (!c_data) return 0;
 

@@ -158,7 +158,7 @@ void charactercreatorplus_populatechartypes (void)
 	if (g_bCharacterCreatorTypesInit == false)
 	{
 		// store current dir
-		LPSTR pOldDir = GetDir();
+		cstr pOldDir = GetDir();
 		GG_SetWritablesToRoot(1);
 
 		// collect rooms
@@ -210,7 +210,7 @@ void charactercreatorplus_populatechartypes (void)
 			}
 		}
 		for (; n < 32; n++) strcpy(pRoomTypeDropDownList[n], "");
-		SetDir(pOldDir);
+		SetDir(pOldDir.Get());
 
 		// gather character creator types database
 		sCharacterType chartypeitem;
@@ -301,7 +301,7 @@ void charactercreatorplus_populatechartypes (void)
 		for (; n < 32; n++) strcpy(pCharacterTypeDropDownList[n], "");
 
 		// completed init
-		SetDir(pOldDir);
+		SetDir(pOldDir.Get());
 		GG_SetWritablesToRoot(0);
 		g_bCharacterCreatorTypesInit = true;
 	}

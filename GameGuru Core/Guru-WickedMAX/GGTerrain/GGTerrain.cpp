@@ -9489,9 +9489,9 @@ void GGTerrain_Update( float playerX, float playerY, float playerZ, wiGraphics::
 #endif
 	if (g_iDeferTextureUpdateToNow > 0 && ggterrain_initialised)
 	{
-		cstr oldDir = GetDir();
 		if (g_iDeferTextureUpdateToNow == 1)
 		{
+			cstr oldDir = GetDir();
 #ifdef ONLYLOADWHENUSED
 			//PE: Reload textures here.
 			for (int i = 0; i < GGTERRAIN_MAX_SOURCE_TEXTURES; i++)
@@ -9508,6 +9508,7 @@ void GGTerrain_Update( float playerX, float playerY, float playerZ, wiGraphics::
 		}
 		if (g_iDeferTextureUpdateToNow == 2)
 		{
+			cstr oldDir = GetDir();
 			// Update the textures for the terrain
 #ifdef ONLYLOADWHENUSED
 			for (int i = 0; i < GGTERRAIN_MAX_SOURCE_TEXTURES; i++)

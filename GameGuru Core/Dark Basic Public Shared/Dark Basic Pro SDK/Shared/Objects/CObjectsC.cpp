@@ -10588,7 +10588,39 @@ DARKSDK_DLL LPSTR LimbTextureName ( int iID, int iLimbID )
 	//#endif
 }
 
-DARKSDK_DLL LPSTR LimbName ( int iID, int iLimbID )
+//PE: Mem never freed.
+char cLimbName[1024];
+
+DARKSDK_DLL LPSTR LimbName(int iID, int iLimbID)
+{
+	// check the object exists
+	if (!ConfirmObjectAndLimb(iID, iLimbID))
+		return NULL;
+
+	// get name of frame
+	sObject* pObject = g_ObjectList[iID];
+	LPSTR pLimbName = pObject->ppFrameList[iLimbID]->szName;
+
+	// Allocate new size
+	LPSTR pString = NULL;
+	DWORD dwSize = strlen(pLimbName);
+	if (dwSize < 1024)
+	{
+		strcpy(cLimbName, pLimbName);
+		pString = &cLimbName[0];
+	}
+	else
+	{
+		g_pGlob->CreateDeleteString((char**)&pString, dwSize + 1);
+		ZeroMemory(pString, dwSize + 1);
+		memcpy(pString, pLimbName, dwSize);
+	}
+
+	// Return String
+	return pString;
+}
+
+DARKSDK_DLL LPSTR LimbNameOLD ( int iID, int iLimbID )
 {
 	// check the object exists
 	if ( !ConfirmObjectAndLimb ( iID, iLimbID ) )

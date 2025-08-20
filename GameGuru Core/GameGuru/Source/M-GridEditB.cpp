@@ -6408,7 +6408,7 @@ void tab_tab_visuals(int iPage, int iMode)
 	//iPage = 2? , behavior editor. (developer mode)
 
 	//Try to match visuals.ini
-	cStr sWindowName = "Environment Effects##VisualsToolsWindow";
+	static cStr sWindowName = "Environment Effects##VisualsToolsWindow";
 	bNeedImGuiInput = false;
 
 	if (iMode == 1 && !bRenderTabTab && !bImGuiFrameState) // lee added !bImGuiFrameState to prevent double newframes
@@ -32139,12 +32139,12 @@ void ProcessBugReporting(void)
 							CopyFileA(pDXDiagSrc.Get(), pDXDiagSystemScan.Get(), FALSE);
 
 							// get system specs from users machine
-							LPSTR pOldDir = GetDir();
+							cstr pOldDir = GetDir();
 							SetCurrentDirectoryA(g.mydocumentsdir_s.Get());
 							SetCurrentDirectoryA("GameGuruApps");
 							SetCurrentDirectoryA("GameGuruMAX");
 							int iStatusValue = ExecuteFile("dxdiagsystemspecs.bat", "", "", 1, 1);
-							SetDir(pOldDir);
+							SetDir(pOldDir.Get());
 
 							// load in new report
 							if (FileExist(pDXDiagReport.Get()))
@@ -33244,10 +33244,10 @@ void GetFilesListForLibrary(char *path, bool bCreateThumbs, int win, int iThumbW
 			}
 		}
 		g_LibraryFileList.clear();
-		LPSTR pOldDir = GetDir();
+		cstr pOldDir = GetDir();
 		SetDir(path);
 		ChecklistForFiles();
-		SetDir(pOldDir);
+		SetDir(pOldDir.Get());
 		for (int c = 0; c < ChecklistQuantity(); c++)
 		{
 			cStr cFile = cStr(ChecklistString(1 + c));
@@ -33355,7 +33355,7 @@ void GetFilesListForLibrary(char *path, bool bCreateThumbs, int win, int iThumbW
 
 		if (bCreateThumbs)
 		{
-			SetDir(pOldDir);
+			SetDir(pOldDir.Get());
 			for (int n = 0; n < g_LibraryFileList.size(); n++)
 			{
 				//PE: Skip cached thumbs for now.
@@ -33402,7 +33402,7 @@ void GetFilesListForLibrary(char *path, bool bCreateThumbs, int win, int iThumbW
 				BackBufferCacheName = "";
 			}
 		}
-		SetDir(pOldDir);
+		SetDir(pOldDir.Get());
 		if (SortType == 1) SortFilesListForLibraryType();
 	}
 }
@@ -34243,7 +34243,7 @@ bool CompareFileNames(const ProjectSortData& file0, const ProjectSortData& file1
 // Fill in Project Sort Data so it can be sorted by write time later.
 void GetProjectSortData (std::vector<ProjectSortData>& output)
 {
-	LPSTR pOldDir = GetDir();
+	cstr pOldDir = GetDir();
 
 	char destination[MAX_PATH];
 	strcpy(destination, "projectbank\\");
@@ -34251,7 +34251,7 @@ void GetProjectSortData (std::vector<ProjectSortData>& output)
 
 	SetDir(destination);
 	ChecklistForFiles();
-	SetDir(pOldDir);
+	SetDir(pOldDir.Get());
 	for (int c = 1; c <= ChecklistQuantity(); c++)
 	{
 		if (ChecklistValueA(c) != 0)
@@ -34349,7 +34349,7 @@ void GetProjectSortData (std::vector<ProjectSortData>& output)
 			}
 		}
 	}
-	SetDir(pOldDir);
+	SetDir(pOldDir.Get());
 }
 
 void SortProjects(int iProjectSortMode)
@@ -42834,7 +42834,7 @@ void process_storeboard(bool bInitOnly)
 					}
 
 					// save this change out to relevant file (Files\editors\keymap\custom.ini)
-					LPSTR pOldDir = GetDir();
+					cstr pOldDir = GetDir();
 					char pWritableKeyMapFile[MAX_PATH];
 					strcpy(pWritableKeyMapFile, "editors\\keymap\\custom.ini");
 					GG_GetRealPath(pWritableKeyMapFile, 1);
@@ -44813,7 +44813,7 @@ void process_storeboard(bool bInitOnly)
 										{
 											char pGameCoreFolder[MAX_PATH];
 											strcpy(pGameCoreFolder, pGameCoreAsset);
-											LPSTR pOldDir = GetDir();
+											cstr pOldDir = GetDir();
 											char pSrcFolder[MAX_PATH];
 											strcpy(pSrcFolder, pReconstructGameGuruRootFiles);
 											strcat(pSrcFolder, "gamecore\\guns\\");
@@ -44822,7 +44822,7 @@ void process_storeboard(bool bInitOnly)
 											{
 												SetDir(pSrcFolder);
 												ChecklistForFiles();
-												SetDir(pOldDir);
+												SetDir(pOldDir.Get());
 												strcat(pGameCoreFolder, "\\");
 												strcat(pSrcFolder, "\\");
 												for (int c = 1; c <= ChecklistQuantity(); c++)
@@ -48347,7 +48347,7 @@ void GetProjectList(char *path, bool bGetThumbs)
 		projectbank_active.clear();
 
 		cLastProjectList = path;
-		LPSTR pOldDir = GetDir();
+		cstr pOldDir = GetDir();
 
 		char destination[MAX_PATH];
 		strcpy(destination, path);
@@ -48355,7 +48355,7 @@ void GetProjectList(char *path, bool bGetThumbs)
 
 		SetDir(destination);
 		ChecklistForFiles();
-		SetDir(pOldDir);
+		SetDir(pOldDir.Get());
 		for (int c = 1; c <= ChecklistQuantity(); c++)
 		{
 			if (ChecklistValueA(c) != 0)
@@ -48409,7 +48409,7 @@ void GetProjectList(char *path, bool bGetThumbs)
 				}
 			}
 		}
-		SetDir(pOldDir);
+		SetDir(pOldDir.Get());
 
 		//PE: No need to read it here, as we need to do that after sorting.
 		
@@ -48839,7 +48839,7 @@ float WidgetSelectUsedFont(int nodeid, int index)
 	for (int i = 0; i < StoryboardFonts.size(); i++)
 	{
 		bool bIsSelected = false;
-		if (strcmp(cstr((char*)StoryboardFonts[i].second.c_str()).Lower().Get(), cstr(Storyboard.Nodes[nodeid].widget_font[index]).Lower().Get()) == NULL)
+		if (stricmp(StoryboardFonts[i].second.c_str(), Storyboard.Nodes[nodeid].widget_font[index]) == NULL)
 		{
 			ImGui::PushFont(StoryboardFonts[i].first);  //storyboard special fonts.
 			return 2.0; //2.0=60,2.5=48
@@ -51891,7 +51891,7 @@ int screen_editor(int nodeid, bool standalone, char *screen)
 							if (ImGui::BeginCombo("##TextFontStoryboard", FontSelected)) // The second parameter is the label previewed before opening the combo.
 							{
 								bool bIsSelected = false;
-								if (strcmp(FontSelected, "Default Font") == NULL) bIsSelected = true;
+								if (stricmp(FontSelected, "Default Font") == NULL) bIsSelected = true;
 								ImGui::PushFont(customfontlarge);  //defaultfont
 								if (ImGui::Selectable("Default Font", bIsSelected))
 								{
@@ -51901,7 +51901,7 @@ int screen_editor(int nodeid, bool standalone, char *screen)
 								for (int i = 0; i < StoryboardFonts.size(); i++)
 								{
 									bool bIsSelected = false;
-									if (strcmp(StoryboardFonts[i].second.c_str(), FontSelected) == NULL) bIsSelected = true;
+									if (stricmp(StoryboardFonts[i].second.c_str(), FontSelected) == NULL) bIsSelected = true;
 
 									ImGui::PushFont(StoryboardFonts[i].first);  //defaultfont
 									if (ImGui::Selectable(StoryboardFonts[i].second.c_str(), bIsSelected))

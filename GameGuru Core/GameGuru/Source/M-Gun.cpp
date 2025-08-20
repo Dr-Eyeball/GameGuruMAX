@@ -1989,7 +1989,7 @@ void gun_scaninall_ref ( void )
 {
 	// Scan entire guns folder
 	t.gunid=1;
-	LPSTR pRootDir = GetDir();
+	cstr pRootDir = GetDir();
 	for (int iGunsInTwoFolders = 0; iGunsInTwoFolders < 2; iGunsInTwoFolders++)
 	{
 		char pathToUse[MAX_PATH];
@@ -2001,7 +2001,7 @@ void gun_scaninall_ref ( void )
 		if (iGunsInTwoFolders == 1)
 		{
 			// writable folder - switch to it
-			strcpy(pathToUse, pRootDir);
+			strcpy(pathToUse, pRootDir.Get());
 			GG_GetRealPath(pathToUse, 0);
 			SetDir(pathToUse);
 		}
@@ -2034,7 +2034,7 @@ void gun_scaninall_ref ( void )
 	}
 
 	// and restore root folder
-	SetDir(pRootDir);
+	SetDir(pRootDir.Get());
 
 	// report total number of guns
 	g.gunmax = t.gunid - 1;
@@ -2127,7 +2127,7 @@ void gun_scaninall_findnewlyaddedgun (void)
 		t.storegunid = t.gunid;
 
 		// Scan entire guns folder (again)
-		LPSTR pRootDir = GetDir();
+		cstr pRootDir = GetDir();
 		for (int iGunsInTwoFolders = 0; iGunsInTwoFolders < 2; iGunsInTwoFolders++)
 		{
 			char pathToUse[MAX_PATH];
@@ -2139,7 +2139,7 @@ void gun_scaninall_findnewlyaddedgun (void)
 			if (iGunsInTwoFolders == 1)
 			{
 				// writable folder - switch to it
-				strcpy(pathToUse, pRootDir);
+				strcpy(pathToUse, pRootDir.Get());
 				GG_GetRealPath(pathToUse, 0);
 				SetDir(pathToUse);
 			}
@@ -2180,7 +2180,7 @@ void gun_scaninall_findnewlyaddedgun (void)
 		}
 
 		// and restore root folder
-		SetDir(pRootDir);
+		SetDir(pRootDir.Get());
 
 		// report total number of guns
 		t.strwork = ""; t.strwork = t.strwork + "new total guns=" + Str(g.gunmax);

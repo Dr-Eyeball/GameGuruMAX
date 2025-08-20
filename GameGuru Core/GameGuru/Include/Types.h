@@ -132,7 +132,8 @@
   //#define RAVEY_PARTICLES_MAX 100
   //PE: 700 seams fine now, we must have done something good somewhere :)
   #define RAVEY_PARTICLES_MAX 700
-  #define RAVEY_PARTICLES_MAX_FIRST_BATCH 200
+//PE: We use these less now so lower. from 200 to 100
+  #define RAVEY_PARTICLES_MAX_FIRST_BATCH 100
 #endif
 #endif
 

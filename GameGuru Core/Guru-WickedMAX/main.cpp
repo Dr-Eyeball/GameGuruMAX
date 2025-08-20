@@ -59,6 +59,8 @@ bool g_bLostFocus = false;
 //char g_pGraphicsCardLog[10240];
 char g_pStartingDirectory[260];
 
+uint32_t FrameCounter = 0;
+
 // Encapsulates all other classes for Wicked Engine control
 Master master;
 
@@ -323,6 +325,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			{
 				// full tilt
 				master.RunCustom();
+				FrameCounter++;
 			}
 			else
 			{
@@ -336,6 +339,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				{
 					g_bActiveApp = true;
 					master.RunCustom();
+					FrameCounter++;
 				}
 				Sleep(1);
 			}

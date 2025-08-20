@@ -283,7 +283,7 @@ ImVec4 tool_selected_col;
 void imgui_populatecustombiomes(void)
 {
 	// store current dir
-	LPSTR pOldDir = GetDir();
+	cstr pOldDir = GetDir();
 
 	// collect
 	g_sCustomBiomes.clear();
@@ -382,7 +382,7 @@ void imgui_populatecustombiomes(void)
 	}
 
 	// restore dir
-	SetDir(pOldDir);
+	SetDir(pOldDir.Get());
 }
 
 void imgui_terrain_loop_v2(void)

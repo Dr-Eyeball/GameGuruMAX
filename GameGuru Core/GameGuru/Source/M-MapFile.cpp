@@ -183,7 +183,7 @@ bool restore_old_map = false;
 
 void mapfile_saveproject_fpm ( void )
 {
-	LPSTR pOldDir = GetDir();
+	cstr pOldDir = GetDir();
 
 	//  use default or special worklevel stored
 	if (  t.goverridefpmdestination_s != "" ) 
@@ -600,7 +600,7 @@ void mapfile_saveproject_fpm ( void )
 	SaveTerrainTextureFolder(terrainMaterialFile.Get());
 	AddFileToBlock(1, "custommaterials.dat");
 
-	SetDir ( pOldDir );
+	SetDir ( pOldDir.Get() );
 	SaveFileBlock ( 1 );
 
 	// New automated backup system for FPM files (stored in destination var)
@@ -821,9 +821,9 @@ void mapfile_emptyterrainfilesfromtestmapfolder ( void )
 	// also makes sense to empty terrain files too as we are clearing this folder for new activity
 	#ifdef WICKEDENGINE
 	// move to terrain node folder location
-	LPSTR pOldDir = GetDir();
+	cstr pOldDir = GetDir();
 	char pRealWritableArea[MAX_PATH];
-	strcpy(pRealWritableArea, pOldDir);
+	strcpy(pRealWritableArea, pOldDir.Get());
 	strcat(pRealWritableArea, "\\levelbank\\testmap\\");
 	GG_GetRealPath(pRealWritableArea, 1);
 	SetDir(pRealWritableArea);
@@ -862,7 +862,7 @@ void mapfile_emptyterrainfilesfromtestmapfolder ( void )
 		SetDir("..");
 		RemoveDirectoryA(pTerrainNodeFolder);
 	}
-	SetDir(pOldDir);
+	SetDir(pOldDir.Get());
 	#endif
 }
 
@@ -1481,7 +1481,7 @@ void mapfile_loadmap ( void )
 	// 080917 - if old header, delete map.obj as it contains corrupt waypoint data
 	if ( t.versionmajor < 1 )
 	{
-		LPSTR pOldDir = GetDir();
+		//LPSTR pOldDir = GetDir();
 		//LPSTR pObstacleWaypointData = "levelbank\\testmap\\map.obs";
 		//if ( FileExist ( pObstacleWaypointData ) == 1 ) DeleteFile ( pObstacleWaypointData );
 		cstr obstacleWaypointData_s = g.mysystem.levelBankTestMap_s+"map.obs";
@@ -2046,7 +2046,7 @@ bool g_bUsingSomeKindOfTerrain = false;
 
 void mapfile_collectfoldersandfiles (cstr levelpathfolder)
 {
-	LPSTR pOldDir = GetDir();
+	cstr pOldDir = GetDir();
 
 	// Collect ALL files in string array list
 	Undim (t.filecollection_s);
@@ -4416,7 +4416,7 @@ void addallinfoldertocollection ( cstr subThisFolder_s, cstr subFolder_s )
 
 void createallfoldersincollection ( void )
 {
-	LPSTR pOldDir = GetDir();
+	cstr pOldDir = GetDir();
 	t.strwork = ""; t.strwork = t.strwork + "Create full path structure ("+Str(t.filesmax)+") for standalone executable";
 	timestampactivity(0, t.strwork.Get() );
 	t.filesmax = g.filecollectionmax;
@@ -4456,7 +4456,7 @@ void createallfoldersincollection ( void )
 
 		SetDir ( t.olddir_s.Get() );
 	}
-	SetDir ( pOldDir );
+	SetDir ( pOldDir.Get() );
 }
 
 void findalltexturesinmodelfile ( char* inputfile_s, char* folder_s, char* texpath_s )
@@ -5058,7 +5058,7 @@ void ScanLevelForCustomContent ( LPSTR pFPMBeingSaved )
 void mapfile_convertCLASSICtoMAX(LPSTR pFPMLoaded)
 {
 	//  Store and switch folders
-	LPSTR pOldDir = GetDir();
+	cstr pOldDir = GetDir();
 
 	// check if in mapbank of GAMEGURU CLASSIC
 	bool bAllowOneWayConversion = false;
@@ -5510,7 +5510,7 @@ void mapfile_convertCLASSICtoMAX(LPSTR pFPMLoaded)
 	SetDir("..");
 
 	// Restore folder
-	SetDir(pOldDir);
+	SetDir(pOldDir.Get());
 
 	// load all entity parents so we can scan the associated files
 	int entidmaster = 0;
@@ -5779,7 +5779,7 @@ void mapfile_convertCLASSICtoMAX(LPSTR pFPMLoaded)
 				strcat(pSrcFolder, pGameCoreFolder);
 				SetDir(pSrcFolder);
 				ChecklistForFiles();
-				SetDir(pOldDir);
+				SetDir(pOldDir.Get());
 				for (int c = 1; c <= ChecklistQuantity(); c++)
 				{
 					LPSTR pFileName = ChecklistString(c);

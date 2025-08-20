@@ -63,7 +63,7 @@ bool bJustRederedScreenEditor = false;
 int g_iRefreshLibraryFolders = 0;
 int g_iRefreshLibraryFoldersAfterDelay = 0;
 bool g_bCommonAssetsLoadOnce = true;
-
+char statusbar[512];
 #ifdef GGMAXEPIC
 // No discounts mentioned in Epic Store listing for now
 #else
@@ -1855,7 +1855,7 @@ void mapeditorexecutable_full_folder_refresh(void)
 		bTreeViewInitInNextFrame = true;
 
 		// Go through all media folders
-		LPSTR pOld = GetDir();
+		cstr pOld = GetDir();
 		for (int iMediaFolderType = 0; iMediaFolderType <= 6; iMediaFolderType++)
 		{
 			// folders to check
@@ -1871,7 +1871,7 @@ void mapeditorexecutable_full_folder_refresh(void)
 			// use GetMainEntityList to add root, writables and project folder files
 			strcpy(cFullWritePath, pMediaFolderPattern);
 			GG_GetRealPath(cFullWritePath, 1);
-			cStr CurrentPath = cStr(pOld) + cStr("\\") + cStr(pMediaFolderPattern);
+			cStr CurrentPath = pOld + cStr("\\") + cStr(pMediaFolderPattern);
 			if (strnicmp(CurrentPath.Get(), cFullWritePath, CurrentPath.Len()) == 0)
 			{
 				// same folder means no separate writables area, i.e. GG_GetRealPath create mode failed
@@ -1893,7 +1893,7 @@ void mapeditorexecutable_full_folder_refresh(void)
 				}
 
 				// root folder
-				SetDir(pOld);
+				SetDir(pOld.Get());
 				GetMainEntityList(pMediaFolderPattern, "", pLastFolder, "", false, iMediaFolderType);
 
 				extern char szBeforeChangeWriteDir[MAX_PATH];
@@ -1908,13 +1908,13 @@ void mapeditorexecutable_full_folder_refresh(void)
 					GetMainEntityList(pMediaFolderPattern, "", pLastFolder, "", false, iMediaFolderType);
 				}
 
-				SetDir(pOld);
+				SetDir(pOld.Get());
 
 			}
 		}
 
 		//Sort folder entrys.
-		SetDir(pOld);
+		SetDir(pOld.Get());
 		cFolderItem *pNewFolder = (cFolderItem *)&MainEntityList;
 		cFolderItem *m_pfirstFolder = NULL;
 		int mc = 0;
@@ -5160,13 +5160,14 @@ void mapeditorexecutable_loop(void)
 			else
 			{
 				//PE: Display status, grid mode ...
-				float fTextSize = ImGui::CalcTextSize(t.statusbar_s.Get()).x * 1.05;
+				//statusbar
+				float fTextSize = ImGui::CalcTextSize(statusbar).x * 1.05; // t.statusbar_s.Get()).x * 1.05;
 				#ifdef PENEWLAYOUT
 				ImGui::SetCursorPos(ImVec2(ImGui::GetWindowSize().x - fTextSize - 10.0f, ImGui::GetCursorPos().y ));
 				#else
 				ImGui::SetCursorPos(ImVec2(ImGui::GetWindowSize().x - fTextSize - 10.0f, ImGui::GetCursorPos().y - 3));
 				#endif
-				ImGui::Text(t.statusbar_s.Get());
+				ImGui::Text(statusbar); // t.statusbar_s.Get());
 			}
 			#endif
 			#ifdef ADDCONTROLSTOSTAUSBAR
@@ -13861,7 +13862,7 @@ void mapeditorexecutable_loop(void)
 				entity_icons = 15;
 
 			int entity_images[] = { ENTITY_START, ENTITY_CHECKPOINT, ENTITY_FLAG, ENTITY_TRIGGERZONE, ENTITY_WIN, ENTITY_LIGHT,ENTITY_VIDEO,ENTITY_MUSIC,ENTITY_SOUND,ENTITY_PARTICLE,ENTITY_IMAGE, ENTITY_TEXT, ENTITY_PROBE, ENTITY_COVER, ENTITY_BEHAVIOR };
-			cstr entity_scripts[] = {
+			static cstr entity_scripts[] = {
 				"_markers\\Player Start.fpe",
 				"_markers\\Player Checkpoint.fpe",
 				"_markers\\flag.fpe" ,
@@ -13878,7 +13879,7 @@ void mapeditorexecutable_loop(void)
 				"_markers\\Cover Zone.fpe",
 				"_markers\\Behavior.fpe" //global Behaviors
 			};
-			cstr entity_tooltip[] = {
+			static cstr entity_tooltip[] = {
 				"Add Player Start Position",
 				"Add Player Checkpoint",
 				"Add Flag",
@@ -20345,7 +20346,8 @@ void imgui_input_getcontrols(void)
 	{
 		#ifdef WICKEDENGINE
 		//PE: No clipping in wicked yet.
-		t.statusbar_s = "";
+		strcpy(statusbar, "");
+		//t.statusbar_s = "";
 		#else
 		//  cursor position
 		if (g.gridlayershowsingle == 1)
@@ -20361,17 +20363,19 @@ void imgui_input_getcontrols(void)
 		#endif
 		if (t.inputsys.xmouse == 500000)
 		{
-			t.strwork = ""; t.statusbar_s = t.statusbar_s + "X: 0 Z: 0";
+			//t.strwork = ""; t.statusbar_s = t.statusbar_s + "X: 0 Z: 0";
+			strcpy(statusbar, "X: 0 Z: 0 | ");
 		}
 		else {
-			t.strwork = ""; t.statusbar_s = t.statusbar_s + "X:" + Str(t.inputsys.mmx) + " " + "Z:" + Str(t.inputsys.mmy);
+			//t.strwork = ""; t.statusbar_s = t.statusbar_s + "X:" + Str(t.inputsys.mmx) + " " + "Z:" + Str(t.inputsys.mmy);
+			sprintf(statusbar, "X:%d Z:%d | ", t.inputsys.mmx, t.inputsys.mmy);
 		}
 
 		//PE: 17/08/21 reactivated.
-		t.statusbar_s = t.statusbar_s + " | ";
-		if (t.gridentitygridlock == 0)  t.statusbar_s = t.statusbar_s + "NORMAL";
-		if (t.gridentitygridlock == 1)  t.statusbar_s = t.statusbar_s + "SNAP";
-		if (t.gridentitygridlock == 2)  t.statusbar_s = t.statusbar_s + "GRID";
+		//t.statusbar_s = t.statusbar_s + " | ";
+		if (t.gridentitygridlock == 0)  strcat(statusbar, "NORMAL"); // t.statusbar_s = t.statusbar_s + "NORMAL";
+		if (t.gridentitygridlock == 1)  strcat(statusbar, "SNAP"); //t.statusbar_s = t.statusbar_s + "SNAP";
+		if (t.gridentitygridlock == 2)  strcat(statusbar, "GRID"); //t.statusbar_s = t.statusbar_s + "GRID";
 
 		//  editing mode
 
@@ -20485,7 +20489,7 @@ void imgui_input_getcontrols(void)
 		//t.laststatusbar_s = t.statusbar_s;
 	}
 
-	cstr WinTitle = "";
+	static cstr WinTitle = "";
 
 	if (strcmp(Lower(Left(g.projectfilename_s.Get(), Len(g.rootdir_s.Get()))), Lower(g.rootdir_s.Get())) == 0)
 	{
@@ -21609,7 +21613,7 @@ void editor_init ( void )
 	editor_restoreeditcamera ( );
 
 	//  Reset statu bar Text (  )
-	t.statusbar_s="" ; t.laststatusbar_s="";
+	//t.statusbar_s="" ; t.laststatusbar_s="";
 }
 
 void editor_makeundergroundobj ( void )
@@ -22156,11 +22160,11 @@ void editor_clearlibrary ( void )
 
 		// Now scan for extra PFB files not part of default set
 		int iFirstFreeSlot = 8;
-		LPSTR pOld = GetDir();
+		cstr pOld = GetDir();
 		SetDir("ebebank");
 		UnDim(t.filelist_s);
 		buildfilelist("_builder", "");
-		SetDir(pOld);
+		SetDir(pOld.Get());
 		int iExtraPFBCount = 0;
 		if (ArrayCount(t.filelist_s) > 0)
 		{
@@ -28769,8 +28773,8 @@ void gridedit_save_map ( void )
 	}
 
 	// Use large prompt
-	t.statusbar_s=t.strarr_s[365]; 
-	popup_text(t.statusbar_s.Get());
+	//t.statusbar_s=t.strarr_s[365]; 
+	//popup_text(t.statusbar_s.Get());
 
 	// Save only to TESTMAP area (for map testing)
 	gridedit_save_test_map ( );
@@ -28791,7 +28795,7 @@ void gridedit_save_map ( void )
 		EmptyMessages();
 
 	// Clear status Text (  )
-	t.statusbar_s="" ; popup_text_close();
+	//t.statusbar_s="" ; popup_text_close();
 
 	extern std::vector<int> g_smartObjectDummyEntities;
 	for (int i = 0; i < t.entityelement.size(); i++)
@@ -29048,7 +29052,7 @@ void gridedit_new_map(void)
 
 	//  Load map data
 	editor_hideall3d();
-	t.statusbar_s = t.strarr_s[366]; gridedit_updatestatusbar();
+	//t.statusbar_s = t.strarr_s[366]; gridedit_updatestatusbar();
 
 	//  Clear all settings
 	timestampactivity(0, "NEWMAP: _gridedit_clear_settings");
@@ -29197,7 +29201,7 @@ void gridedit_new_map(void)
 	t. grideditselect = 0 ; editor_refresheditmarkers ( );
 
 	//  Clear status Text (  )
-	t.statusbar_s = "" ; gridedit_updatestatusbar ( );
+	//t.statusbar_s = "" ; gridedit_updatestatusbar ( );
 
 	//  Clear widget status
 	t.widget.pickedObject=0 ; widget_updatewidgetobject ( );
@@ -29264,7 +29268,7 @@ void gridedit_new_map_quick(void)
 	
 	//  Load map data
 	editor_hideall3d();
-	t.statusbar_s = t.strarr_s[366]; gridedit_updatestatusbar();
+	//t.statusbar_s = t.strarr_s[366]; gridedit_updatestatusbar();
 
 	//  Clear all settings
 	timestampactivity(0, "NEWMAP: _gridedit_clear_settings");
@@ -29400,7 +29404,7 @@ void gridedit_new_map_quick(void)
 	t.grideditselect = 0; editor_refresheditmarkers();
 
 	//  Clear status Text (  )
-	t.statusbar_s = ""; gridedit_updatestatusbar();
+	//t.statusbar_s = ""; gridedit_updatestatusbar();
 
 	//  Clear widget status
 	t.widget.pickedObject = 0; widget_updatewidgetobject();
@@ -29424,6 +29428,7 @@ void gridedit_new_map_quick(void)
 
 void gridedit_updatestatusbar ( void )
 {
+#ifndef WICKEDENGINE
 	//  020315 - 012 - display in the status bar if multiplayer lobbies are currently available
 	mp_checkIfLobbiesAvailable ( );
 	if (  t.statusbar_s+t.steamStatusBar_s != t.laststatusbar_s.Get() ) 
@@ -29436,6 +29441,7 @@ void gridedit_updatestatusbar ( void )
 		#endif
 		t.laststatusbar_s=t.statusbar_s+t.steamStatusBar_s;
 	}
+#endif
 }
 
 void gridedit_load_map ( void )
@@ -29465,8 +29471,8 @@ void gridedit_load_map ( void )
 		EmptyMessages();
 
 	//  Use large prompt
-	t.statusbar_s=t.strarr_s[367]; 
-	popup_text(t.statusbar_s.Get());
+	//t.statusbar_s=t.strarr_s[367]; 
+	//popup_text(t.statusbar_s.Get());
 
 	//  Reset visual settings for new map
 	if (  t.skipfpmloading == 0 ) 
@@ -29661,8 +29667,8 @@ void gridedit_load_map ( void )
 	if ( g.timestampactivityflagged == 1 ) 
 	{
 		//  message prompt
-		t.statusbar_s=t.strarr_s[368];
-		popup_text_change(t.statusbar_s.Get()) ; SleepNow (  2000 );
+		//t.statusbar_s=t.strarr_s[368];
+		//popup_text_change(t.statusbar_s.Get()) ; SleepNow (  2000 );
 		g.timestampactivityflagged=0;
 
 		//  copy time stamp log to map bank log
@@ -29689,8 +29695,8 @@ void gridedit_load_map ( void )
 		// if no missing media, is parental control system removing some?
 		if ( g_bBlackListRemovedSomeEntities == true ) 
 		{
-			t.statusbar_s = "Parental Control system has removed some content from this level";
-			popup_text_change(t.statusbar_s.Get()) ; SleepNow ( 3000 );
+			//t.statusbar_s = "Parental Control system has removed some content from this level";
+			//popup_text_change(t.statusbar_s.Get()) ; SleepNow ( 3000 );
 		}
 	}
 
@@ -29779,7 +29785,7 @@ void gridedit_load_map ( void )
 	g.missingmediacounter=0;
 
 	//  Clear status Text (  )
-	t.statusbar_s="" ; popup_text_close();
+	//t.statusbar_s="" ; popup_text_close();
 
 	//  Quick update of cursor
 	t.lastgrideditselect=-1 ; editor_refresheditmarkers ( );
@@ -30205,6 +30211,8 @@ void gridedit_saveas_map ( void )
 
 void gridedit_addentitytomap(void)
 {
+	extern bool bUpdateObjectList;
+	bUpdateObjectList = true;
 	// mark as static if it was
 	if (t.gridentitystaticmode == 1) g.projectmodifiedstatic = 1;
 	entity_addentitytomap();

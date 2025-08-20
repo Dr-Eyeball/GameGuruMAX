@@ -5275,13 +5275,13 @@ void ChangeGGFont(const char *cpcustomfont, int iIDEFontSize)
 
 	extern std::vector< std::pair<ImFont*, std::string>> StoryboardFonts;
 
-	LPSTR pOldDir = GetDir();
+	cstr pOldDir = GetDir();
 
 	char destination[MAX_PATH];
 	strcpy(destination, "editors\\templates\\fonts\\");
 	SetDir(destination);
 	ChecklistForFiles();
-	SetDir(pOldDir);
+	SetDir(pOldDir.Get());
 	DARKSDK LPSTR ChecklistString(int iIndex);
 	DARKSDK int ChecklistQuantity(void);
 	for (int c = 1; c <= ChecklistQuantity(); c++)
@@ -5307,7 +5307,7 @@ void ChangeGGFont(const char *cpcustomfont, int iIDEFontSize)
 			}
 		}
 	}
-	SetDir(pOldDir);
+	SetDir(pOldDir.Get());
 	#endif
 
 
@@ -5326,7 +5326,7 @@ void AddRemoteProjectFonts(void)
 	{
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
 
-		LPSTR pOldDir = GetDir();
+		cstr pOldDir = GetDir();
 		char destination[MAX_PATH];
 		strcpy(destination, Storyboard.customprojectfolder);
 		strcat(destination, Storyboard.gamename);
@@ -5335,7 +5335,7 @@ void AddRemoteProjectFonts(void)
 		{
 			SetDir(destination);
 			ChecklistForFiles();
-			SetDir(pOldDir);
+			SetDir(pOldDir.Get());
 			DARKSDK LPSTR ChecklistString(int iIndex);
 			DARKSDK int ChecklistQuantity(void);
 			for (int c = 1; c <= ChecklistQuantity(); c++)
@@ -5387,7 +5387,7 @@ void AddRemoteProjectFonts(void)
 				bBlockImGuiUntilNewFrame = true;
 			}
 		}
-		SetDir(pOldDir);
+		SetDir(pOldDir.Get());
 	}
 }
 
@@ -6163,7 +6163,7 @@ void GetMainEntityList(char* folder_s, char* rel_s, void *pFolder, char* folder_
 		pNewItem = new cFolderItem();
 		pNewItem->m_sFolder = folder_s;
 
-		LPSTR pOld = GetDir();
+		cstr pOld = GetDir();
 		pNewItem->m_sFolderFullPath = pOld;
 		pNewItem->iType = foldertype;
 
