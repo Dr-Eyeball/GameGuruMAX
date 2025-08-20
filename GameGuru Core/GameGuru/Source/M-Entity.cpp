@@ -9155,9 +9155,10 @@ void entity_addentitytomap ( void )
 		g_bUpdateCollectionList = true;
 	}
 }
-
+bool bUpdateObjectList = false;
 void entity_deleteentityfrommap ( void )
 {
+	bUpdateObjectList = true;
 	//  Entity Type To Delete
 	t.entitymaintype=1;
 

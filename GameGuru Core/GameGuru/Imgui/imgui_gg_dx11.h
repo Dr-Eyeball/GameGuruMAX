@@ -391,6 +391,8 @@ IMGUI_IMPL_API bool     ImGui_ImplDX11_CreateDeviceObjects();
 #define TOOLBAR_HORI UIV3IMAGES+296
 #define TOOLBAR_GRIDSETTINGS UIV3IMAGES+297
 
+#define ENTITY_EYE_ON UIV3IMAGES+700
+#define ENTITY_EYE_OFF UIV3IMAGES+701
 
 //PE: 02-09-2021 moved range.
 //298,297 also used in backdrop.

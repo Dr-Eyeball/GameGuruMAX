@@ -38742,6 +38742,8 @@ void SetIconSetCheck(bool bInstant)
 
 			LoadImage("editors\\uiv3\\filetype-script.png", FILETYPE_SCRIPT);
 
+			LoadImage("editors\\uiv3\\blue-eye-on.png", ENTITY_EYE_ON);
+			LoadImage("editors\\uiv3\\blue-eye-off.png", ENTITY_EYE_OFF);
 		}
 		else
 		{
@@ -38776,6 +38778,9 @@ void SetIconSetCheck(bool bInstant)
 			LoadImage("editors\\uiv3\\ccp-tattoo2.png", CCP_TATTOO);
 
 			LoadImage("editors\\uiv3\\filetype-script2.png", FILETYPE_SCRIPT);
+
+			LoadImage("editors\\uiv3\\gray-eye-on.png", ENTITY_EYE_ON);
+			LoadImage("editors\\uiv3\\gray-eye-off.png", ENTITY_EYE_OFF);
 
 		}
 		current_icon_set = pref.current_style;

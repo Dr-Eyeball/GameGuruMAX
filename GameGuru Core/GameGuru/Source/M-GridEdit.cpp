@@ -12656,6 +12656,18 @@ void mapeditorexecutable_loop(void)
 		}
 		if (refresh_gui_docking > 0) 
 		{
+			//PE: Not sure if these should be there so ...
+			#define REMOVE_NEWEST_AND_OLDEST
+			#define SORT_LEVELITEMS 0 
+			#define SORT_PROJECTSITEMS 1
+			#define SORT_DETAILEDITEMS 2
+			#define SORT_OLDESTITEMS 7
+			#define SORT_NEWESTITEMS 6
+			#define SORT_GROUPITEMS 3
+			#define SORT_INSTANCEITEMS 4
+			#define SORT_BEHAVIORITEMS 5
+			static bool bProjectItems = false;
+
 			bool bToolTipActive = true;
 			#ifdef WICKEDENGINE
 			if (pref.iEnableDragDropEntityMode && bDraggingActive)
@@ -12680,7 +12692,7 @@ void mapeditorexecutable_loop(void)
 
 			CheckTutorialAction("+##+", 8.0f); //Tutorial: check if we are waiting for this action
 
-			if (ImGui::StyleButton("Add##+", ImVec2(ImGui::GetWindowSize().x *0.25, fsy*1.5)))
+			if (ImGui::StyleButton("Add##+", ImVec2(ImGui::GetWindowSize().x *0.19, fsy*1.5)))
 			{
 				if (bTutorialCheckAction) TutorialNextAction(); //Clicked get next tutorial action.
 				//Open Add item page.
@@ -12751,20 +12763,37 @@ void mapeditorexecutable_loop(void)
 			ImGui::PopItemWidth();
 
 			//	Display info icon to give user more information on adding objects to the level.
-			ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(-6.0, 0));
-			if (ImGui::ImgBtn(ICON_INFO, ImVec2(ImGui::GetFontSize(), ImGui::GetFontSize()), ImColor(0, 0, 0, 0), ImColor(220, 220, 220, 220), ImColor(255, 255, 255, 255),
+			//ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(-6.0, 0));
+			//if (ImGui::ImgBtn(ICON_INFO, ImVec2(ImGui::GetFontSize(), ImGui::GetFontSize()), ImColor(0, 0, 0, 0), ImColor(220, 220, 220, 220), ImColor(255, 255, 255, 255),
+			//	ImColor(180, 180, 160, 255), -1, 0, 0, 0, false, false, false, false, false))
+			//{
+			//	bInfo_Window = true;
+			//	cInfoMessage = "By pressing the Add button, you can browse the object library to choose game objects that you would like to add to your game level. You also have the option to import your own models or even create your own character with the built in character creator.";
+			//}
+			//if (ImGui::IsItemHovered()) ImGui::SetTooltip("Click here to learn how to add objects to your level.");
+
+			//ImGui::PushItemWidth(-1);
+			//ImGui::PopItemWidth();
+			static bool bToggleThumbViews = true;
+			int iToggleIcon;
+			if (bToggleThumbViews)
+				iToggleIcon = ENTITY_EYE_ON;
+			else
+				iToggleIcon = ENTITY_EYE_OFF;
+
+			float iconoffsetx = -7.0f;
+			float iconoffsety = -4.0f;
+			ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(iconoffsetx, iconoffsety));
+			if (ImGui::ImgBtn(iToggleIcon, ImVec2(23, 23), ImColor(0, 0, 0, 0), ImColor(220, 220, 220, 220), ImColor(255, 255, 255, 255),
 				ImColor(180, 180, 160, 255), -1, 0, 0, 0, false, false, false, false, false))
 			{
-				bInfo_Window = true;
-				cInfoMessage = "By pressing the Add button, you can browse the object library to choose game objects that you would like to add to your game level. You also have the option to import your own models or even create your own character with the built in character creator.";
+				bToggleThumbViews = 1 - bToggleThumbViews;
 			}
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Click here to learn how to add objects to your level.");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Toggle on off thumbnails view.");
 
-			ImGui::PushItemWidth(-1);
 
-			ImGui::PopItemWidth();
 			ImGui::SameLine();
-			ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(-6.0, 0));
+			ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(iconoffsetx-1,abs(iconoffsety)));
 
 			float fDropDownWidth = 0.0f;
 			#ifdef WICKEDENGINE
@@ -12794,13 +12823,18 @@ void mapeditorexecutable_loop(void)
 			}
 			// only for object based lists, not groups/behaviors/etc
 			LPSTR pToolTipForSearch = "Cannot search this list!";
-			if (current_sort_order < 5)
+
+			bool bIsSearchAble = false;
+			if (current_sort_order == SORT_LEVELITEMS || current_sort_order == SORT_NEWESTITEMS || current_sort_order == SORT_OLDESTITEMS || current_sort_order == SORT_DETAILEDITEMS)
+				bIsSearchAble = true;
+
+			if (bIsSearchAble)
 			{
 				pToolTipForSearch = "Type here to search for an object in your level";
 			}
 			if (ImGui::InputText(" ##cSearchEntities", &cSearchEntities[0], MAX_PATH, ImGuiInputTextFlags_EnterReturnsTrue))
 			{
-				if (current_sort_order < 5)
+				if (bIsSearchAble)
 				{
 					if (strlen(cSearchEntities) > 1)
 					{
@@ -12939,14 +12973,26 @@ void mapeditorexecutable_loop(void)
 			}
 
 			ImGui::SetCursorPos(ImVec2(restore_pos.x-8.0f, restore_pos.y));
-			const char* sortby_modes[] = { "A-Z", "Z-A", "Newest", "Oldest", "Detailed Object List", "Collection Items List", "Group List", "Instance List", "Behavior List" };
+			//const char* sortby_modes[] = { "A-Z", "Z-A", "Newest", "Oldest", "Detailed Object List", "Collection Items List", "Group List", "Instance List", "Behavior List" };
 
+			#ifdef REMOVE_NEWEST_AND_OLDEST
+			const char* sortby_modes[] = { "Level Items", "Project Items", "Detailed Object List", "Group List", "Instance List", "Behavior List"};
+			#else
+			const char* sortby_modes[] = { "Level Items", "Project Items", "Detailed Object List", "Group List", "Instance List", "Behavior List", "Newest" , "Oldest" };
+			#endif
 			int isortbySize = IM_ARRAYSIZE(sortby_modes);
 			if (!pref.iEnableAdvancedEntityList)
 				isortbySize--;
 
 			int comboflags = ImGuiComboFlags_NoPreview | ImGuiComboFlags_PopupAlignLeft | ImGuiComboFlags_HeightLarge;
 			ImGui::PushItemWidth(-24);
+			bool bUpdateProjectFiles = false;
+
+			if (bProjectItems && current_sort_order == SORT_LEVELITEMS)
+			{
+				current_sort_order = SORT_PROJECTSITEMS;
+			}
+
 			if (ImGui::BeginCombo("##combosortbymodesentotyleft", sortby_modes[current_sort_order], comboflags))
 			{
 				for (int n = 0; n < isortbySize; n++)
@@ -12955,6 +13001,19 @@ void mapeditorexecutable_loop(void)
 					if (ImGui::Selectable(sortby_modes[n], is_selected)) 
 					{
 						current_sort_order = n;
+						if (n == SORT_PROJECTSITEMS)
+						{
+							//PE: Use same list , just add all.
+							bProjectItems = true;
+							bUpdateProjectFiles = true;
+							current_sort_order = SORT_LEVELITEMS;
+						}
+						else if( n == SORT_LEVELITEMS)
+						{
+							bProjectItems = false;
+							bUpdateProjectFiles = true;
+						}
+						
 					}
 					if (is_selected)
 						ImGui::SetItemDefaultFocus();
@@ -12962,6 +13021,11 @@ void mapeditorexecutable_loop(void)
 				ImGui::EndCombo();
 			}
 			ImGui::EndChild();
+
+			if (bProjectItems && current_sort_order == SORT_PROJECTSITEMS)
+			{
+				current_sort_order = SORT_LEVELITEMS;
+			}
 
 			ImVec2 content_avail = ImVec2(0.0, 0.0);
 			content_avail = ImGui::GetContentRegionAvail();
@@ -13008,7 +13072,12 @@ void mapeditorexecutable_loop(void)
 				ImGui::BeginChild("##MainEntitiesLeftPanel", content_avail - ImVec2(0.0f, 205.0f), false, iGenralWindowsFlags); //, false, ImGuiWindowFlags_HorizontalScrollbar);
 			else
 				ImGui::BeginChild("##MainEntitiesLeftPanel", content_avail, false, iGenralWindowsFlags); //, false, ImGuiWindowFlags_HorizontalScrollbar);
-			ImGui::TextCenter(sortby_modes[current_sort_order]);
+			
+			if(bProjectItems && current_sort_order == SORT_LEVELITEMS)
+				ImGui::TextCenter("Project Items");
+			else
+				ImGui::TextCenter(sortby_modes[current_sort_order]);
+
 
 			static std::vector<std::pair<std::string,int>> sorted_entity_files;
 
@@ -13020,14 +13089,32 @@ void mapeditorexecutable_loop(void)
 			{
 				iMasterEntid = iRestoreEntidMaster;
 			}
+
+			if (current_sort_order == SORT_LEVELITEMS && !bProjectItems)
+			{
+				static int last_entityelementlist = 0;
+				if (last_entityelementlist != g.entityelementlist)
+				{
+					last_entityelementlist = g.entityelementlist;
+					bUpdateProjectFiles = true;
+				}
+				extern bool bUpdateObjectList;
+				if (bUpdateObjectList)
+				{
+					bUpdateObjectList = false;
+					bUpdateProjectFiles = true;
+				}
+			}
+			
+
 			static int last_sortby = -1;
-			if (last_entidmaster != iMasterEntid || last_include_icon_set != iIncludeLeftIconSet || current_sort_order != last_sortby )
+			if (bUpdateProjectFiles || last_entidmaster != iMasterEntid || last_include_icon_set != iIncludeLeftIconSet || current_sort_order != last_sortby )
 			{
 				//Sort new list.
 				sorted_entity_files.clear();
 				if (iMasterEntid >= 1)
 				{
-					if (current_sort_order == 6)
+					if (current_sort_order == SORT_GROUPITEMS)
 					{
 						// Sort group list
 						for (int gi = 0; gi < MAXGROUPSLISTS; gi++)
@@ -13041,9 +13128,9 @@ void mapeditorexecutable_loop(void)
 					}
 					else
 					{
-						if (current_sort_order == 7 || current_sort_order == 8)
+						if (current_sort_order == SORT_INSTANCEITEMS || current_sort_order == SORT_BEHAVIORITEMS)
 						{
-							if (current_sort_order == 7)
+							if (current_sort_order == SORT_INSTANCEITEMS)
 							{
 								// Sort by instance ID order
 								for (t.e = 1; t.e <= g.entityelementlist; t.e++)
@@ -13056,7 +13143,7 @@ void mapeditorexecutable_loop(void)
 									}
 								}
 							}
-							if (current_sort_order == 8)
+							if (current_sort_order == SORT_BEHAVIORITEMS)
 							{
 								// Sort by behavior list
 								for (t.e = 1; t.e <= g.entityelementlist; t.e++)
@@ -13087,7 +13174,7 @@ void mapeditorexecutable_loop(void)
 							{
 								//std::string stmp = t.entityprofile[t.entid].model_s.Get();
 								std::string stmp = Lower(t.entityprofileheader[t.entid].desc_s.Get());
-								if (current_sort_order == 2 || current_sort_order == 3)
+								if (current_sort_order == SORT_NEWESTITEMS || current_sort_order == SORT_OLDESTITEMS)
 								{
 									//Convert to sortable by string.
 									if (t.entid < 10)
@@ -13104,11 +13191,48 @@ void mapeditorexecutable_loop(void)
 								stmp += "###";
 								stmp += std::to_string(t.entid);
 								int itmp = t.entid;
-								sorted_entity_files.push_back(std::make_pair(stmp, itmp));
+
+								//####
+								//if (t.entityelement[e].x == -99999 && t.entityelement[e].y == -99999 && t.entityelement[e].z == -99999)
+								//{
+								//	treename = treename + " (Auto-Gen) ";
+								//	bAutoGenObject = true;
+								//}
+								//if (t.entityelement[e].y == -999999)
+								//{
+								//	treename = treename + " (Hidden) ";
+								//	bAutoGenObject = true;
+								//}
+								//####
+								bool bValid = true;
+								if (current_sort_order == SORT_LEVELITEMS && !bProjectItems)
+								{
+									//static int lastentityelementlist = -1;
+									bValid = false;
+									//PE: Exclude hidden and auto-gen objects.
+									for (int i = 1; i <= g.entityelementlist; i++)
+									{
+										if (t.entityelement[i].bankindex == t.entid)
+										{
+											if (!(t.entityelement[i].y == -99999 || t.entityelement[i].y == -999999))
+											{
+												bValid = true;
+												break;
+											}
+										}
+										if (t.gridentity == t.entid ) //t.widget.pickedEntityIndex == t.entid)
+										{
+											bValid = true;
+											break;
+										}
+									}
+								}
+								if(bValid)
+									sorted_entity_files.push_back(std::make_pair(stmp, itmp));
 							}
 							std::sort(sorted_entity_files.begin(), sorted_entity_files.end());
-							if (current_sort_order == 1 || current_sort_order == 2)
-								std::reverse(sorted_entity_files.begin(), sorted_entity_files.end());
+							if (current_sort_order == SORT_NEWESTITEMS)
+									std::reverse(sorted_entity_files.begin(), sorted_entity_files.end());
 						}
 					}
 				}
@@ -13149,8 +13273,14 @@ void mapeditorexecutable_loop(void)
 				iColumns_leftpanel = 1;
 
 			#ifdef ADD_DETAIL_LEFT_PANEL_ENTITY_LIST
-			if(current_sort_order == 8 || current_sort_order == 7 || current_sort_order == 4 || current_sort_order == 5 || current_sort_order == 6) //PE: Detailed display in one column.
+			if (current_sort_order == SORT_BEHAVIORITEMS || current_sort_order == SORT_INSTANCEITEMS || current_sort_order == SORT_DETAILEDITEMS || current_sort_order == SORT_PROJECTSITEMS || current_sort_order == SORT_GROUPITEMS) //PE: Detailed display in one column.
+			{
 				iColumns_leftpanel = 1;
+			}
+			if (!bToggleThumbViews && (current_sort_order == SORT_LEVELITEMS || current_sort_order == SORT_OLDESTITEMS || current_sort_order == SORT_NEWESTITEMS))
+			{
+				iColumns_leftpanel = 1;
+			}
 			#endif
 
 			if (!sorted_entity_files.empty())
@@ -13206,7 +13336,7 @@ void mapeditorexecutable_loop(void)
 						}
 						else if (it->second > 0)
 						{
-							if (iloop == 0 && current_sort_order == 5)
+							if (iloop == 0 && current_sort_order == SORT_PROJECTSITEMS)
 							{
 								// Collection Items List (5)
 								ImGui::SetWindowFontScale(1.0);
@@ -13269,7 +13399,7 @@ void mapeditorexecutable_loop(void)
 									ImGui::NextColumn();
 								}
 							}
-							else if (iloop == 0 && current_sort_order == 6)
+							else if (iloop == 0 && current_sort_order == SORT_GROUPITEMS)
 							{
 								// Group List (6)
 								ImGui::SetWindowFontScale(1.0);
@@ -13316,7 +13446,7 @@ void mapeditorexecutable_loop(void)
 									ImGui::NextColumn();
 								}
 							}
-							else if (iloop == 0 && current_sort_order == 7)
+							else if (iloop == 0 && current_sort_order == SORT_INSTANCEITEMS)
 							{
 								// Instance List (7)
 								ImGui::SetWindowFontScale(1.0);
@@ -13397,7 +13527,7 @@ void mapeditorexecutable_loop(void)
 									ImGui::NextColumn();
 								}
 							}
-							else if (iloop == 0 && current_sort_order == 8)
+							else if (iloop == 0 && current_sort_order == SORT_BEHAVIORITEMS)
 							{
 								// Behavior List (8)
 								ImGui::SetWindowFontScale(1.0);
@@ -13432,7 +13562,7 @@ void mapeditorexecutable_loop(void)
 									ImGui::NextColumn();
 								}
 							}
-							else if (iloop == 0 && current_sort_order == 4)
+							else if (iloop == 0 && (current_sort_order == SORT_DETAILEDITEMS || !bToggleThumbViews ))
 							{
 								// Detailed Object List (4)
 								ImGui::SetWindowFontScale(1.0);
@@ -13446,6 +13576,13 @@ void mapeditorexecutable_loop(void)
 									//PE: This will search the desc. and the object name.
 									if (!pestrcasestr(cName, cSearchEntities))
 										DisplayEntry = false;
+								}
+								if (current_sort_order != SORT_DETAILEDITEMS)
+								{
+									if (!bToggleThumbViews && (t.entityprofile[it->second].ismarker != 0 || t.entityprofile[it->second].ischildofgroup != 0))
+									{
+										DisplayEntry = false;
+									}
 								}
 
 								bool bUseWideThumb = false;
