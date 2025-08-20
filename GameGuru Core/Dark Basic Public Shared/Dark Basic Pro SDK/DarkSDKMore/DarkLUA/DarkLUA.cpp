@@ -6157,6 +6157,25 @@ int ForceGunUnderWater(lua_State* L)
 	bForceGunUnderWater = lua_tonumber(L, 1);
 	return 0;
 }
+
+int GetGunEmissiveStrength(lua_State* L)
+{
+	int n = lua_gettop(L);
+	if (n < 1) return 0;
+	lua_pushnumber(L, t.gun[t.gunid].settings.fEmissiveStrength);
+	return 1;
+}
+int SetGunEmissiveStrength(lua_State* L)
+{
+	int n = lua_gettop(L);
+	if (n < 1) return 0;
+	float emi = lua_tonumber(L, 1);
+	sObject* pGunObject = GetObjectData(t.currentgunobj);
+	if (pGunObject)
+		WickedCall_SetObjectEmissiveStrength(pGunObject, emi);
+	return 0;
+}
+
 int GetGunAnimationFramesFromName(lua_State* L)
 {
 	int n = lua_gettop(L);
@@ -14275,7 +14294,9 @@ void addFunctions()
 	lua_register(lua, "GetGunAnimationFramesFromName", GetGunAnimationFramesFromName);
 	lua_register(lua, "SetGunAnimationSpeed", SetGunAnimationSpeed);
 	lua_register(lua, "ForceGunUnderWater", ForceGunUnderWater);
-
+	lua_register(lua, "GetGunEmissiveStrength", GetGunEmissiveStrength);
+	lua_register(lua, "SetGunEmissiveStrength", SetGunEmissiveStrength);
+	
 }
 
  /*
