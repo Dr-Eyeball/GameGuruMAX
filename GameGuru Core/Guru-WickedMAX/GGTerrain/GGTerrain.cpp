@@ -816,7 +816,8 @@ uint8_t* pMaterialMap = 0;
 Texture texMaterialMap;
 
 // CPU copy of page table data, useful when shifting the page table
-#define GGTERRAIN_PAGE_TABLE_DEPTH 32 // must be greater than max numLODLevels + max mip levels (currently 15 + 7)
+//#define GGTERRAIN_PAGE_TABLE_DEPTH 32 // must be greater than max numLODLevels + max mip levels (currently 15 + 7)
+#define GGTERRAIN_PAGE_TABLE_DEPTH 22 //PE: We use 9+7 on lowest so reduce it to save VRAM, system only support max 15+7 anyway.
 uint16_t pageTableData[ GGTERRAIN_PAGE_TABLE_DEPTH ][ pagesX * pagesY ];
 
 Texture texPagesColorAndMetal; // R8G8B8A8
@@ -841,7 +842,9 @@ struct VertexPageGen
 	uint32_t id;
 };
 
-#define GGTERRAIN_REPLACEMENT_PAGE_MAX 256
+//PE: GGTERRAIN_REPLACEMENT_PAGE_MAX 256 changed to 128 for lower VRAM and faster processing.
+//PE: A normal rotation 180 degress normally only generates around 64 pages so should be fine.
+#define GGTERRAIN_REPLACEMENT_PAGE_MAX 128
 #define GGTERRAIN_EVICTION_PAGE_MAX 64
 #if GGTERRAIN_EVICTION_PAGE_MAX > GGTERRAIN_REPLACEMENT_PAGE_MAX
 	#error GGTERRAIN_EVICTION_PAGE_MAX must be less than or equal to GGTERRAIN_REPLACEMENT_PAGE_MAX
