@@ -454,10 +454,10 @@ namespace ImGui {
 	void RenderArrowOutLine(ImDrawList* draw_list, ImVec2 pos, ImU32 col, ImGuiDir dir, float scale);
 	bool StyleCollapsingHeader(const char* label, ImGuiTreeNodeFlags flags = 0);
 	bool IsLastSliderHovered(void);
-	bool MaxSliderInputFloat(const char* label, float* v, float v_min, float v_max, const char* tooltip, int startval=0, float maxval = 100.0f, int numericboxwidth = 30.0f);
-	bool MaxSliderInputFloat2(const char* label, float* v, float v_min, float v_max, const char* tooltip, int startval = 0, float maxval = 100.0f, int numericboxwidth = 30.0f);
-	bool MaxSliderInputFloatPower(const char* label, float* v, float v_min, float v_max, const char* tooltip, int startval = 0, float maxval = 100.0f, int numericboxwidth = 30.0f, float power = 1.0f, int precision = 0);
-	bool MaxSliderInputInt(const char* label, int* v, int v_min, int v_max, const char* tooltip, int boxWidth = 30);
+	bool MaxSliderInputFloat(const char* label, float* v, float v_min, float v_max, const char* tooltip, int startval=0, float maxval = 100.0f, int numericboxwidth = 37.0f);
+	bool MaxSliderInputFloat2(const char* label, float* v, float v_min, float v_max, const char* tooltip, int startval = 0, float maxval = 100.0f, int numericboxwidth = 37.0f);
+	bool MaxSliderInputFloatPower(const char* label, float* v, float v_min, float v_max, const char* tooltip, int startval = 0, float maxval = 100.0f, int numericboxwidth = 37.0f, float power = 1.0f, int precision = 0);
+	bool MaxSliderInputInt(const char* label, int* v, int v_min, int v_max, const char* tooltip, int boxWidth = 37);
 	bool MaxSliderInputRangeFloat(const char* label, float* v, float* v2, float v_min, float v_max, const char* tooltip);
 	bool MaxSliderInputRangeFloatDirect(const char* label, float* v, float* v2, float v_min, float v_max, const char* tooltip);
 	bool windowTabVisible(void);
