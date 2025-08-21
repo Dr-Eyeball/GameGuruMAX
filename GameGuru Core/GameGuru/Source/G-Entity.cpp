@@ -3311,6 +3311,13 @@ void entity_applydamage ( void )
 
 void entity_applydecalfordamage ( int ee, float fX, float fY, float fZ)
 {
+	if (ee > 0 && ee < t.entityelement.size())
+	{
+		// safety protection to prevent crash if entity element is not valid
+	}
+	else
+		return;
+		
 	// create either material decal specified in FPE or blood decal
 	int entid = t.entityelement[ee].bankindex;
 	if (entid > 0 && entid < t.entityprofile.size())
