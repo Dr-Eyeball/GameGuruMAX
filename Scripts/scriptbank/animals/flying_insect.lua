@@ -75,6 +75,7 @@ function flying_insect_main(e)
 		CollisionOff(e)
 		terrainheight[e] = GetTerrainHeight(g_Entity[e]['x'],g_Entity[e]['z'])
 		pattern_time[e] = g_Time + 3000
+		if g_Entity[e]['health'] <= 1 then SetEntityHealth(e,g_Entity[e]['health']+10) end
 		status[e] = "endinit"
 	end	
 	-- Flying Patterns -------------------------------
