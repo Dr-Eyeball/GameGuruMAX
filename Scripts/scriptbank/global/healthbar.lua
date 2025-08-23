@@ -1,4 +1,4 @@
--- Healthbar v10 - by Necrym,59
+-- Healthbar v11 - by Necrym,59
 -- DESCRIPTION: A global behavior that will display a viewed enemys health in a bar or text.
 -- DESCRIPTION: [DISPLAY_RANGE=200(100,1000)]
 -- DESCRIPTION: [@DISPLAY_MODE=1(1=Bar, 2=Text, 3=Text+Bar)]
@@ -94,7 +94,7 @@ function healthbar_main(e)
 				if g_Entity[a] ~= nil then
 					entrange[e] = math.ceil(GetFlatDistanceToPlayer(a))	
 					GetEntityPlayerVisibility(a)
-					if g_Entity[a]['plrvisible'] == 1 then
+					if U.PlayerLookingNear(a,healthbar[e].display_range,fov) == true then
 						if g_Entity[a]["health"] > 0 and entrange[e] < healthbar[e].display_range then
 							--Entity dimensions check--
 							Ent = g_Entity[a]
