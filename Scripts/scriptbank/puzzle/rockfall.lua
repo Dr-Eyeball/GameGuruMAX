@@ -1,5 +1,5 @@
 -- LUA Script - precede every function and global member with lowercase name of script + '_main'
--- Rockfall v6 - by Necrym59 
+-- Rockfall v7 - by Necrym59 
 -- DESCRIPTION: A Rockfall activated from range or a trigger zone. Physics=ON, Gravity=ON
 -- DESCRIPTION: [PROMPT_TEXT$="Rock Fall"]
 -- DESCRIPTION: [ACTIVATION_RANGE=800(1,2000)]
@@ -54,8 +54,7 @@ function rockfall_init(e)
 	rockfall[e].start_height = 300
 	rockfall[e].ground_shake = 1
 	rockfall[e].hide_rock = 1
-	rockfall_time[e] = 0
-	status[e] = "init"			
+	rockfall_time[e] = 0				
 	rock_hit[e] = 0	
 	GravityOff(e)
 	CollisionOff(e)
@@ -63,6 +62,7 @@ function rockfall_init(e)
 	g_Time = 0
 	checktimer[e] = 0
 	SetEntityAlwaysActive(e,1)
+	status[e] = "init"
 end
 
 function rockfall_main(e)
@@ -75,7 +75,7 @@ function rockfall_main(e)
 		status[e] = "start_event"
 	end
 	
-	if GetPlayerDistance(e) < rockfall[e].activation_range then g_Entity[e]['activated'] = 1 end
+	if GetPlayerDistance(e) < rockfall[e].activation_range then SetActivated(e,1) end
 	
 	if g_Entity[e]['activated'] == 1 then	
 		if status[e] == "start_event" then					
