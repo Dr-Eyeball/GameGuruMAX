@@ -103,6 +103,7 @@ function dynamite_init(e)
 	hl_icon[e] = 0
 	hl_imgwidth[e] = 0
 	hl_imgheight[e] = 0
+	SetEntityExplodable(e,1)
 end
 
 function dynamite_main(e)
