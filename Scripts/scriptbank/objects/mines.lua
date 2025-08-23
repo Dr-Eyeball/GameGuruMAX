@@ -1,5 +1,5 @@
 -- LUA Script - precede every function and global member with lowercase name of script + '_main'
--- Mines v7  by Necrym 59
+-- Mines v8  by Necrym 59
 -- DESCRIPTION: Allows pickup and deployment of an anti-personnel mine device. Physics=ON, Always Active=ON, IsImobile=ON, Explodable=ON
 -- DESCRIPTION: [WEAPON_NAME$="Anti-Personel Mine"]
 -- DESCRIPTION: [PICKUP_RANGE=90(1,100)]
@@ -95,6 +95,7 @@ function mines_init(e)
 	heard_time[e] = 0
 	surfacey[e] = 0
 	finaly[e] =	0
+	SetEntityAlwaysActive(e,1)
 end
 
 function mines_main(e)
