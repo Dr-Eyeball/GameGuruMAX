@@ -1,6 +1,6 @@
 -- LUA Script - precede every function and global member with lowercase name of script + '_main'
--- Rockfall v5 - by Necrym59 
--- DESCRIPTION: A Rockfall activated from range or a trigger zone. Always Active=ON. Physics=ON, Gravity=ON, Collision=BOX
+-- Rockfall v6 - by Necrym59 
+-- DESCRIPTION: A Rockfall activated from range or a trigger zone. Physics=ON, Gravity=ON
 -- DESCRIPTION: [PROMPT_TEXT$="Rock Fall"]
 -- DESCRIPTION: [ACTIVATION_RANGE=800(1,2000)]
 -- DESCRIPTION: [EVENT_DURATION=6(1,10)] in seconds
@@ -34,7 +34,6 @@ local startz			= {}
 local checktimer		= {}
 	
 function rockfall_properties(e, prompt_text, activation_range, event_duration, hit_damage, hit_radius, start_height, ground_shake, hide_rock)
-	rockfall[e] = g_Entity[e]
 	rockfall[e].prompt_text = prompt_text
 	rockfall[e].activation_range = activation_range
 	rockfall[e].event_duration = event_duration
@@ -46,7 +45,7 @@ function rockfall_properties(e, prompt_text, activation_range, event_duration, h
 end
 
 function rockfall_init(e)
-	rockfall[e] = g_Entity[e]
+	rockfall[e] = {}
 	rockfall[e].prompt_text = "Rock Fall"	
 	rockfall[e].activation_range = 800
 	rockfall[e].event_duration = 6
@@ -63,15 +62,16 @@ function rockfall_init(e)
 	rocks[e] = 0
 	g_Time = 0
 	checktimer[e] = 0
+	SetEntityAlwaysActive(e,1)
 end
 
 function rockfall_main(e)
-	rockfall[e] = g_Entity[e]
 
 	if status[e] == "init" then
 		if rockfall[e].hide_rock == 2 then Hide(e) end			
-		SetPosition(e,g_Entity[e]['x'],g_Entity[e]['y'] + rockfall[e].start_height, g_Entity[e]['z'])
-		ResetPosition(e,g_Entity[e]['x'],g_Entity[e]['y'] + rockfall[e].start_height, g_Entity[e]['z'])
+		local obj = g_Entity[e].obj
+		ConstrainObjMotion(obj,0,0,0)
+		ConstrainObjRotation(obj,0,0,0)	
 		status[e] = "start_event"
 	end
 	
@@ -81,14 +81,17 @@ function rockfall_main(e)
 		if status[e] == "start_event" then					
 			PromptDuration(rockfall[e].prompt_text,3000)
 			rockfall_time[e] = g_Time + (rockfall[e].event_duration*1000)
-			StartTimer(e)
-			Show(e)		
-			status[e] = "rockfall"
+			Show(e)			
 			GravityOn(e)
 			CollisionOn(e)
-			PushObject(g_Entity[e]['obj'], math.random(1,1000), math.random(1,188), math.random(1,810/2), 118, 111, 110 )
+			local obj = g_Entity[e].obj
+			ConstrainObjMotion(obj,2,1,2)
+			ConstrainObjRotation(obj,2,1,2)
+			PushObject(obj,0,0,0)
+			checktimer[e] = g_Time + 1
+			status[e] = "rockfall"
 		end			
-		if status[e] == "rockfall" and g_PlayerHealth > 0 then			
+		if status[e] == "rockfall" then
 			LoopSound(e,0)			
 			if GetPlayerDistance(e) < rockfall[e].hit_radius and rock_hit[e] == 0 then
 				HurtPlayer(-1,rockfall[e].hit_damage)
@@ -96,15 +99,15 @@ function rockfall_main(e)
 				rock_hit[e] = 1
 			end
 			if g_Time > checktimer[e] then
-				for _, v in pairs(U.ClosestEntities(80,math.huge,g_Entity[e]['x'],g_Entity[e]['z'])) do
+				for _, v in pairs(U.ClosestEntities(rockfall[e].hit_radius,math.huge,g_Entity[e]['x'],g_Entity[e]['z'])) do
 					if GetEntityAllegiance(v) > -1 then
 						if g_Entity[v]['health'] > 0 then
-							SetEntityHealth(v,g_Entity[v]['health']-rockfall[e].hit_damage)							
+							SetEntityHealth(v,g_Entity[v]['health']-rockfall[e].hit_damage)
 						end
-						checktimer[e] = g_Time + 250
+						checktimer[e] = g_Time + 10
 					end
 				end
-			end	
+			end		
 			if rockfall[e].ground_shake == 2 then
 				if GamePlayerControlSetShakeTrauma ~= nil then
 					if g_Time < rockfall_time[e] then
@@ -117,6 +120,7 @@ function rockfall_main(e)
 					end
 				end
 			end
+			status[e] = "rockfall"
 		end		
 	end		
 end
