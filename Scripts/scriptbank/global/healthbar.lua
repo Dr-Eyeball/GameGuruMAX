@@ -135,9 +135,8 @@ function healthbar_main(e)
 									TextCenterOnXColor(percentx,percenty,1,tagreadout[e],255,255,255)
 								end
 								if g_MouseClick == 2 then
-									if g_Entity[a]['health'] > g_PlayerHealth + 50 then TextCenterOnXColor(percentx,percenty,1,tagreadout[e],255,0,0) end
-									if g_Entity[a]['health'] > g_PlayerHealth and g_Entity[a]['health'] < g_PlayerHealth + 50 then TextCenterOnXColor(percentx,percenty,1,tagreadout[e],255,255,0) end
-									if g_Entity[a]['health'] == g_PlayerHealth then TextCenterOnXColor(percentx,percenty,1,tagreadout[e],0,255,255) end
+									if g_Entity[a]['health'] > g_PlayerHealth then TextCenterOnXColor(percentx,percenty,1,tagreadout[e],255,0,0) end
+									if g_Entity[a]['health'] == g_PlayerHealth then TextCenterOnXColor(percentx,percenty,1,tagreadout[e],255,255,0) end
 									if g_Entity[a]['health'] < g_PlayerHealth then TextCenterOnXColor(percentx,percenty,1,tagreadout[e],0,255,0) end
 								end
 							end
@@ -147,9 +146,8 @@ function healthbar_main(e)
 									TextCenterOnXColor(percentx,percenty,1,tagreadout[e],255,255,255)
 								end
 								if g_MouseClick == 2 then
-									if g_Entity[a]['health'] > g_PlayerHealth + 50 then TextCenterOnXColor(percentx,percenty,1,tagreadout[e],255,0,0) end
-									if g_Entity[a]['health'] > g_PlayerHealth and g_Entity[a]['health'] < g_PlayerHealth + 50 then TextCenterOnXColor(percentx,percenty,1,tagreadout[e],255,255,0) end
-									if g_Entity[a]['health'] == g_PlayerHealth then TextCenterOnXColor(percentx,percenty,1,tagreadout[e],0,255,255) end
+									if g_Entity[a]['health'] > g_PlayerHealth then TextCenterOnXColor(percentx,percenty,1,tagreadout[e],255,0,0) end
+									if g_Entity[a]['health'] == g_PlayerHealth then TextCenterOnXColor(percentx,percenty,1,tagreadout[e],255,255,0) end
 									if g_Entity[a]['health'] < g_PlayerHealth then TextCenterOnXColor(percentx,percenty,1,tagreadout[e],0,255,0) end
 								end
 							end								
