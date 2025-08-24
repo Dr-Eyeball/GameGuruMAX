@@ -1,5 +1,5 @@
 -- LUA Script - precede every function and global member with lowercase name of script + '_main'
--- Npcinzone v9 by Necrym59
+-- Npcinzone v10 by Necrym59
 -- DESCRIPTION: If npc of [@NPC_TYPE=0(0=Enemy, 1=Ally, 2=Neutral, 3=Any)] type enters the zone, displays a 
 -- DESCRIPTION: [NOTIFICATION$="NPC in zone"] and can activate an object or zone, then destroys this zone.
 -- DESCRIPTION: [ZONEHEIGHT=100(0,1000)]
@@ -39,6 +39,7 @@ function npcinzone_init(e)
 	EntityID[e] = 0
 	EntityAL[e] = 0
 	g_NpcActivated = 0
+	SetEntityAlwaysActive(e,1)
 end
  
 function npcinzone_main(e)	
