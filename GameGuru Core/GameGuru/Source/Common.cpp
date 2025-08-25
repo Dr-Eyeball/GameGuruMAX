@@ -2444,6 +2444,8 @@ void FPSC_LoadSETUPINI (bool bUseMySystemFolder)
 
 	if (FileExist(t.tfile_s.Get()) == 1)
 	{
+		extern int g_iIgnoreAllErrors;
+		g_iIgnoreAllErrors = 0;
 		//  Load Data from file
 		Dim (t.data_s, 999);
 		LoadArray (t.tfile_s.Get(), t.data_s);
@@ -2592,6 +2594,11 @@ void FPSC_LoadSETUPINI (bool bUseMySystemFolder)
 					t.tryfield_s = "converttoddsmaxsize"; if (t.field_s == t.tryfield_s)
 					{
 						g.globals.ConvertToDDSMaxSize = t.value1;
+					}
+
+					t.tryfield_s = "ignoreallerrors"; if (t.field_s == t.tryfield_s)
+					{
+						g_iIgnoreAllErrors = t.value1;
 					}
 
 					// DOCDOC: editorusemediumshadows = Sets the editor to render medium level shadows while editing
