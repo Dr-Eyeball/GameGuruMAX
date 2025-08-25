@@ -4338,8 +4338,20 @@ DARKSDK void LoadImage ( LPSTR szFilename, int iID, int iTextureFlag, int iDivid
 		if ( iSilentError==0 )
 		{
 			char pCWD[256]; _getcwd ( pCWD, 256 );
-			char pErr[256]; sprintf ( pErr, "CWD:%s\nLOAD IMAGE %s,%d,%d,%d", pCWD, szFilename, iID, iTextureFlag, iDivideTextureSize);
-			#ifndef NOSTEAMORVIDEO
+			extern char g_pStartingDirectory[260];
+			char checkhome[MAX_PATH];
+			strcpy(checkhome, g_pStartingDirectory);
+			strcat(checkhome, "\\Files");
+			char pErr[512];
+			if (stricmp(checkhome, pCWD) == NULL)
+			{
+				//PE: No need to report CWD if already correct root.
+				sprintf(pErr, "IMG: %s,%d,%d,%d", szFilename, iID, iTextureFlag, iDivideTextureSize);
+			}
+			else
+				sprintf(pErr, "CWD:%s - IMG %s,%d,%d,%d", pCWD, szFilename, iID, iTextureFlag, iDivideTextureSize);
+			//char pErr[256]; sprintf ( pErr, "CWD:%s\nLOAD IMAGE %s,%d,%d,%d", pCWD, szFilename, iID, iTextureFlag, iDivideTextureSize);
+#ifndef NOSTEAMORVIDEO
 			timestampactivity(0, pErr);
 			#endif
 		}
