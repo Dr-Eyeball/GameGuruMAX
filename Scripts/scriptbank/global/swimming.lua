@@ -3,6 +3,7 @@
 -- DESCRIPTION: [REARM_WEAPON!=0] when leaving water.
 -- DESCRIPTION: [OXYGEN_DISPLAY!=0] display oxygen level.
 
+g_have_scubagear = {}
 local lower = string.lower
 local swimming 			= {}
 local rearm_weapon		= {}
@@ -40,12 +41,13 @@ function swimming_init(e)
 	swimming[e].arm_speed = 100
 	swimming[e].oxygen_bar = "imagebank\\HUD Library\\MISC\\progress-bar.png"	
 	
-	status[e] = "init"
+	g_have_scubagear = 0
 	doonce[e] = 0
 	oxlevel[e] = 0
 	oxbarwidth[e] =	0
-	last_gun = g_PlayerGunName
+	last_gun = g_PlayerGunName	
 	SetEntityAlwaysActive(e,1)
+	status[e] = "init"	
 end
 
 function swimming_main(e)
@@ -77,12 +79,12 @@ function swimming_main(e)
 	end
 
 	local animplaying = GunAnimationPlaying() 														-- Always call this to allow it to stop current animation.
-	if (g_PlayerPosY < GetWaterHeight() and GetGamePlayerControlInWaterState() >= 2) then 			-- Player Underwater and below waterlevel check 
+	if (g_PlayerPosY < GetWaterHeight() and GetGamePlayerControlInWaterState() >= 2) then 			-- Player Underwater and below waterlevel check
 		oxlevel[e] = GetGamePlayerControlDrownTimestamp()-Timer()
 		SetSpriteSize(oxbarsprite[e],(oxlevel[e]/oxbarwidth[e])/50,0.5)			
 		SetSpriteOffset(oxbarsprite[e],((oxlevel[e]/oxbarwidth[e])/50)/2,0)
 		if oxlevel[e] < 3000 then SetSpriteColor(oxbarsprite[e],255,0,0,200) end
-		if swimming[e].oxygen_display == 1 then PasteSpritePosition(oxbarsprite[e],50,95) end
+		if swimming[e].oxygen_display == 1 and g_have_scubagear == 0 then PasteSpritePosition(oxbarsprite[e],50,95) end
 		ForceGunUnderWater(1)																		-- Allow Underwater Arm/Gun Display
 		if status[e] == "start" then			
 			AddPlayerWeapon(swimming[e].arm_set_name)												-- Add Temporary arms/weapon to Player

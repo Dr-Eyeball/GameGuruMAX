@@ -1,5 +1,5 @@
 -- DESCRIPTION: Will animate and move this object as though a bird.
--- Bird V3
+-- Bird V4
 local Q = require "scriptbank\\quatlib"
 local U = require "scriptbank\\utillib"
 local V = require "scriptbank\\vectlib"
@@ -50,6 +50,13 @@ function bird_init_name( e, name )
 	SetEntityMoveSpeed( e, 0 ) -- will set move speed to zero while decide where to move this 'non-spine tracked' character
 end
 
+local function playRndSound( e, slotMin, slotMax )
+	local slot = random( slotMin, slotMax )
+	SetSound( e, slot )
+	PlaySound( e, slot )
+	SetSoundVolume( 90 )
+end
+
 local function leavePerch( e )
 	for _, v in pairs( perches ) do
 		if v.taken == e then
@@ -81,23 +88,23 @@ local function scare( e, bird, dist )
 	if g_PlayerGunFired == 1 and
 	   heardSound( e, bird, 'player', 1500 ) then
 		return 'gunfire'
-	
+
 	elseif
 	   U.PlayerCloserThan( e, dist ) then
 		return 'player'
-		
-	elseif 
+
+	elseif
 	   heardSound( e, bird, 'player', dist * 2 ) then
 		return 'player'
-	
-	elseif 
+
+	elseif
 	   heardSound( e, bird, 'other', dist * 2 ) then
 		return 'npc'
 	end
 end
 
 local function randVal( low, high )
-	return low + random() * ( high - low ) 
+	return low + random() * ( high - low )
 end
 
 local function changeStateLoop( e, bird, newState, animName, rand, stopAnim )
@@ -151,13 +158,13 @@ local function canSee( bird, dist, x, y, z )
 		local xo, yo, zo = U.Rotate3D( 0, 0, dist, rad( ax ), rad( ay ), rad( az ) )
 		x, y, z = cx + xo, cy + yo + 5, cz + zo
 	end
-	
+
 	local obj = 0
 	if bird.e ~= nil then
 	 obj = IntersectStaticPerformant(cx, cy + 5, cz, x, y, z, bird.obj, bird.e, 500 )
 	end
-	
-	if obj == 0 then	
+
+	if obj == 0 then
 		return true
 	end
 end
@@ -165,17 +172,17 @@ end
 local function pathFound( e, bird )
 	local tx, tz = bird.tgt.x, bird.tgt.z
 	local ty = bird.pos.y
-	if chance( 0.2 ) then 
+	if chance( 0.2 ) then
 		if chance( 0.5 ) then
 			ty = ty + 100
 		else
 			ty = ty - 100
 		end
 	end
-	
+
 	ty = RDGetYFromMeshPosition( tx, ty, tz )
-	
-	RDFindPath( bird.pos.x, bird.pos.y, bird.pos.z, tx, ty, tz )			
+
+	RDFindPath( bird.pos.x, bird.pos.y, bird.pos.z, tx, ty, tz )
 	local pc = RDGetPathPointCount()
 	if pc > 0 then
 		if canSee( bird, 0, RDGetPathPointX(1), RDGetPathPointY(1), RDGetPathPointZ(1) ) then
@@ -196,7 +203,7 @@ local function pickNewPos( e, bird, dist )
 		local x, z = U.RandomPos( dist, bird.pos.x, bird.pos.z )
 		if GetWaterHeight() < GetTerrainHeight( x, z ) then
 		    bird.tgt = V.Create( x, 0, z )
-			if pathFound( e, bird ) then return true end 
+			if pathFound( e, bird ) then return true end
 		end
 	end
 end
@@ -205,7 +212,7 @@ local function getRndSpeed( e )
 	local spd = GetEntityMoveSpeed( e ) / 100.0
 	if spd == 0 then spd = 1 end
 	return randVal( spd * 0.85, spd * 1.15 )
-end				 
+end
 
 local function selectTargetPos( e, bird )
 	return pickNewPos( e, bird, randVal( 100, 300 ) )
@@ -220,16 +227,16 @@ local function stopNavigating( e, bird )
 end
 
 local function moveBird( e, bird )
-	
+
 	local ny = getTerOrWaterHeight( bird.pos ) + 0.1
 	ny = ny + bird.height
-	
+
 	local _, _, _, xa, ya, za = GetObjectPosAng( bird.obj )
 
 	local vect = V.FromEuler( rad( xa ), rad( ya ), rad( za ) )
 
-	bird.pos = V.Add( bird.pos, V.Mul( vect, bird.speed * 3 ) ) 
-	
+	bird.pos = V.Add( bird.pos, V.Mul( vect, bird.speed * 3 ) )
+
 	PositionObject( bird.obj, bird.pos.x, ny, bird.pos.z )
 
 	if bird.height < maxHeight then
@@ -244,17 +251,17 @@ local function limitAngle ( Angle )
 end
 
 function playerLookingToward( x, z, dist, fov )
-	local pxp, pzp = g_PlayerPosX, g_PlayerPosZ	
+	local pxp, pzp = g_PlayerPosX, g_PlayerPosZ
 	if not U.CloserThan( pxp, 0, pzp, x, 0, z, dist ) then return false end
-	
+
 	local angle = limitAngle( atan( x - pxp, z - pzp ) * ( 180.0 / pi ) )
 	local pAng  = limitAngle( g_PlayerAngY )
 
 	local L = limitAngle( angle - fov / 2 )
 	local R = limitAngle( angle + fov / 2 )
-	
+
 	return ( L < R and ( pAng > L and pAng < R ) ) or
-	       ( L > R and ( pAng > L or  pAng < R ) ) 
+	       ( L > R and ( pAng > L or  pAng < R ) )
 end
 
 local function checkPerch( e, bird, timeNow, dist )
@@ -299,17 +306,17 @@ function bird_main( e )
 	if bird == nil then return end
 
 	local timeNow = g_Time
-	
+
 	ppx, ppy, ppz = g_PlayerPosX, g_PlayerPosY, g_PlayerPosZ
 
 	local Ent = g_Entity[ e ]
-		
+
 	if bird.state == 'init' then
-		
+
 		bird.pos  = V.Create( Ent.x, Ent.y, Ent.z )
 		bird.lpos = V.Create( 0, 0, 0 )
 		bird.tgt  = V.Create( Ent.x, 0, Ent.z )
-		
+
 		bird.ang     = Ent.angley
 		bird.hunger  = randVal( 0, 100 )
 		bird.timer   = timeNow + random() * maxPauseTime
@@ -324,20 +331,22 @@ function bird_main( e )
 		bird.turnSpd = GetEntityTurnSpeed( e )
 		if bird.turnSpd == 0 then bird.turnSpd = 10 end
 		changeStateLoop( e, bird, 'perched', 'Idle', true )
-		perches[ #perches + 1 ] = { taken  = e, 
+		perches[ #perches + 1 ] = { taken  = e,
 		                            pos    = V.Create( Ent.x, Ent.y, Ent.z ),
-									ang    = Ent.angley, 
+									ang    = Ent.angley,
 									height = bird.height
 								  }
 		bird.perch   = perches[ #perches ]
 
-	elseif 
+	elseif
 	   bird.state == 'perched' then
 		local scareTyp = scare( e, bird, 400 )
+		local sing = math.random(1,100000)
 
+		if sing > 99980 then playRndSound( e, 0, 2 )end
 		if scareTyp ~= nil or
 		   timedEvent( timeNow, bird, 0, maxPauseTime, true ) then
-			
+
 			if bird.onGrnd and scareTyp == nil and bird.canJmp and chance( 0.5 ) then
 				leavePerch( e )
 				changeStateLoop( e, bird, 'hopping', 'jump', true )
@@ -349,15 +358,17 @@ function bird_main( e )
 				changeStateLoop( e, bird, 'walking', 'move', true )
 				selectTargetPos( e, bird )
 				bird.tgtSpd = getRndSpeed( e )
-			elseif 
+			elseif
 			   scareTyp ~= nil then
 				leavePerch( e )
 				switchToNonCharacter( e, bird )
 				changeStatePlay( e, bird, 'flying', 'flying start', 'flying loop' )
+				playRndSound( e, 0, 3 )
+				playRndSound( e, 3, 3 )
 			end
 		end
-		
-	elseif 
+
+	elseif
 	   bird.state == 'transition' then
 		moveBird( e, bird )
 
@@ -366,41 +377,41 @@ function bird_main( e )
 		else
 			bird.speed = max( 0.5, bird.speed + 0.02 )
 		end
-		
+
 	elseif
 	   bird.state == 'flying' then
 
 		moveBird( e, bird )
-		if bird.speed < maxSpeed then 
+		if bird.speed < maxSpeed then
 			bird.speed = bird.speed + 0.02
 		end
 		checkPerch( e, bird, timeNow, 3000 )
-	
+
 	elseif
 	   bird.state == 'respawn'	then
 		respawn( e, bird, timeNow )
-		
+
 	elseif
 	   bird.state == 'hopping' or
 	   bird.state == 'walking' or
 	   bird.state == 'running' then
 
 		bird.pos = V.Create( Ent.x, Ent.y, Ent.z )
-		
+
 		local scareTyp = scare( e, bird, 400 )
-		
+
 		if scareTyp ~= nil then
 			switchToNonCharacter( e, bird )
 			changeStatePlay( e, bird, 'flying', 'flying start', 'flying loop' )
 			return
 		end
-		
+
 		local moving = true
 		if V.Closer( bird.pos, bird.lpos, 0.1 ) then moving = false end
 		if moving then
 			bird.lpos = V.Create( Ent.x, Ent.y, Ent.z )
 			local pointindex = MoveAndRotateToXYZ( e, bird.speed, bird.turnSpd, 1 )
-			if pointindex == 0 or 
+			if pointindex == 0 or
 			   ( pointindex > 1 and not canSee( bird, 5 * bird.speed ) ) or
 				V.Closer( bird.pos, bird.tgt, 10 ) then
 				moving = false
@@ -408,9 +419,9 @@ function bird_main( e )
 		end
 		if not moving then
 			stopNavigating( e, bird )
-			if bird.canEat and 
+			if bird.canEat and
 			   bird.hunger < 5 then
-				changeStateLoop( e, bird, 'eating', 'eating', true, true ) 
+				changeStateLoop( e, bird, 'eating', 'eating', true, true )
 			else
 				changeStateLoop( e, bird, 'perched', 'Idle', true, true )
 			end
@@ -422,12 +433,12 @@ function bird_main( e )
 			end
 			checkPerch( e, bird, timeNow, 500 )
 		end
-		
+
 	elseif
 	   bird.state == 'eating' then
-		
+
 		local scareTyp = scare( e, bird, 300 )
-		
+
 		if scareTyp ~= nil then
 			switchToNonCharacter( e, bird )
 			changeStatePlay( e, bird, 'flying', 'flying start', 'flying loop' )
@@ -447,7 +458,7 @@ function bird_main( e )
 			end
 		end
 	end
-	
+
 	if bird.state ~= 'flying' and
 	   bird.state ~= 'transition' then
 		local sd = bird.tgtSpd - bird.speed
@@ -457,8 +468,8 @@ function bird_main( e )
 			bird.speed = bird.tgtSpd
 		end
 	end
-	
-	if bird.speed > 0 then 
+
+	if bird.speed > 0 then
 		SetAnimationSpeed( e, min( 1.7, bird.speed ) )
 	else
 		SetAnimationSpeed( e, 1 )

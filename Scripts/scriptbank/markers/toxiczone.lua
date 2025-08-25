@@ -1,5 +1,5 @@
 -- LUA Script - precede every function and global member with lowercase name of script + '_main'
--- Toxic Zone v23 by Necrym59
+-- Toxic Zone v24 by Necrym59
 -- DESCRIPTION: The player or npc will be effected with health loss while in this Zone unless using protection
 -- DESCRIPTION: Attach to a trigger Zone.
 -- DESCRIPTION: [PROMPT_TEXT$="In Toxic Zone use protection"]
@@ -62,6 +62,7 @@ function toxiczone_init(e)
 	StartTimer(e)
 	EntityID[e] = nil
 	EntityAL[e] = nil
+	SetEntityAlwaysActive(e,1)
 end
 
 function toxiczone_main(e)

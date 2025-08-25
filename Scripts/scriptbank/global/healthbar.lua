@@ -1,12 +1,11 @@
--- Healthbar v10 - by Necrym,59
+-- Healthbar v11 - by Necrym,59
 -- DESCRIPTION: A global behavior that will display a viewed enemys health in a bar or text.
 -- DESCRIPTION: [DISPLAY_RANGE=200(100,1000)]
--- DESCRIPTION: [@DISPLAY_MODE=1(1=Bar, 2=Text, 3=Text+Bar)]
+-- DESCRIPTION: [@DISPLAY_MODE=1(1=Health Bar, 2=Health Text, 3=Health Text+Bar, 4=Identity Text, 5=Identity Text+Bar)]
 -- DESCRIPTION: [Y_ADJUSTMENT=10(0,50)]
 -- DESCRIPTION: [HEALTH_TEXT$="Health:"]
 -- DESCRIPTION: [HEALTH_BAR_IMAGEFILE$="imagebank\\buttons\\slider-bar-full.png"]
 -- DESCRIPTION: [HEALTH_COLOR_CHANGE=150(1,1000)]
--- DESCRIPTION: [HIDE_THIS_ENTITY!=0] to hide this entity
 
 local P = require "scriptbank\\physlib"
 local U = require "scriptbank\\utillib"
@@ -18,26 +17,25 @@ local y_adjustment = {}
 local health_text = {}
 local health_bar = {}
 local health_color_change = {}
-local hide_this_entity = {}
 
 local rotheight	= {}
 local status = {}
 local hbarsize = {}
 local hreadout = {}
 local hbarsprite = {}
+local tagreadout = {}
 local tableName = {}
 local checktimer = {}
 local entrange = {}
 local enemies = {}
 
-function healthbar_properties(e, display_range, display_mode, y_adjustment, health_text,health_bar, health_color_change, hide_this_entity)
+function healthbar_properties(e, display_range, display_mode, y_adjustment, health_text,health_bar, health_color_change)
 	healthbar[e].display_range = display_range or 500
 	healthbar[e].display_mode = display_mode or 1
 	healthbar[e].y_adjustment = y_adjustment
 	healthbar[e].health_text = health_text
 	healthbar[e].health_bar = health_bar
 	healthbar[e].health_color_change = health_color_change
-	healthbar[e].hide_this_entity = hide_this_entity or 0	
 end
 
 function healthbar_init(e)
@@ -47,14 +45,14 @@ function healthbar_init(e)
 	healthbar[e].y_adjustment = 0
 	healthbar[e].health_text = "Health:"
 	healthbar[e].health_bar = "imagebank\\buttons\\slider-bar-full.png"
-	healthbar[e].health_color_change = 100
-	healthbar[e].hide_this_entity = 0
+	healthbar[e].health_color_change = 150
 
 	status[e] = "init"
 	rotheight[e] = 0
 	hbarsize[e] = 0
 	hreadout[e] = 0
 	hbarsprite[e] = 0
+	tagreadout[e] = ""	
 	g_LegacyNPC = 0
 	enemies[e] = 0
 	checktimer[e] =	math.huge
@@ -94,8 +92,9 @@ function healthbar_main(e)
 				if g_Entity[a] ~= nil then
 					entrange[e] = math.ceil(GetFlatDistanceToPlayer(a))	
 					GetEntityPlayerVisibility(a)
-					if g_Entity[a]['plrvisible'] == 1 then
+					if U.PlayerLookingNear(a,healthbar[e].display_range,fov) == true then
 						if g_Entity[a]["health"] > 0 and entrange[e] < healthbar[e].display_range then
+							tagreadout[e] = GetEntityName(a)
 							--Entity dimensions check--
 							Ent = g_Entity[a]
 							local dims = P.GetObjectDimensions(Ent.obj)
@@ -123,13 +122,35 @@ function healthbar_main(e)
 								PasteSpritePosition(hbarsprite[e],percentx-(hbarsize[e]/2),percenty)
 							end
 							if healthbar[e].display_mode == 2 and hreadout[e] > 0 then
-								TextCenterOnX(percentx,percenty,1,healthbar[e].health_text.. " " ..hreadout[e])
+								if hreadout[e] > healthbar[e].health_color_change then TextCenterOnXColor(percentx,percenty,1,healthbar[e].health_text.. " " ..hreadout[e],0,255,0) end
+								if hreadout[e] < healthbar[e].health_color_change then TextCenterOnXColor(percentx,percenty,1,healthbar[e].health_text.. " " ..hreadout[e],255,0,0) end
 							end
 							if healthbar[e].display_mode == 3 and hreadout[e] > 0 then
 								PasteSpritePosition(hbarsprite[e],percentx-(hbarsize[e]/2),percenty)
-								TextCenterOnX(percentx,percenty,1,"")
-								TextCenterOnX(percentx,percenty,1,healthbar[e].health_text.. " " ..hreadout[e])
+								if hreadout[e] > healthbar[e].health_color_change then TextCenterOnXColor(percentx,percenty,1,healthbar[e].health_text.. " " ..hreadout[e],0,255,0) end
+								if hreadout[e] < healthbar[e].health_color_change then TextCenterOnXColor(percentx,percenty,1,healthbar[e].health_text.. " " ..hreadout[e],255,0,0) end
 							end
+							if healthbar[e].display_mode == 4 and hreadout[e] > 0 then
+								if g_MouseClick == 0 then
+									TextCenterOnXColor(percentx,percenty,1,tagreadout[e],255,255,255)
+								end
+								if g_MouseClick == 2 then
+									if g_Entity[a]['health'] > g_PlayerHealth then TextCenterOnXColor(percentx,percenty,1,tagreadout[e],255,0,0) end
+									if g_Entity[a]['health'] == g_PlayerHealth then TextCenterOnXColor(percentx,percenty,1,tagreadout[e],255,255,0) end
+									if g_Entity[a]['health'] < g_PlayerHealth then TextCenterOnXColor(percentx,percenty,1,tagreadout[e],0,255,0) end
+								end
+							end
+							if healthbar[e].display_mode == 5 and hreadout[e] > 0 then
+								PasteSpritePosition(hbarsprite[e],percentx-(hbarsize[e]/2),percenty)
+								if g_MouseClick == 0 then
+									TextCenterOnXColor(percentx,percenty,1,tagreadout[e],255,255,255)
+								end
+								if g_MouseClick == 2 then
+									if g_Entity[a]['health'] > g_PlayerHealth then TextCenterOnXColor(percentx,percenty,1,tagreadout[e],255,0,0) end
+									if g_Entity[a]['health'] == g_PlayerHealth then TextCenterOnXColor(percentx,percenty,1,tagreadout[e],255,255,0) end
+									if g_Entity[a]['health'] < g_PlayerHealth then TextCenterOnXColor(percentx,percenty,1,tagreadout[e],0,255,0) end
+								end
+							end								
 							if g_LegacyNPC == 1 and g_Entity[a]['health'] < 1000 then
 								g_LegacyNPC = 0
 							end

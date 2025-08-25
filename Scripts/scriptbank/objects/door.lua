@@ -1,8 +1,8 @@
--- Door v29 by Lee and Necrym59
+-- Door v30 by Lee and Necrym59
 -- DESCRIPTION: Open and closes an 'animating' door when the player is within [Range=70(50,500)],
 -- DESCRIPTION: and when triggered will open the door, play <Sound0> and turn collision off after a delay of [DELAY=1000].
 -- DESCRIPTION: When the door is closed, play <Sound1> is played. You can elect to keep the door [Unlocked!=1], and customize the [LockedText$="Door locked. Find key"].
--- DESCRIPTION: Select if the door also [CannotClose!=0], and customize the [ToOpenText$="to open door"]
+-- DESCRIPTION: Select if the door also [CannotClose!=0], and customize the [ToOpenText$="to open door"] and [ToCloseText$="to close door"]
 -- DESCRIPTION: Select if the door can [AutoClose!=0] after a [AutoCloseDelay=5000]
 -- DESCRIPTION: [!USE_SWITCH=0]
 -- DESCRIPTION: [SWITCH_TEXT$="Door is operated by a switch"]
@@ -22,6 +22,7 @@ local unlocked			= {}
 local lockedtext		= {}
 local cannotclose		= {}
 local toopentext 		= {}
+local toclosetext 		= {}
 local autoclose 		= {}
 local autoclosedelay 	= {}
 local use_switch 		= {}
@@ -41,13 +42,14 @@ local hl_imgheight		= {}
 
 local defaultPromptDisplay = 2
 
-function door_properties(e, range, delay, unlocked, lockedtext, cannotclose, toopentext, autoclose, autoclosedelay, use_switch, switch_text, prompt_display, item_highlight, highlight_icon_imagefile)
+function door_properties(e, range, delay, unlocked, lockedtext, cannotclose, toopentext, toclosetext, autoclose, autoclosedelay, use_switch, switch_text, prompt_display, item_highlight, highlight_icon_imagefile)
 	door[e]['range'] = range
 	door[e]['delay'] = delay
 	door[e]['unlocked'] = unlocked
 	door[e]['lockedtext'] = lockedtext
 	door[e]['cannotclose'] = cannotclose
 	door[e]['toopentext'] = toopentext
+	door[e]['toclosetext'] = toclosetext
 	door[e]['autoclose'] = autoclose
 	door[e]['autoclosedelay'] = autoclosedelay or 0
 	door[e]['use_switch'] = use_switch or 0
@@ -65,6 +67,7 @@ function door_init(e)
 	door[e]['lockedtext'] = "Door locked. Find key"
 	door[e]['cannotclose'] = 0
 	door[e]['toopentext'] = "to open door"
+	door[e]['toclosetext'] = "to close door"	
 	door[e]['autoclose'] = 0
 	door[e]['autoclosedelay'] = 5000
 	door[e]['use_switch'] = 0
@@ -111,6 +114,7 @@ function door_main(e)
 	if door[e]['unlocked'] == nil then door[e]['unlocked'] = 1 end
 	if door[e]['lockedtext'] == nil then door[e]['lockedtext'] = "Door locked. Find key" end
 	if door[e]['toopentext'] == nil then door[e]['toopentext'] = "to open door" end
+	if door[e]['toclosetext'] == nil then door[e]['toclosetext'] = "to close door" end	
 	
 	if door[e]['originalx'] == -1 then
 		door[e]['originalx'] = g_Entity[e]['x']
@@ -172,6 +176,18 @@ function door_main(e)
 					else
 						if door[e]['mode'] == 1 then
 							if door[e]['cannotclose'] == 0 then
+								if GetGamePlayerStateXBOX() == 1 then
+									if door[e]['prompt_display'] == 1 then TextCenterOnX(50,55,1,"Press Y button " .. door[e]['toclosetext']) end
+									if door[e]['prompt_display'] == 2 then Prompt("Press Y button " .. door[e]['toclosetext']) end
+								else
+									if GetHeadTracker() == 1 then
+										if door[e]['prompt_display'] == 1 then TextCenterOnX(50,55,1,"Trigger to " .. door[e]['toclosetext']) end
+										if door[e]['prompt_display'] == 2 then Prompt("Trigger to " .. door[e]['toclosetext']) end							
+									else
+										if door[e]['prompt_display'] == 1 then TextCenterOnX(50,55,1,"Press E to " .. door[e]['toclosetext']) end
+										if door[e]['prompt_display'] == 2 then Prompt("Press E to " .. door[e]['toclosetext']) end								
+									end
+								end
 								if g_KeyPressE == 1 and g_Entity[e]['animating'] == 0 and door_pressed[e] == 0 then
 									door[e]['mode'] = 202
 									door_pressed[e] = 1

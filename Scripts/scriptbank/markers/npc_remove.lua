@@ -1,5 +1,5 @@
 -- LUA Script - precede every function and global member with lowercase name of script + '_main'
--- Npc Remove v7 by Necrym59
+-- Npc Remove v8 by Necrym59
 -- DESCRIPTION: If npc enters the zone, displays a [NOTIFICATION$="NPC removed"] and will
 -- DESCRIPTION: remove/destroy the NPC, activates any logic links, then destroys this zone.
 -- DESCRIPTION: NPC [@REMOVE_STYLE=1 (1=Instant, 2=Fade, 3=Timed)]
@@ -35,8 +35,9 @@ function npc_remove_init(e)
 	
 	played[e] = 0
 	EntityID[e] = 0
-	doonce[e] = 0
+	doonce[e] = 0	
 	wait[e] = math.huge		
+	SetEntityAlwaysActive(e,1)
 end
 
 function npc_remove_main(e)
