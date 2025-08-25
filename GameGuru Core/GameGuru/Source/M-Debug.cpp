@@ -106,8 +106,12 @@ void timestampactivity ( int i, char* desc_s )
 		if (bTimestampactivityReady)
 		{
 			FILE * pFile;
-			GG_SetWritablesToRoot(true);
-			SetWriteAsRootTemp(true);
+			//PE: Standalone should just write the log where possible.
+			if (t.game.gameisexe == 0)
+			{
+				GG_SetWritablesToRoot(true);
+				SetWriteAsRootTemp(true);
+			}
 			pFile = GG_fopen(file_s.Get(), "a+");
 			if (pFile != NULL)
 			{
@@ -124,8 +128,11 @@ void timestampactivity ( int i, char* desc_s )
 				fputs("\n", pFile);
 				fclose(pFile);
 			}
-			GG_SetWritablesToRoot(false);
-			SetWriteAsRootTemp(false);
+			if (t.game.gameisexe == 0)
+			{
+				GG_SetWritablesToRoot(false);
+				SetWriteAsRootTemp(false);
+			}
 		}
 		else
 		{

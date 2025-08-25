@@ -1551,7 +1551,7 @@ struct OutputPrepass
 	float2 timeScaledUV5 = ((input.uvsets.xy+offset)*6)+dudv.rg+sin((g_xFrame_Time*WaterSpeed2*2));
 	float2 timeScaledUV6 = ((input.uvsets.xy+offset)*5)+dudv.rg+cos((g_xFrame_Time*WaterSpeed2*2));
 
-	float4 baseColorMap = texture_basecolormap.Sample(sampler_objectshader, (input.uvsets.xy)+dudv3.rg+offset2);
+	float4 baseColorMap = texture_basecolormap.Sample(sampler_objectshader, (input.uvsets.xy * GetMaterial().customShaderParam7 )+dudv3.rg+offset2);
 
 	float3 bumpColor2 = 0, bumpColor3 = 0, bumpColor4 = 0, bumpColor5 = 0, bumpColor6 = 0;
 	float3 normal2 = 0, normal3 = 0, normal4 = 0;

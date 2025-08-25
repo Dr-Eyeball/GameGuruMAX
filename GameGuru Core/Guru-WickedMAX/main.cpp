@@ -581,8 +581,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             EndPaint(hWnd, &ps);
         }
         break;
+
+	case WM_QUERYENDSESSION:
+		{
+			extern bool bKeepWindowsResponding;
+			if (bKeepWindowsResponding)
+				return(false);
+			return(true);
+		}
+		break;
 	case WM_CLOSE:
 		// if free trial, first attempt to quit simply calls up free trial window
+		extern bool bKeepWindowsResponding;
+		if (bKeepWindowsResponding)
+			return(0);
 		extern bool g_bFreeTrialVersion;
 		if (g_bFreeTrialVersion == true)
 		{
