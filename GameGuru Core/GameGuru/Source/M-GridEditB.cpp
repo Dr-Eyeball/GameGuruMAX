@@ -47995,11 +47995,11 @@ void* GetReadoutAddress(char* readoutTitle)
 	{
 		return (void*)&t.slidersmenuvalue[1][2].value;
 	}
-	else if (strcmp(readoutTitle, "Ammo Panel") == 0 )// && t.gunid > 0 && t.gun[t.gunid].weapontype != 51) may want to see weapon panel for melee
+	else if (strcmp(readoutTitle, "Ammo Panel") == 0 && t.gunid > 0 )// && t.gunid > 0 && t.gun[t.gunid].weapontype != 51) may want to see weapon panel for melee
 	{
 		return (void*)&t.iTmpImgID;
 	}
-	else if (strcmp(readoutTitle, "Weapon Held") == 0 ) // may want to see weapon symbol panel for melee && t.gun[t.gunid].weapontype != 51)
+	else if (strcmp(readoutTitle, "Weapon Held") == 0 && t.gunid > 0 ) // may want to see weapon symbol panel for melee && t.gun[t.gunid].weapontype != 51)
 	{
 		return (void*)&g.firemodes[t.gunid][g.firemode].iconimg;
 	}
