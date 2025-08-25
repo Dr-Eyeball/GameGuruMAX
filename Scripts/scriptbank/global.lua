@@ -398,6 +398,9 @@ function GetDistanceTo( e, tx, ty, tz )
 end
 
 function GetPlrLookingAtExThreshold( e, uselineofsight, detectthreshold )
+ if e == nil then return end
+ if g_Entity == nil then return end
+ if g_Entity[e] == nil then return end
  local LookingAt = 0
  if GetHeadTracker() == 1 then
   local pObj = MotionControllerLaserGuidedEntityObj()
