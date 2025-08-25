@@ -673,10 +673,15 @@ void common_init ( void )
 			refresh_gui_docking = 4; // dont update layout.
 		}
 #ifdef WICKEDENGINE
+		
+		if (pref.current_version_new_windows != MAXWINDOWSVERSION) {
+			pref.current_version_new_windows = MAXWINDOWSVERSION;
+			refresh_gui_docking = 0; // reset layout.
+		}
 		if (pref.current_version != MAXVERSION) {
 			pref.current_version = MAXVERSION;
 			refresh_gui_docking = 0; // reset layout.
-			if (MAXVERSION == 26) pref.iDisableObjectLibraryViewport = 1;
+			if (MAXVERSION >= 26) pref.iDisableObjectLibraryViewport = 1;
 		}
 #else
 		if (pref.current_version != V3VERSION) {

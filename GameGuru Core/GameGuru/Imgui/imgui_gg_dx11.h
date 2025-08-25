@@ -25,6 +25,9 @@
 //PE: Increase MAXVERSION to set preference to defaults and reset imgui windows settings (for Friday builds).
 //PE: This do not reset important user features like "Write folder" ...
 #define MAXVERSION 26
+//PE: Increase this to ONLY reset windows, when adding a new docked window. all other setting is not changed.
+#define MAXWINDOWSVERSION 3
+
 
 #define ENABLEIMGUI
 #define USERENDERTARGET
@@ -149,6 +152,8 @@ IMGUI_IMPL_API bool     ImGui_ImplDX11_CreateDeviceObjects();
 #define ENV_RAIN UIV3IMAGES+87
 #define ENV_SNOW UIV3IMAGES+88
 #define ENV_WEATHER UIV3IMAGES+89
+
+#define TOOL_GAME_SETTINGS UIV3IMAGES+90
 
 //#define TOOL_RPG UIV3IMAGES+90
 //#define TOOL_PUZZLE UIV3IMAGES+91
@@ -664,6 +669,7 @@ struct preferences {
 	int iSmallToolbar = 0;
 	ImVec4 status_bar_color = ImVec4((1.0f / 255.0f) * 14, (1.0f / 255.0f) * 99, (1.0f / 255.0f) * 156, 1.0);
 	ImVec4 highlight_color = status_bar_color;
+	int current_version_new_windows = 0;
 };
 
 // can be moved to preferences (Lee needs to know the sequence to add to prefs properly, and the consequences) :)

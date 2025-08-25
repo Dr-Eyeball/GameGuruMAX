@@ -498,6 +498,8 @@ extern int g_iActiveMonitors;
 #ifdef WICKEDENGINE
 bool Visuals_Tools_Window = false;
 bool Weather_Tools_Window = false;
+bool Game_Settings_Window = false;
+bool Logic_Settings_Window = false;
 int iRestoreLastWindow = 0;
 std::vector<sRubberBandType> vEntityLockedList;
 #define MAXGROUPSLISTS 100
@@ -1119,6 +1121,7 @@ void mapeditorexecutable_init ( void )
 	LoadImage("editors\\uiv3\\weather-rain.png", ENV_RAIN);
 	LoadImage("editors\\uiv3\\weather-snow.png", ENV_SNOW);
 	LoadImage("editors\\uiv3\\weather.png", ENV_WEATHER);
+	LoadImage("editors\\uiv3\\tool-gamesettings.png", TOOL_GAME_SETTINGS);
 
 	LoadImage("editors\\uiv3\\logic.png", TOOL_LOGIC);// shooter.png", TOOL_SHOOTER);
 	
@@ -3481,6 +3484,8 @@ void mapeditorexecutable_loop(void)
 				if (bTutorialCheckAction) TutorialNextAction();
 				if (!pref.iEnableSingleRightPanelAdvanced)
 				{
+					Logic_Settings_Window = false;
+					Game_Settings_Window = false;
 					Weather_Tools_Window = false;
 					Visuals_Tools_Window = false;
 					//LB: Shooter now a filter mode Shooter_Tools_Window = false;
@@ -3513,6 +3518,8 @@ void mapeditorexecutable_loop(void)
 #ifdef WICKEDENGINE
 			if (!pref.iEnableSingleRightPanelAdvanced)
 			{
+				Logic_Settings_Window = false;
+				Game_Settings_Window = false;
 				Weather_Tools_Window = false;
 				Visuals_Tools_Window = false;
 				//LB: Shooter now a filter mode Shooter_Tools_Window = false;
@@ -3528,14 +3535,16 @@ void mapeditorexecutable_loop(void)
 		if (ImGui::IsItemHovered() && iSkibFramesBeforeLaunch == 0) ImGui::SetTooltip("%s", "Object Tools (O)"); //Entity Mode
 
 		ImGui::SameLine();
+		
 		//------------------------------------------------------------------
-
 
 		// Logic Toolbar - was Shooter Start
 		ImGui::SetCursorPos(ImVec2(rightx - right_border - (precise_icon_width * 5), ImGui::GetCursorPos().y));
 
 		//ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPos().x + 2.0f, ImGui::GetCursorPos().y));
-
+		
+		//PE: Changed to toggle icon like all the others, also has its own window now.
+		/*
 		toggle_color = drawCol_toogle;
 		if (pref.current_style == 25) drawCol_Selection = drawCol_Divider_Selected;
 		if (!Shooter_Tools_Window) 
@@ -3547,17 +3556,93 @@ void mapeditorexecutable_loop(void)
 		{
 			window->DrawList->AddRect((window->DC.CursorPos - tool_selected_padding), window->DC.CursorPos + tool_selected_padding + iToolbarIconSize, ImGui::GetColorU32(tool_selected_col), 0.0f, 15, 2.0f);
 		}
+		*/
+
+		toggle_color = drawCol_toogle;
+		if (pref.current_style == 25) drawCol_Selection = drawCol_Divider_Selected;
+		if (!Shooter_Tools_Window) {
+			drawCol_Selection = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+			toggle_color = drawCol_back_test;
+		}
+
+
+
 		if (ImGui::ImgBtn(TOOL_LOGIC, iToolbarIconSize, toggle_color, drawCol_normal/**drawCol_Selection*/, drawCol_hover, drawCol_Down, 0, 0, 0, 0, false, toolbar_gradiant, false, false, false, bBoostIconColors))
 		{
+			if (iRestoreLastWindow == 0 && !pref.iEnableSingleRightPanelAdvanced)
+			{
+				if (bTerrain_Tools_Window)
+					iRestoreLastWindow = 1;
+				else
+					iRestoreLastWindow = 2;
+			}
+			if (Shooter_Tools_Window)
+			{
+				Shooter_Tools_Window = false;
+				if (iRestoreLastWindow >= 0 && !pref.iEnableSingleRightPanelAdvanced)
+				{
+					if (iRestoreLastWindow == 1)
+					{
+						bTerrain_Tools_Window = true;
+						t.grideditselect = 0;
+					}
+					else
+					{
+						bForceKey = true;
+						csForceKey = "o";
+						Entity_Tools_Window = true;
+					}
+					iRestoreLastWindow = 0;
+				}
+			}
+			else
+			{
+				if (bTerrain_Tools_Window)
+				{
+					//PE: Switch to object mode, so we dont make terrain changes when in logic.
+					bTerrain_Tools_Window = false;
+					t.grideditselect = 5;
+				}
+
+				if (!pref.iEnableSingleRightPanelAdvanced)
+					CloseAllOpenTools();
+
+				Shooter_Tools_Window = true;
+
+				if (!pref.iEnableSingleRightPanelAdvanced)
+				{
+					Visuals_Tools_Window = false;
+					Game_Settings_Window = false;
+					if (Weather_Tools_Window)
+						Weather_Tools_Window = false;
+					Entity_Tools_Window = false;
+				}
+			}
+			Logic_Settings_Window = Shooter_Tools_Window;
+			/* OLD
 			//LB: Shooter now a filter mode toggle only
 			if (Shooter_Tools_Window)
 				Shooter_Tools_Window = false;
 			else
 				Shooter_Tools_Window = true;
+			Logic_Settings_Window = Shooter_Tools_Window;
+			if (Logic_Settings_Window)
+			{
+				if (!pref.iEnableSingleRightPanelAdvanced)
+				{
+					Visuals_Tools_Window = false;
+					Game_Settings_Window = false;
+					if (Weather_Tools_Window)
+						Weather_Tools_Window = false;
+					Entity_Tools_Window = false;
+				}
+			}
+			*/
 		}
 		if (ImGui::IsItemHovered() && iSkibFramesBeforeLaunch == 0) ImGui::SetTooltip("%s", "Visual Logic Connections");
 		ImGui::SameLine();
 		//Shooter End
+
 
 		ImGui::SetCursorPos(ImVec2(rightx - right_border - (precise_icon_width * 4), ImGui::GetCursorPos().y));
 		toggle_color = drawCol_toogle;
@@ -3602,6 +3687,8 @@ void mapeditorexecutable_loop(void)
 				Visuals_Tools_Window = true;
 				if (!pref.iEnableSingleRightPanelAdvanced)
 				{
+					Logic_Settings_Window = false;
+					Game_Settings_Window = false;
 					if (Weather_Tools_Window)
 						Weather_Tools_Window = false;
 					//LB: Shooter now a filter mode if (Shooter_Tools_Window)
@@ -3617,13 +3704,71 @@ void mapeditorexecutable_loop(void)
 		ImGui::SetCursorPos(ImVec2(rightx - right_border -(precise_icon_width*3) , ImGui::GetCursorPos().y));
 		toggle_color = drawCol_toogle;
 		if (pref.current_style == 25) drawCol_Selection = drawCol_Divider_Selected;
-		if (!Weather_Tools_Window)
+
+
+		//PE: New Game Settings icon.
+		if (!Game_Settings_Window)
 		{
 			drawCol_Selection = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
 			toggle_color = drawCol_back_test;
 		}
 
-		if (ImGui::ImgBtn(ENV_WEATHER, iToolbarIconSize, toggle_color, drawCol_normal/**drawCol_Selection*/, drawCol_hover, drawCol_Down, 0, 0, 0, 0, false, toolbar_gradiant,false,false,false, bBoostIconColors)) 
+		if (ImGui::ImgBtn(TOOL_GAME_SETTINGS, iToolbarIconSize, toggle_color, drawCol_normal/**drawCol_Selection*/, drawCol_hover, drawCol_Down, 0, 0, 0, 0, false, toolbar_gradiant, false, false, false, bBoostIconColors))
+		{
+			//Display game seetings window.
+			if (iRestoreLastWindow == 0 && !pref.iEnableSingleRightPanelAdvanced)
+			{
+				if (bTerrain_Tools_Window)
+					iRestoreLastWindow = 1;
+				else
+					iRestoreLastWindow = 2;
+			}
+			if (!pref.iEnableSingleRightPanelAdvanced)
+				CloseAllOpenTools();
+			if (Game_Settings_Window)
+			{
+				Game_Settings_Window = false;
+				if (iRestoreLastWindow >= 0 && !pref.iEnableSingleRightPanelAdvanced)
+				{
+					if (iRestoreLastWindow == 1)
+					{
+						bTerrain_Tools_Window = true;
+						t.grideditselect = 0;
+					}
+					else
+					{
+						bForceKey = true;
+						csForceKey = "o";
+						Entity_Tools_Window = true;
+					}
+					iRestoreLastWindow = 0;
+				}
+			}
+			else
+			{
+				Game_Settings_Window = true;
+				if (!pref.iEnableSingleRightPanelAdvanced)
+				{
+					if (Visuals_Tools_Window)
+						Visuals_Tools_Window = false;
+					//LB: Shooter now a filter mode
+					//if (Shooter_Tools_Window)
+					//	Shooter_Tools_Window = false;
+					Entity_Tools_Window = false;
+				}
+			}
+		}
+		if (ImGui::IsItemHovered() && iSkibFramesBeforeLaunch == 0) ImGui::SetTooltip("%s", "Game Settings");
+		ImGui::SameLine();
+
+
+		/*
+		if (!Weather_Tools_Window)
+		{
+			drawCol_Selection = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+			toggle_color = drawCol_back_test;
+		}
+		if (ImGui::ImgBtn(ENV_WEATHER, iToolbarIconSize, toggle_color, drawCol_normal, drawCol_hover, drawCol_Down, 0, 0, 0, 0, false, toolbar_gradiant,false,false,false, bBoostIconColors)) 
 		{
 			//Display weather window.
 			if (iRestoreLastWindow == 0 && !pref.iEnableSingleRightPanelAdvanced)
@@ -3670,7 +3815,7 @@ void mapeditorexecutable_loop(void)
 		}
 		if (ImGui::IsItemHovered() && iSkibFramesBeforeLaunch == 0) ImGui::SetTooltip("%s", "Weather Settings");
 		ImGui::SameLine();
-
+		*/
 
 		ImGui::SetCursorPos(ImVec2(rightx - right_border - (precise_icon_width * 2), ImGui::GetCursorPos().y));
 		toggle_color = drawCol_toogle;
@@ -5386,7 +5531,9 @@ void mapeditorexecutable_loop(void)
 #endif	
 #ifdef WICKEDENGINE
 			ImGui::DockBuilderDockWindow("Environment Effects##VisualsToolsWindow", dock_id_right);
-			ImGui::DockBuilderDockWindow("Weather##WeatherEffectsV2", dock_id_right);
+			//ImGui::DockBuilderDockWindow("Weather##WeatherEffectsV2", dock_id_right);
+			ImGui::DockBuilderDockWindow("Game Settings##GameSettings", dock_id_right);
+			ImGui::DockBuilderDockWindow("Logic Settings##LogicSettings", dock_id_right);
 			ImGui::DockBuilderDockWindow("Shooter Genre##GameLogicTools", dock_id_right);
 			///ImGui::DockBuilderDockWindow("Game Genre##AdditionalIconsWindow", dock_id_left_down);
 			ImGui::DockBuilderDockWindow("Current Objects##AdditionalIconsWindow", dock_id_left_down_large);
@@ -7591,11 +7738,12 @@ void mapeditorexecutable_loop(void)
 					ImGui::Begin("Object Tools##EntityToolsWindow", &Entity_Tools_Window, iGenralWindowsFlags);
 				}
 
+				//PE: Moved to new Logic window.
 				// LB: inserted shooter properties at top of Object Tools if filter mode active
-				if (Shooter_Tools_Window)
-				{
-					imgui_shooter_tools();
-				}
+				//if (Shooter_Tools_Window)
+				//{
+				//	imgui_shooter_tools();
+				//}
 
 				bool bRunExtractDuplicate = false;
 				bool bDuplicate = false;
@@ -10849,13 +10997,60 @@ void mapeditorexecutable_loop(void)
 		//#### Weather Window ####
 		//########################
 
-		if (Weather_Tools_Window) 
+		//PE: Moved to Environment Effects.
+		//if (Weather_Tools_Window) 
+		//{
+		//	//PE: Need own docking window.
+		//	ImGui::Begin("Weather##WeatherEffectsV2", &Weather_Tools_Window, 0);
+		//	imgui_Customize_Weather_V2(3);
+		//	ImGui::End();
+		//}
+
+		//PE: Game Settings window.
+		if (refresh_gui_docking == 0 && !Game_Settings_Window)
 		{
-			//PE: Need own docking window.
-			ImGui::Begin("Weather##WeatherEffectsV2", &Weather_Tools_Window, 0);
-			imgui_Customize_Weather_V2(3);
+			//Make sure window is setup in docking space.
+			bool bTrue = true;
+			ImGui::Begin("Game Settings##GameSettings", &bTrue, iGenralWindowsFlags);
 			ImGui::End();
 		}
+		else
+		{
+			if (Game_Settings_Window)
+			{
+				ImGui::Begin("Game Settings##GameSettings", &Game_Settings_Window, 0);
+				imgui_Customize_Game_Settings(3);
+				ImGui::End();
+
+			}
+		}
+
+		if (refresh_gui_docking == 0 && !Logic_Settings_Window)
+		{
+			//Make sure window is setup in docking space.
+			bool bTrue = true;
+			ImGui::Begin("Logic Settings##LogicSettings", &bTrue, iGenralWindowsFlags);
+			ImGui::End();
+		}
+		else
+		{
+			if (Logic_Settings_Window)
+			{
+				ImGui::Begin("Logic Settings##LogicSettings", &Logic_Settings_Window, 0);
+
+				// LB: inserted shooter properties at top of Object Tools if filter mode active
+				if (Shooter_Tools_Window)
+				{
+					//PE: Looks like pref.iEnableRelationPopupWindow is not available anymore , but just in case :)
+					imgui_shooter_tools();
+				}
+
+				imgui_Customize_Logic_Settings(3);
+				ImGui::End();
+
+			}
+		}
+
 		#endif
 
 		//#####################
@@ -15728,6 +15923,9 @@ void mapeditorexecutable_loop(void)
 		}
 		else 
 		{
+			//PE: Make sure we switch to the correct name , this can change in test game.
+			extern cStr sWindowName;
+			sWindowName = "Environment Effects##VisualsToolsWindow";
 			tab_tab_visuals(1, 0);
 		}
 		#endif
@@ -20109,6 +20307,8 @@ void imgui_input_getcontrols(void)
 			#ifdef WICKEDENGINE
 			if (!pref.iEnableSingleRightPanelAdvanced)
 			{
+				Logic_Settings_Window = false;
+				Game_Settings_Window = false;
 				Weather_Tools_Window = false;
 				Visuals_Tools_Window = false;
 				//LB: shooter now a filter mode Shooter_Tools_Window = false;
@@ -20136,6 +20336,7 @@ void imgui_input_getcontrols(void)
 			#ifdef WICKEDENGINE
 			if (!pref.iEnableSingleRightPanelAdvanced)
 			{
+				Game_Settings_Window = false;
 				Weather_Tools_Window = false;
 				Visuals_Tools_Window = false;
 				//LB: shooter now a filter mode Shooter_Tools_Window = false;
