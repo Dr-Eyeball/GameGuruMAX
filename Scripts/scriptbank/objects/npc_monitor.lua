@@ -1,5 +1,5 @@
 -- LUA Script - precede every function and global member with lowercase name of script + '_main'
--- NPC Monitor v14 by Necrym59
+-- NPC Monitor v15 by Necrym59
 -- DESCRIPTION: A global behavior that allows a named npc to be health monitored and trigger event(s) or Lose/Win game or go to a specified level upon its death.
 -- DESCRIPTION: Attach to an object set AlwaysActive=ON, and attach any logic links to this object and/or use ActivateIfUsed field.
 -- DESCRIPTION: [NPC_NAME$=""] to monitor.
@@ -86,9 +86,6 @@ function npc_monitor_main(e)
 		if status[e] == "monitor" and g_Time > checktime[e] then
 			if g_Entity[pEntn[e]].health <= 0 and npc_monitor[e].death_action == 1 then
 				wait[e] = g_Time + (npc_monitor[e].action_delay*1000)				
-				if npc_monitor[e].user_global > "" then
-					_G["g_UserGlobal['"..npc_monitor[e].user_global.."']"] = npc_monitor[e].user_global_value
-				end
 				status[e] = "alarm"
 			end
 			if g_Entity[pEntn[e]].health <= 0 and npc_monitor[e].death_action == 2 then
@@ -97,16 +94,10 @@ function npc_monitor_main(e)
 			end
 			if g_Entity[pEntn[e]].health <= 0 and npc_monitor[e].death_action == 3 then			
 				wait[e] = g_Time + (npc_monitor[e].action_delay*1000)
-				if npc_monitor[e].user_global > "" then
-					_G["g_UserGlobal['"..npc_monitor[e].user_global.."']"] = npc_monitor[e].user_global_value
-				end
 				status[e] = "winorlose"
 			end
 			if g_Entity[pEntn[e]].health <= 0 and npc_monitor[e].death_action == 4 then			
 				wait[e] = g_Time + (npc_monitor[e].action_delay*1000)
-				if npc_monitor[e].user_global > "" then
-					_G["g_UserGlobal['"..npc_monitor[e].user_global.."']"] = npc_monitor[e].user_global_value
-				end
 				status[e] = "winorlose"
 			end
 			if g_Entity[pEntn[e]].health <= 0 and npc_monitor[e].death_action == 5 then			
