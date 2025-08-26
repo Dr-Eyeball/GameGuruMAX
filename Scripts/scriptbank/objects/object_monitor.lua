@@ -1,11 +1,10 @@
 -- LUA Script - precede every function and global member with lowercase name of script + '_main'
--- Object Monitor v14 by Necrym59
--- DESCRIPTION: A behavior that allows a named object's health to be monitored and trigger event(s), Lose/Win Game, Change Level or Destroy a named entity upon reaching zero health.
+-- Object Monitor v15 by Necrym59
+-- DESCRIPTION: A behavior that allows a named object/s health to be monitored and trigger event(s), Lose/Win Game, Change Level or Destroy a named entity upon reaching zero health.
 -- DESCRIPTION: Attach to an object set AlwaysActive=ON, and attach any logic links to this object and/or use ActivateIfUsed field.
 -- DESCRIPTION: [OBJECT_NAME$=""] to monitor
--- DESCRIPTION: [@DESTROYED_ACTION=1(1=Event Triggers, 2=Lose Game, 3=Win Game, 4=Go To Level, 5=Add to User Global, 6=Destroy Named Entity)]
+-- DESCRIPTION: [@DESTROYED_ACTION=1(1=Event Triggers, 2=Lose Game, 3=Win Game, 4=Go To Level, 5=Add to User Global, 6=Deduct from User Global, 7=Destroy Named Entity)]
 -- DESCRIPTION: [ENTITY_NAME$=""] to destroy
--- DESCRIPTION: [@DISPLAY_HEALTH=2(1=Yes, 2=No)] to display health on monitored object
 -- DESCRIPTION: [@MONITOR_ACTIVE=1(1=Yes, 2=No)] if No then use a zone or switch to activate this monitor.
 -- DESCRIPTION: [ACTION_DELAY=2(0,100)] seconds delay before activating destroyed_action.
 -- DESCRIPTION: [@@USER_GLOBAL$=""(0=globallist)] user global to apply value (eg: MyGlobal).
@@ -19,23 +18,23 @@ local object_monitor 	= {}
 local object_name		= {}
 local destroyed_action	= {}
 local entity_name		= {}
-local display_health	= {}
 local monitor_active	= {}
 local action_delay		= {}
 local user_global 		= {}
 local user_global_value	= {}
 local resetstates		= {}
 
-local pEntn				= {}
 local dEntn				= {}
-local checks			= {}
+local mEnts				= {}
 local status			= {}
 local wait				= {}
 local actiondelay		= {}
 local checktime			= {}
 local currentvalue		= {}
+local tableName 		= {}
 
-function object_monitor_properties(e, object_name, destroyed_action, entity_name, display_health, monitor_active, action_delay, user_global, user_global_value, resetstates)
+
+function object_monitor_properties(e, object_name, destroyed_action, entity_name, monitor_active, action_delay, user_global, user_global_value, resetstates)
 	object_monitor[e].object_name = lower(object_name) or ""
 	object_monitor[e].destroyed_action = destroyed_action
 	object_monitor[e].entity_name = lower(entity_name) or ""
@@ -63,25 +62,26 @@ function object_monitor_init(e)
 	actiondelay[e] = math.huge
 	checktime[e] = 0
 	currentvalue[e] = 0
-	pEntn[e] = 0
 	dEntn[e] = 0
-	checks[e] = 0
+	mEnts[e] = 0
+	tableName[e] = "monitorlist" ..tostring(e)
+	_G[tableName[e]] = {}	
 	status[e] = "init"	
 end
 
 function object_monitor_main(e)
 
 	if status[e] == "init" then
-		checktime[e] = g_Time + 500		
+		checktime[e] = g_Time + 500
 		if object_monitor[e].monitor_active == 1 then SetEntityActivated(e,1) end
 		if object_monitor[e].monitor_active == 2 then SetEntityActivated(e,0) end		
 
-		if pEntn[e] == 0 then
+		if object_monitor[e].object_name ~= "" then
 			for n = 1, g_EntityElementMax do
 				if n ~= nil and g_Entity[n] ~= nil then
 					if lower(GetEntityName(n)) == object_monitor[e].object_name then 
-						pEntn[e] = n						
-						break
+						table.insert(_G[tableName[e]],n)
+						mEnts[e] = mEnts[e]+1						
 					end
 				end
 			end
@@ -100,34 +100,26 @@ function object_monitor_main(e)
 	end			
 
 	if g_Entity[e]['activated'] == 1 then
-
 		if status[e] == "monitor" and g_Time > checktime[e] then
-			if g_Entity[pEntn[e]].health <= 0 and object_monitor[e].destroyed_action == 1 then
-				wait[e] = g_Time + (object_monitor[e].action_delay*1000)				
-				if object_monitor[e].user_global > "" then
-					_G["g_UserGlobal['"..object_monitor[e].user_global.."']"] = object_monitor[e].user_global_value
-				end
-				status[e] = "alarm"
+			if mEnts[e] == 0 and object_monitor[e].destroyed_action == 1 then
+					wait[e] = g_Time + (object_monitor[e].action_delay*1000)				
+					status[e] = "alarm"
 			end
-			if g_Entity[pEntn[e]].health <= 0 and object_monitor[e].destroyed_action == 2 then
+			if mEnts[e] == 0 and object_monitor[e].destroyed_action == 2 then
 				wait[e] = g_Time + (object_monitor[e].action_delay*1000)
 				status[e] = "winorlose"
 			end
-			if g_Entity[pEntn[e]].health <= 0 and object_monitor[e].destroyed_action == 3 then			
+			if mEnts[e] == 0 and object_monitor[e].destroyed_action == 3 then
 				wait[e] = g_Time + (object_monitor[e].action_delay*1000)
-				if object_monitor[e].user_global > "" then
-					_G["g_UserGlobal['"..object_monitor[e].user_global.."']"] = object_monitor[e].user_global_value
-				end
 				status[e] = "winorlose"
 			end
-			if g_Entity[pEntn[e]].health <= 0 and object_monitor[e].destroyed_action == 4 then			
-				wait[e] = g_Time + (object_monitor[e].action_delay*1000)
-				if object_monitor[e].user_global > "" then
-					_G["g_UserGlobal['"..object_monitor[e].user_global.."']"] = object_monitor[e].user_global_value
-				end
-				status[e] = "winorlose"
+			if mEnts[e] == 0 and object_monitor[e].destroyed_action == 4 then
+				if mEnts[e] == 0 then
+					wait[e] = g_Time + (object_monitor[e].action_delay*1000)
+					status[e] = "winorlose"
+				end	
 			end
-			if g_Entity[pEntn[e]].health <= 0 and object_monitor[e].destroyed_action == 5 then			
+			if mEnts[e] == 0 and object_monitor[e].destroyed_action == 5 then
 				if _G["g_UserGlobal['"..object_monitor[e].user_global.."']"] ~= nil then
 					currentvalue[e] = _G["g_UserGlobal['"..object_monitor[e].user_global.."']"]
 					_G["g_UserGlobal['"..object_monitor[e].user_global.."']"] = currentvalue[e] + object_monitor[e].user_global_value
@@ -135,16 +127,18 @@ function object_monitor_main(e)
 				status[e] = "end"
 				SwitchScript(e,"no_behavior_selected.lua")
 			end
-			if g_Entity[pEntn[e]].health <= 0 and object_monitor[e].destroyed_action == 6 then			
-				wait[e] = g_Time + (object_monitor[e].action_delay*1000)
-				if object_monitor[e].user_global > "" then
-					_G["g_UserGlobal['"..object_monitor[e].user_global.."']"] = object_monitor[e].user_global_value
+			if mEnts[e] == 0 and object_monitor[e].destroyed_action == 6 then
+				if _G["g_UserGlobal['"..object_monitor[e].user_global.."']"] ~= nil then
+					currentvalue[e] = _G["g_UserGlobal['"..object_monitor[e].user_global.."']"]
+					_G["g_UserGlobal['"..object_monitor[e].user_global.."']"] = currentvalue[e] - object_monitor[e].user_global_value
 				end
+				status[e] = "end"
+				SwitchScript(e,"no_behavior_selected.lua")
+			end
+			if mEnts[e] == 0 and object_monitor[e].destroyed_action == 7 then
+				wait[e] = g_Time + (object_monitor[e].action_delay*1000)				
 				status[e] = "destroy"
 			end			
-			if object_monitor[e].display_health == 1 then
-				PromptLocal(pEntn[e],"Health: " ..g_Entity[pEntn[e]].health)
-			end
 			checktime[e] = g_Time + 500
 		end
 
@@ -154,7 +148,7 @@ function object_monitor_main(e)
 				ActivateIfUsed(e)
 				PerformLogicConnections(e)
 				status[e] = "end"
-				SwitchScript(e,"no_behavior_selected.lua")				
+				SwitchScript(e,"no_behavior_selected.lua")
 			end
 		end
 		
@@ -162,9 +156,7 @@ function object_monitor_main(e)
 			if g_Time > wait[e] then
 				if object_monitor[e].destroyed_action == 2 then LoseGame() end
 				if object_monitor[e].destroyed_action == 3 then WinGame() end
-				if object_monitor[e].destroyed_action == 4 then
-					JumpToLevelIfUsedEx(e,object_monitor[e].resetstates)
-				end
+				if object_monitor[e].destroyed_action == 4 then JumpToLevelIfUsedEx(e,object_monitor[e].resetstates) end
 				status[e] = "end"
 			end
 		end
@@ -173,8 +165,27 @@ function object_monitor_main(e)
 			if g_Time > wait[e] then
 				Destroy(dEntn[e])
 				status[e] = "end"
-				SwitchScript(e,"no_behavior_selected.lua")				
+				SwitchScript(e,"no_behavior_selected.lua")
 			end
 		end
-	end
+		
+		--Destroyed Monitored Objects check--
+		for _,a in pairs (_G[tableName[e]]) do
+			if g_Entity[a] ~= nil then
+				if g_Entity[a]['health'] <= 0 then						
+					table.remove(_G[tableName[e]], tableFind(_G[tableName[e]],a))
+					mEnts[e] = mEnts[e] -1
+				end
+			end
+		end		
+	end	
+end
+
+function tableFind(tbl, value)
+    for key, val in pairs(tbl) do
+        if val == value then
+            return key
+        end
+    end
+    return nil
 end
