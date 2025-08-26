@@ -37294,7 +37294,7 @@ void loadMarketplaceData(int* ggMaxDlc, cstr* ggMaxLink, int* sketchfabDlc, cstr
 		std::string fullImageDir = "";
 
 		//Have to convert strings to chars for LoadImage() to take it in
-		char converter[254];
+		char converter[1024];
 
 		for (int i = 0; i < numOfPromoItems; i++)
 		{

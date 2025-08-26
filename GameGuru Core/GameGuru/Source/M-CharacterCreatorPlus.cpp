@@ -1553,187 +1553,225 @@ void charactercreatorplus_refreshtype(void)
 
 	// scan for all character parts
 	cstr olddir_s = GetDir();
-	char pTempStr[260];
-	strcpy(pTempStr, "charactercreatorplus\\parts\\");
-	strcat(pTempStr, CCP_Type);
-	SetDir(pTempStr);
-	ChecklistForFiles();
-	charactercreatorplus_loadannotationlist();
-	
-	for (int c = 1; c <= ChecklistQuantity(); c++)
+	char pTempStr[1024];
+
+	//PE: Load parts avaiable from document folder.
+	for (int i = 0; i < 2; i++)
 	{
-		cStr tfile_s = Lower(ChecklistString(c));
-		if (tfile_s != "." && tfile_s != "..")
+		bool bActive = false;
+		if (i == 0)
 		{
-			char *find = NULL;
-			if (strcmp(Right(tfile_s.Get(), 10), "_color.dds") == 0)
+			strcpy(pTempStr, "charactercreatorplus\\parts\\");
+			strcat(pTempStr, CCP_Type);
+			SetDir(pTempStr);
+			bActive = true;
+		}
+		else
+		{
+			extern char szWriteDir[MAX_PATH];
+			extern char szBeforeChangeWriteDir[MAX_PATH];
+			//PE: WriteDir contain ducument folder and or remoteproject folder.
+			if (strlen(szWriteDir) > 0)
 			{
-				// base filename
-				char tmp[260];
-				strcpy(tmp, tfile_s.Get());
-				tmp[strlen(tmp) - 10] = 0; // remove _color.dds
-
-				// determine which list it goes into
-				if (pestrcasestr(tfile_s.Get(), " body "))
+				strcpy(pTempStr, szWriteDir);
+				strcat(pTempStr, "Files\\");
+				strcat(pTempStr, "charactercreatorplus\\parts\\");
+				strcat(pTempStr, CCP_Type);
+				SetDir(pTempStr);
+				bActive = true;
+			}
+			//PE: szBeforeChangeWriteDir contain document folder if using remoteproject , needed ?
+			/*
+			if (strlen(szBeforeChangeWriteDir) > 0)
+			{
+				strcpy(pTempStr, szBeforeChangeWriteDir);
+				strcat(pTempStr, "Files\\");
+				strcat(pTempStr, "charactercreatorplus\\parts\\");
+				SetDir(pTempStr);
+				bActive = true;
+			}
+			*/
+		}
+		if (bActive)
+		{
+			ChecklistForFiles();
+			charactercreatorplus_loadannotationlist();
+			for (int c = 1; c <= ChecklistQuantity(); c++)
+			{
+				cStr tfile_s = Lower(ChecklistString(c));
+				if (tfile_s != "." && tfile_s != "..")
 				{
-					CharacterCreatorBody_s.insert(std::make_pair(tmp, pPartsPath));
-					LPSTR pAnnotatedLabel = charactercreatorplus_findannotation(tmp);
-					if (pAnnotatedLabel)
-						CharacterCreatorAnnotatedBody_s.insert(std::make_pair(tmp, pAnnotatedLabel));
-					else
-						CharacterCreatorAnnotatedBody_s.insert(std::make_pair(tmp, tmp));
-					LPSTR pAnnotatedTagLabel = charactercreatorplus_findannotationtag(tmp);
-					if (pAnnotatedTagLabel)
-						CharacterCreatorAnnotatedTagBody_s.insert(std::make_pair(tmp, pAnnotatedTagLabel));
-					else
-						CharacterCreatorAnnotatedTagBody_s.insert(std::make_pair(tmp, ""));
+					char* find = NULL;
+					if (strcmp(Right(tfile_s.Get(), 10), "_color.dds") == 0)
+					{
+						// base filename
+						char tmp[260];
+						strcpy(tmp, tfile_s.Get());
+						tmp[strlen(tmp) - 10] = 0; // remove _color.dds
 
-					bool bBodyFilterThisOut = false;
-					if (stricmp(CCP_Type, "zombie male") != NULL && stricmp(CCP_Type, "zombie female") != NULL)
-					{
-						if (tmp[strlen(tmp) - 1] != '1' && tmp[strlen(tmp) - 1] != 'a') bBodyFilterThisOut = true;
-					}
-					if (strlen(cSelectedBody) == 0 && bBodyFilterThisOut == false)
-					{
-						// for body, do we need no legs?
-						if (pAnnotatedTagLabel)
+						// determine which list it goes into
+						if (pestrcasestr(tfile_s.Get(), " body "))
 						{
-							if (strstr(pAnnotatedTagLabel, "No Legs") != NULL)
-							{
-								strcpy(cSelectedLegsFilter, "No Legs");
-								pOptionalLegsChoice = "01";
-							}
-						}
-						
-						// and this is the default body
-						strcpy(cSelectedBody, tmp);
-					}
-				}
-				else if (pestrcasestr(tfile_s.Get(), " feet "))
-				{
-					CharacterCreatorFeet_s.insert(std::make_pair(tmp, pPartsPath));
-					LPSTR pAnnotatedLabel = charactercreatorplus_findannotation(tmp);
-					if (pAnnotatedLabel)
-						CharacterCreatorAnnotatedFeet_s.insert(std::make_pair(tmp, pAnnotatedLabel));
-					else
-						CharacterCreatorAnnotatedFeet_s.insert(std::make_pair(tmp, tmp));
-					LPSTR pAnnotatedTagLabel = charactercreatorplus_findannotationtag(tmp);
-					if (pAnnotatedTagLabel)
-						CharacterCreatorAnnotatedTagFeet_s.insert(std::make_pair(tmp, pAnnotatedTagLabel));
-					else
-						CharacterCreatorAnnotatedTagFeet_s.insert(std::make_pair(tmp, ""));
-					if (strlen(cSelectedFeet) == 0) strcpy(cSelectedFeet, tmp);
-				}
-				else if (pestrcasestr(tfile_s.Get(), " hair "))
-				{
-					CharacterCreatorHair_s.insert(std::make_pair(tmp, pPartsPath));
-					LPSTR pAnnotatedLabel = charactercreatorplus_findannotation(tmp);
-					if (pAnnotatedLabel)
-						CharacterCreatorAnnotatedHair_s.insert(std::make_pair(tmp, pAnnotatedLabel));
-					else
-						CharacterCreatorAnnotatedHair_s.insert(std::make_pair(tmp, tmp));
-					LPSTR pAnnotatedTagLabel = charactercreatorplus_findannotationtag(tmp);
-					if (pAnnotatedTagLabel)
-						CharacterCreatorAnnotatedTagHair_s.insert(std::make_pair(tmp, pAnnotatedTagLabel));
-					else
-						CharacterCreatorAnnotatedTagHair_s.insert(std::make_pair(tmp, ""));
-					if (strlen(cSelectedHair) == 0) strcpy(cSelectedHair, tmp);
-				}
-				else if (pestrcasestr(tfile_s.Get(), " head "))
-				{
-					CharacterCreatorHead_s.insert(std::make_pair(tmp, pPartsPath));
-					LPSTR pAnnotatedLabel = charactercreatorplus_findannotation(tmp);
-					if (pAnnotatedLabel)
-						CharacterCreatorAnnotatedHead_s.insert(std::make_pair(tmp, pAnnotatedLabel));
-					else
-						CharacterCreatorAnnotatedHead_s.insert(std::make_pair(tmp, tmp));
-					LPSTR pAnnotatedTagLabel = charactercreatorplus_findannotationtag(tmp);
-					if (pAnnotatedTagLabel)
-						CharacterCreatorAnnotatedTagHead_s.insert(std::make_pair(tmp, pAnnotatedTagLabel));
-					else
-						CharacterCreatorAnnotatedTagHead_s.insert(std::make_pair(tmp, ""));
-					if (strlen(cSelectedHead) == 0) strcpy(cSelectedHead, tmp);
-				}
-				else if (pestrcasestr(tfile_s.Get(), " legs "))
-				{
-					CharacterCreatorLegs_s.insert(std::make_pair(tmp, pPartsPath));
-					LPSTR pAnnotatedLabel = charactercreatorplus_findannotation(tmp);
-					if (pAnnotatedLabel)
-						CharacterCreatorAnnotatedLegs_s.insert(std::make_pair(tmp, pAnnotatedLabel));
-					else
-						CharacterCreatorAnnotatedLegs_s.insert(std::make_pair(tmp, tmp));
-					LPSTR pAnnotatedTagLabel = charactercreatorplus_findannotationtag(tmp);
-					if (pAnnotatedTagLabel)
-						CharacterCreatorAnnotatedTagLegs_s.insert(std::make_pair(tmp, pAnnotatedTagLabel));
-					else
-						CharacterCreatorAnnotatedTagLegs_s.insert(std::make_pair(tmp, ""));
-
-					// if require no legs, always choose 01 for default
-					if (strlen(cSelectedLegs) == 0)
-					{
-						bool bLegsFilterThisOut = false;
-						if (stricmp(CCP_Type, "zombie male") != NULL && stricmp(CCP_Type, "zombie female") != NULL)
-						{
-							bLegsFilterThisOut = true;
-							if (strstr(pOptionalLegsChoice, "01") != NULL)
-							{
-								if (strlen(cSelectedLegs) == 0 && tmp[strlen(tmp) - 1] == '1') bLegsFilterThisOut = false;
-							}
+							CharacterCreatorBody_s.insert(std::make_pair(tmp, pPartsPath));
+							LPSTR pAnnotatedLabel = charactercreatorplus_findannotation(tmp);
+							if (pAnnotatedLabel)
+								CharacterCreatorAnnotatedBody_s.insert(std::make_pair(tmp, pAnnotatedLabel));
 							else
+								CharacterCreatorAnnotatedBody_s.insert(std::make_pair(tmp, tmp));
+							LPSTR pAnnotatedTagLabel = charactercreatorplus_findannotationtag(tmp);
+							if (pAnnotatedTagLabel)
+								CharacterCreatorAnnotatedTagBody_s.insert(std::make_pair(tmp, pAnnotatedTagLabel));
+							else
+								CharacterCreatorAnnotatedTagBody_s.insert(std::make_pair(tmp, ""));
+
+							bool bBodyFilterThisOut = false;
+							if (stricmp(CCP_Type, "zombie male") != NULL && stricmp(CCP_Type, "zombie female") != NULL)
 							{
-								if (strlen(cSelectedLegs) == 0 && tmp[strlen(tmp) - 1] != '1') bLegsFilterThisOut = false;
+								if (tmp[strlen(tmp) - 1] != '1' && tmp[strlen(tmp) - 1] != 'a') bBodyFilterThisOut = true;
+							}
+							if (strlen(cSelectedBody) == 0 && bBodyFilterThisOut == false)
+							{
+								// for body, do we need no legs?
+								if (pAnnotatedTagLabel)
+								{
+									if (strstr(pAnnotatedTagLabel, "No Legs") != NULL)
+									{
+										strcpy(cSelectedLegsFilter, "No Legs");
+										pOptionalLegsChoice = "01";
+									}
+								}
+
+								// and this is the default body
+								strcpy(cSelectedBody, tmp);
 							}
 						}
-						if (bLegsFilterThisOut == false)
+						else if (pestrcasestr(tfile_s.Get(), " feet "))
 						{
-							strcpy(cSelectedLegs, tmp);
+							CharacterCreatorFeet_s.insert(std::make_pair(tmp, pPartsPath));
+							LPSTR pAnnotatedLabel = charactercreatorplus_findannotation(tmp);
+							if (pAnnotatedLabel)
+								CharacterCreatorAnnotatedFeet_s.insert(std::make_pair(tmp, pAnnotatedLabel));
+							else
+								CharacterCreatorAnnotatedFeet_s.insert(std::make_pair(tmp, tmp));
+							LPSTR pAnnotatedTagLabel = charactercreatorplus_findannotationtag(tmp);
+							if (pAnnotatedTagLabel)
+								CharacterCreatorAnnotatedTagFeet_s.insert(std::make_pair(tmp, pAnnotatedTagLabel));
+							else
+								CharacterCreatorAnnotatedTagFeet_s.insert(std::make_pair(tmp, ""));
+							if (strlen(cSelectedFeet) == 0) strcpy(cSelectedFeet, tmp);
+						}
+						else if (pestrcasestr(tfile_s.Get(), " hair "))
+						{
+							CharacterCreatorHair_s.insert(std::make_pair(tmp, pPartsPath));
+							LPSTR pAnnotatedLabel = charactercreatorplus_findannotation(tmp);
+							if (pAnnotatedLabel)
+								CharacterCreatorAnnotatedHair_s.insert(std::make_pair(tmp, pAnnotatedLabel));
+							else
+								CharacterCreatorAnnotatedHair_s.insert(std::make_pair(tmp, tmp));
+							LPSTR pAnnotatedTagLabel = charactercreatorplus_findannotationtag(tmp);
+							if (pAnnotatedTagLabel)
+								CharacterCreatorAnnotatedTagHair_s.insert(std::make_pair(tmp, pAnnotatedTagLabel));
+							else
+								CharacterCreatorAnnotatedTagHair_s.insert(std::make_pair(tmp, ""));
+							if (strlen(cSelectedHair) == 0) strcpy(cSelectedHair, tmp);
+						}
+						else if (pestrcasestr(tfile_s.Get(), " head "))
+						{
+							CharacterCreatorHead_s.insert(std::make_pair(tmp, pPartsPath));
+							LPSTR pAnnotatedLabel = charactercreatorplus_findannotation(tmp);
+							if (pAnnotatedLabel)
+								CharacterCreatorAnnotatedHead_s.insert(std::make_pair(tmp, pAnnotatedLabel));
+							else
+								CharacterCreatorAnnotatedHead_s.insert(std::make_pair(tmp, tmp));
+							LPSTR pAnnotatedTagLabel = charactercreatorplus_findannotationtag(tmp);
+							if (pAnnotatedTagLabel)
+								CharacterCreatorAnnotatedTagHead_s.insert(std::make_pair(tmp, pAnnotatedTagLabel));
+							else
+								CharacterCreatorAnnotatedTagHead_s.insert(std::make_pair(tmp, ""));
+							if (strlen(cSelectedHead) == 0) strcpy(cSelectedHead, tmp);
+						}
+						else if (pestrcasestr(tfile_s.Get(), " legs "))
+						{
+							CharacterCreatorLegs_s.insert(std::make_pair(tmp, pPartsPath));
+							LPSTR pAnnotatedLabel = charactercreatorplus_findannotation(tmp);
+							if (pAnnotatedLabel)
+								CharacterCreatorAnnotatedLegs_s.insert(std::make_pair(tmp, pAnnotatedLabel));
+							else
+								CharacterCreatorAnnotatedLegs_s.insert(std::make_pair(tmp, tmp));
+							LPSTR pAnnotatedTagLabel = charactercreatorplus_findannotationtag(tmp);
+							if (pAnnotatedTagLabel)
+								CharacterCreatorAnnotatedTagLegs_s.insert(std::make_pair(tmp, pAnnotatedTagLabel));
+							else
+								CharacterCreatorAnnotatedTagLegs_s.insert(std::make_pair(tmp, ""));
+
+							// if require no legs, always choose 01 for default
+							if (strlen(cSelectedLegs) == 0)
+							{
+								bool bLegsFilterThisOut = false;
+								if (stricmp(CCP_Type, "zombie male") != NULL && stricmp(CCP_Type, "zombie female") != NULL)
+								{
+									bLegsFilterThisOut = true;
+									if (strstr(pOptionalLegsChoice, "01") != NULL)
+									{
+										if (strlen(cSelectedLegs) == 0 && tmp[strlen(tmp) - 1] == '1') bLegsFilterThisOut = false;
+									}
+									else
+									{
+										if (strlen(cSelectedLegs) == 0 && tmp[strlen(tmp) - 1] != '1') bLegsFilterThisOut = false;
+									}
+								}
+								if (bLegsFilterThisOut == false)
+								{
+									strcpy(cSelectedLegs, tmp);
+								}
+							}
+						}
+						else if (pestrcasestr(tfile_s.Get(), " headgear "))
+						{
+							CharacterCreatorHeadGear_s.insert(std::make_pair(tmp, pPartsPath));
+							LPSTR pAnnotatedLabel = charactercreatorplus_findannotation(tmp);
+							if (pAnnotatedLabel)
+								CharacterCreatorAnnotatedHeadGear_s.insert(std::make_pair(tmp, pAnnotatedLabel));
+							else
+								CharacterCreatorAnnotatedHeadGear_s.insert(std::make_pair(tmp, tmp));
+							LPSTR pAnnotatedTagLabel = charactercreatorplus_findannotationtag(tmp);
+							if (pAnnotatedTagLabel)
+								CharacterCreatorAnnotatedTagHeadGear_s.insert(std::make_pair(tmp, pAnnotatedTagLabel));
+							else
+								CharacterCreatorAnnotatedTagHeadGear_s.insert(std::make_pair(tmp, ""));
+							if (strlen(cSelectedHeadGear) == 0) strcpy(cSelectedHeadGear, tmp);
+						}
+						else if (pestrcasestr(tfile_s.Get(), " facialhair "))
+						{
+							CharacterCreatorFacialHair_s.insert(std::make_pair(tmp, pPartsPath));
+							LPSTR pAnnotatedLabel = charactercreatorplus_findannotation(tmp);
+							if (pAnnotatedLabel)
+								CharacterCreatorAnnotatedFacialHair_s.insert(std::make_pair(tmp, pAnnotatedLabel));
+							else
+								CharacterCreatorAnnotatedFacialHair_s.insert(std::make_pair(tmp, tmp));
+							LPSTR pAnnotatedTagLabel = charactercreatorplus_findannotationtag(tmp);
+							if (pAnnotatedTagLabel)
+								CharacterCreatorAnnotatedTagFacialHair_s.insert(std::make_pair(tmp, pAnnotatedTagLabel));
+							else
+								CharacterCreatorAnnotatedTagFacialHair_s.insert(std::make_pair(tmp, ""));
+							if (strlen(cSelectedFacialHair) == 0) strcpy(cSelectedFacialHair, tmp);
+						}
+						else if (pestrcasestr(tfile_s.Get(), " eyeglasses "))
+						{
+							CharacterCreatorEyeglasses_s.insert(std::make_pair(tmp, pPartsPath));
+							LPSTR pAnnotatedLabel = charactercreatorplus_findannotation(tmp);
+							if (pAnnotatedLabel)
+								CharacterCreatorAnnotatedEyeglasses_s.insert(std::make_pair(tmp, pAnnotatedLabel));
+							else
+								CharacterCreatorAnnotatedEyeglasses_s.insert(std::make_pair(tmp, tmp));
+							LPSTR pAnnotatedTagLabel = charactercreatorplus_findannotationtag(tmp);
+							if (pAnnotatedTagLabel)
+								CharacterCreatorAnnotatedTagEyeglasses_s.insert(std::make_pair(tmp, pAnnotatedTagLabel));
+							else
+								CharacterCreatorAnnotatedTagEyeglasses_s.insert(std::make_pair(tmp, ""));
+							if (strlen(cSelectedEyeglasses) == 0) strcpy(cSelectedEyeglasses, tmp);
 						}
 					}
-				}
-				else if (pestrcasestr(tfile_s.Get(), " headgear "))
-				{
-					CharacterCreatorHeadGear_s.insert(std::make_pair(tmp, pPartsPath));
-					LPSTR pAnnotatedLabel = charactercreatorplus_findannotation(tmp);
-					if (pAnnotatedLabel)
-						CharacterCreatorAnnotatedHeadGear_s.insert(std::make_pair(tmp, pAnnotatedLabel));
-					else
-						CharacterCreatorAnnotatedHeadGear_s.insert(std::make_pair(tmp, tmp));
-					LPSTR pAnnotatedTagLabel = charactercreatorplus_findannotationtag(tmp);
-					if (pAnnotatedTagLabel)
-						CharacterCreatorAnnotatedTagHeadGear_s.insert(std::make_pair(tmp, pAnnotatedTagLabel));
-					else
-						CharacterCreatorAnnotatedTagHeadGear_s.insert(std::make_pair(tmp, ""));
-					if (strlen(cSelectedHeadGear) == 0) strcpy(cSelectedHeadGear, tmp);
-				}
-				else if (pestrcasestr(tfile_s.Get(), " facialhair "))
-				{
-					CharacterCreatorFacialHair_s.insert(std::make_pair(tmp, pPartsPath));
-					LPSTR pAnnotatedLabel = charactercreatorplus_findannotation(tmp);
-					if (pAnnotatedLabel)
-						CharacterCreatorAnnotatedFacialHair_s.insert(std::make_pair(tmp, pAnnotatedLabel));
-					else
-						CharacterCreatorAnnotatedFacialHair_s.insert(std::make_pair(tmp, tmp));
-					LPSTR pAnnotatedTagLabel = charactercreatorplus_findannotationtag(tmp);
-					if (pAnnotatedTagLabel)
-						CharacterCreatorAnnotatedTagFacialHair_s.insert(std::make_pair(tmp, pAnnotatedTagLabel));
-					else
-						CharacterCreatorAnnotatedTagFacialHair_s.insert(std::make_pair(tmp, ""));
-					if (strlen(cSelectedFacialHair) == 0) strcpy(cSelectedFacialHair, tmp);
-				}
-				else if (pestrcasestr(tfile_s.Get(), " eyeglasses "))
-				{
-					CharacterCreatorEyeglasses_s.insert(std::make_pair(tmp, pPartsPath));
-					LPSTR pAnnotatedLabel = charactercreatorplus_findannotation(tmp);
-					if (pAnnotatedLabel)
-						CharacterCreatorAnnotatedEyeglasses_s.insert(std::make_pair(tmp, pAnnotatedLabel));
-					else
-						CharacterCreatorAnnotatedEyeglasses_s.insert(std::make_pair(tmp, tmp));
-					LPSTR pAnnotatedTagLabel = charactercreatorplus_findannotationtag(tmp);
-					if (pAnnotatedTagLabel)
-						CharacterCreatorAnnotatedTagEyeglasses_s.insert(std::make_pair(tmp, pAnnotatedTagLabel));
-					else
-						CharacterCreatorAnnotatedTagEyeglasses_s.insert(std::make_pair(tmp, ""));
-					if (strlen(cSelectedEyeglasses) == 0) strcpy(cSelectedEyeglasses, tmp);
 				}
 			}
 		}
