@@ -1,4 +1,4 @@
--- V5 by Lee and Necrym59
+-- V6 by Lee and Necrym59
 -- DESCRIPTION: When the player enters this zone any zones with the same script which are currently playing ambience/background music/sounds stops and audio from this zone is looped.
 -- DESCRIPTION:[!OnlyPlayInZone=0] will cause the sound to stop playing when the player leaves the zone.
 -- DESCRIPTION:[ZONEHEIGHT=100] controls how far above the zone the player can be before the zone is not triggered.
@@ -18,11 +18,11 @@ removed = {}
 
 function ambienceinzone_properties(e, onlyplayinzone, zoneheight, SpawnAtStart, SoundVolume, FadeInSpeed, FadeOutSpeed)
 	g_ambienceinzone[e]['onlyplayinzone'] = onlyplayinzone or 0
-	g_ambienceinzone[e]['zoneheight'] = zoneheight
+	g_ambienceinzone[e]['zoneheight'] = zoneheight or 100
 	g_ambienceinzone[e]['spawnatstart'] = SpawnAtStart or 1
-	g_ambienceinzone[e]['volume'] = SoundVolume	
-	g_ambienceinzone[e]['fadeinspeed'] = FadeInSpeed
-	g_ambienceinzone[e]['fadeoutspeed'] = FadeOutSpeed
+	g_ambienceinzone[e]['volume'] = SoundVolume	or 100
+	g_ambienceinzone[e]['fadeinspeed'] = FadeInSpeed or 100
+	g_ambienceinzone[e]['fadeoutspeed'] = FadeOutSpeed or 100
 end 
 
 function ambienceinzone_init(e)
@@ -31,9 +31,8 @@ function ambienceinzone_init(e)
 	g_ambienceinzone[e]['zoneheight'] = 100
 	g_ambienceinzone[e]['spawnatstart'] = 1	
 	g_ambienceinzone[e]['volume'] = 100	
-	g_ambienceinzone[e]['fadeinspeed'] = 0.05
-	g_ambienceinzone[e]['fadeoutspeed'] = 0.05	
-
+	g_ambienceinzone[e]['fadeinspeed'] = 0.1
+	g_ambienceinzone[e]['fadeoutspeed'] = 0.2
 	status[e] = "init"
 	sndvol[e] = 0
 	played[e] = 0
@@ -71,7 +70,6 @@ function ambienceinzone_main(e)
 				if played[e] == 0 and removed[e] == 1 then  -- Set New Sound					
 					LoopNon3DSound(e,0)
 					SetSoundMusicMode(GetEntityRawSound(e,0),1)	
-					SetRawSoundVolume(GetEntityRawSound(e,0),sndvol[e])
 					sndvol[e] = sndvol[e] + g_ambienceinzone[e]['fadeinspeed']
 					if sndvol[e] >= g_ambienceinzone[e]['volume'] then
 						sndvol[e] = g_ambienceinzone[e]['volume']
@@ -82,6 +80,7 @@ function ambienceinzone_main(e)
 					if sndvol[e] < g_ambienceinzone[e]['volume'] then
 						g_ambienceinzone_soundvolume = sndvol[e]
 					end	
+					SetRawSoundVolume(GetEntityRawSound(e,0),sndvol[e])
 				end
 			end				
 		end

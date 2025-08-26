@@ -6753,6 +6753,12 @@ void entity_loadelementsdata(void)
 	sprintf(pLoadEntityDataBefore, "c_entity_loadelementsdata before: %d", g.entityelementmax);
 	timestampactivity(0, pLoadEntityDataBefore);
 	c_entity_loadelementsdata();
+
+	extern bool bKeepWindowsResponding;
+	void EmptyMessages(void);
+	if (bKeepWindowsResponding)
+		EmptyMessages();
+
 	char pLoadEntityDataAfter[MAX_PATH];
 	sprintf(pLoadEntityDataAfter, "c_entity_loadelementsdata after: %d", g.entityelementmax);
 	timestampactivity(0, pLoadEntityDataAfter);
@@ -6771,6 +6777,10 @@ void entity_loadelementsdata(void)
 		extern int g_iAddEntityElementsMode;
 		g_iAddEntityElementsMode = 2;
 		c_entity_loadelementsdata();
+
+		if (bKeepWindowsResponding)
+			EmptyMessages();
+
 		t.elementsfilename_s = storeoldELEfile;
 		g_iAddEntityElementsMode = 0;
 
@@ -6811,6 +6821,10 @@ void entity_loadelementsdata(void)
 							extern int g_iAddEntitiesMode;
 							g_iAddEntitiesMode = 1;
 							entity_loadentitiesnow();
+
+							if (bKeepWindowsResponding)
+								EmptyMessages();
+
 							g_iAddEntitiesMode = 0;
 						}
 						t.entityelement[i].bankindex = iFoundMatchEntID;
@@ -6851,6 +6865,10 @@ void entity_loadelementsdata(void)
 							}
 						}
 					}
+
+					if (bKeepWindowsResponding)
+						EmptyMessages();
+
 					extern void ReloadEntityIDInSitu(int);
 					ReloadEntityIDInSitu (iFoundEntID);
 				}
@@ -6866,6 +6884,10 @@ void entity_loadelementsdata(void)
 		sprintf(pLogCollectionCountBefore, "Collection list size before: %d", g_collectionList.size());
 		timestampactivity(0, pLogCollectionCountBefore);
 		bool bLoadingLevel = true;
+
+		if (bKeepWindowsResponding)
+			EmptyMessages();
+
 		if (refresh_collection_from_entities(bLoadingLevel) == true)
 		{
 			// after
@@ -7012,6 +7034,8 @@ void entity_loadelementsdata(void)
 				extern int g_iAddEntitiesMode;
 				g_iAddEntitiesMode = 1;
 				entity_loadentitiesnow();
+				if (bKeepWindowsResponding)
+					EmptyMessages();
 				g_iAddEntitiesMode = 0;
 			}
 
@@ -7027,6 +7051,10 @@ void entity_loadelementsdata(void)
 			extern int g_iAddEntityElementsMode;
 			g_iAddEntityElementsMode = 1;
 			c_entity_loadelementsdata();
+
+			if (bKeepWindowsResponding)
+				EmptyMessages();
+
 			t.elementsfilename_s = storeoldELEfile;
 			g_iAddEntityElementsMode = 0;
 
@@ -7166,6 +7194,10 @@ void entity_loadelementsdata(void)
 						t.gridentityscalez_f = 100;
 						t.entid = entid; entity_fillgrideleproffromprofile();
 						entity_addentitytomap ();
+
+						if (bKeepWindowsResponding)
+							EmptyMessages();
+
 						t.e = t.tupdatee;
 						t.entityelement[t.e].x = -99999;
 						t.entityelement[t.e].y = -99999;
@@ -7209,6 +7241,9 @@ void entity_loadelementsdata(void)
 				// ensure collection list and ELE file up to date
 				extern preferences pref;
 				save_rpg_system(pref.cLastUsedStoryboardProject, true);
+				if (bKeepWindowsResponding)
+					EmptyMessages();
+
 			}
 
 			// also to fix older saves, remove any off-level duplicates
@@ -7262,6 +7297,9 @@ void entity_loadelementsdata(void)
 
 			// and a full pass to convert any parent objects into collectables if the collection list has them
 			refresh_rpg_parents_of_items();
+			if (bKeepWindowsResponding)
+				EmptyMessages();
+
 		}
 	}
 
@@ -8374,12 +8412,20 @@ void entity_loadbank ( void )
 	 }
 	#endif
 
+	 extern bool bKeepWindowsResponding;
+	 void EmptyMessages(void);
+	 if (bKeepWindowsResponding)
+		 EmptyMessages();
+
 	//  If ent file exists
 	t.filename_s=t.levelmapptah_s+"map.ent";
 	if (  FileExist(t.filename_s.Get()) == 1 ) 
 	{
 		//  Destroy old entities
 		entity_deletebank ( );
+
+		if (bKeepWindowsResponding)
+			EmptyMessages();
 
 		//  Load entity bank
 		OpenToRead (  1, cstr(t.levelmapptah_s+"map.ent").Get() );
@@ -8462,6 +8508,10 @@ void entity_loadbank ( void )
 					}
 				}
 			}
+
+			if (bKeepWindowsResponding)
+				EmptyMessages();
+
 			//  go through all entities FPM is about to use
 			for ( t.entid = 1 ; t.entid <= g.entidmaster; t.entid++ )
 			{
@@ -8526,6 +8576,9 @@ void entity_loadbank ( void )
 			//  retain replacements$() for later in loadelementsdata
 		}
 
+		if (bKeepWindowsResponding)
+			EmptyMessages();
+
 		//  Load in all entity objects and data
 		entity_loadentitiesnow ( );
 	}
@@ -8549,6 +8602,11 @@ void entity_loadentitiesnow ( void )
 		if (g_iAddEntitiesMode > 0) iFrom = g_iAddEntitiesModeFrom;
 		for ( t.entid = iFrom; t.entid <= g.entidmaster; t.entid++ )
 		{
+			extern bool bKeepWindowsResponding;
+			void EmptyMessages(void);
+			if (bKeepWindowsResponding)
+				EmptyMessages();
+
 			// set entity name and load it in
 			t.entdir_s = "entitybank\\";
 			t.ent_s = t.entitybank_s[t.entid];
@@ -9672,6 +9730,7 @@ void preload_wicked_particle_effect(newparticletype* pParticle, int decal_id)
 					uint32_t root = 0;
 					Entity new_root = 0;
 					uint32_t count_before = scene.emitters.GetCount();
+					uint32_t mat_count_before = scene.materials.GetCount();
 
 					char path[MAX_PATH];
 					strcpy(path, pParticle->emittername.Get());
@@ -9690,6 +9749,7 @@ void preload_wicked_particle_effect(newparticletype* pParticle, int decal_id)
 					if (count_before != count_after)
 					{
 						Entity emitter = scene.emitters.GetEntity(scene.emitters.GetCount() - 1);
+						Entity matemitter = scene.materials.GetEntity(scene.materials.GetCount() - 1);
 						if (scene.emitters.GetCount() > 0)
 						{
 							HierarchyComponent* hier = scene.hierarchy.GetComponent(emitter);
@@ -9704,6 +9764,28 @@ void preload_wicked_particle_effect(newparticletype* pParticle, int decal_id)
 							//ec->Restart();
 							ec->SetVisible(true);
 						}
+
+						if (master_root > 0)
+						{
+							//PE: resource sometimes empty when using Entity_Duplicate.
+							int from = mat_count_before;
+							int to = scene.materials.GetCount();
+							for (; from < to; from++)
+							{
+								for (int a = 0; a < MaterialComponent::EMISSIVEMAP; a++)
+								{
+									if (scene.materials[from].textures[a].name.size() > 0)
+									{
+										if (!scene.materials[from].textures[a].resource)
+										{
+											scene.materials[from].textures[a].resource = WickedCall_LoadImage(scene.materials[from].textures[a].name);
+										}
+									}
+								}
+								scene.materials[from].SetDirty();
+							}
+						}
+
 					}
 					if (root != 0)
 					{

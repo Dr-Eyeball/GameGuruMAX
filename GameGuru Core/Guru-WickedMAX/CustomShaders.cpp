@@ -72,6 +72,7 @@ Shader shaderPrepassTreeAnimateVS;
 Shader shaderShadowTreeAnimateVS;
 Shader shaderWaterPS;
 Shader shaderGlassPS;
+Shader shaderGridPS;
 
 void AddCustomShaders(void)
 {
@@ -156,5 +157,23 @@ void AddCustomShaders(void)
 	customglassShader.pso[RENDERPASS_MAIN] = psoglass;
 	customglassShader.pso[RENDERPASS_SHADOW] = psoglassshadow;
 	RegisterCustomShader(customglassShader);
+
+	//PE: Grid object.
+	PipelineState psogrid;
+	PipelineStateDesc descgrid;
+	CustomShader customgridShader;
+	if (!LoadShader(PS, shaderGridPS, "objectPS_grid.cso"))
+		customgridShader.bActive = false;
+	wiRenderer::AddPipelineDesc(descgrid, RENDERPASS_MAIN, PSTYPE_OBJECT, MaterialComponent::SHADERTYPE::SHADERTYPE_PBR, BLENDMODE_ALPHA, OBJECTRENDERING_DOUBLESIDED_DISABLED, false, false, true);
+
+	if (customgridShader.bActive)
+	{
+		descgrid.ps = &shaderGridPS;
+	}
+	wiRenderer::GetDevice()->CreatePipelineState(&descgrid, &psogrid);
+	customgridShader.name = "grid Object";
+	customgridShader.renderTypeFlags = RENDERTYPE_TRANSPARENT; // RENDERTYPE_TRANSPARENT;
+	customgridShader.pso[RENDERPASS_MAIN] = psogrid;
+	RegisterCustomShader(customgridShader);
 
 }

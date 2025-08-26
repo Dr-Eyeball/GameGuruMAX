@@ -2359,28 +2359,54 @@ void entity_loopanim ( void )
 				if (t.tobj > 0)
 				{
 					float fNextFrame = g.timeelapsed_f*t.entityelement[t.e].fDecalSpeed;
-
-					t.entityelement[t.e].fDecalFrame = t.entityelement[t.e].fDecalFrame + fNextFrame;
-					if (t.entityelement[t.e].fDecalFrame < 0) t.entityelement[t.e].fDecalFrame = 0;
-					if (t.entityelement[t.e].fDecalFrame > (t.entityprofile[t.entid].iDecalRows*t.entityprofile[t.entid].iDecalColumns))
-						t.entityelement[t.e].fDecalFrame = 0;
-
-					if (g_bUVDataChangeObjectSeqOnce == false && t.e > g_iUVDataChangeObjectSeqE)
+					if ((int)t.entityelement[t.e].fDecalFrame != (int)(t.entityelement[t.e].fDecalFrame + fNextFrame))
 					{
-						if (ObjectExist(t.tobj) == 1)
+						t.entityelement[t.e].fDecalFrame = t.entityelement[t.e].fDecalFrame + fNextFrame;
+						if (t.entityelement[t.e].fDecalFrame < 0) t.entityelement[t.e].fDecalFrame = 0;
+						if (t.entityelement[t.e].fDecalFrame > (t.entityprofile[t.entid].iDecalRows * t.entityprofile[t.entid].iDecalColumns))
+							t.entityelement[t.e].fDecalFrame = 0;
+
+						//PE: Way faster way to set decals UV now also animate smooth.
+						sObject* pObject = GetObjectData(t.tobj);
+						if (pObject)
 						{
-							LockVertexDataForLimbCore(t.tobj, 0, 1);
-							SetVertexDataNormals(0, 0, 1, 0);
-							SetVertexDataNormals(1, 0, 1, 0);
-							SetVertexDataNormals(2, 0, 1, 0);
-							SetVertexDataNormals(3, 0, 1, 0);
-							SetVertexDataNormals(4, 0, 1, 0);
-							SetVertexDataNormals(5, 0, 1, 0);
-							UnlockVertexData();
-							SetObjectUVManually(t.tobj, t.entityelement[t.e].fDecalFrame, t.entityprofile[t.entid].iDecalRows, t.entityprofile[t.entid].iDecalColumns);
+							float scaleu = 1.0f / t.entityprofile[t.entid].iDecalColumns;
+							float scalev = 1.0f / t.entityprofile[t.entid].iDecalRows;
+							int iFrameIndex = t.entityelement[t.e].fDecalFrame;
+							int iColumns = t.entityprofile[t.entid].iDecalColumns;
+							int row = iFrameIndex / iColumns;
+							int col = iFrameIndex % iColumns;
+							float offsetu = col * scaleu;
+							float offsetv = row * scalev;
+							WickedCall_SetObjectTextureUV(pObject, 1.0f, 1.0f, offsetu, offsetv);
+							//PE: HLSL code why 1.0,1.0 works.
+							//material.texMulAdd.xy = scale
+							//material.texMulAdd.zw = offset
+							//input.uvsets = float4(input.GetUV0() * material.texMulAdd.xy + material.texMulAdd.zw, input.GetUV1());
+							//const float2 UV_baseColorMap = GetMaterial().uvset_baseColorMap == 0 ? input.uvsets.xy : input.uvsets.zw;
 						}
-						g_bUVDataChangeObjectSeqOnce = true;
-						g_iUVDataChangeObjectSeqE = t.e;
+						//PE: old way.
+						//if (g_bUVDataChangeObjectSeqOnce == false && t.e > g_iUVDataChangeObjectSeqE)
+						//{
+						//	if (ObjectExist(t.tobj) == 1)
+						//	{
+						//		LockVertexDataForLimbCore(t.tobj, 0, 1);
+						//		SetVertexDataNormals(0, 0, 1, 0);
+						//		SetVertexDataNormals(1, 0, 1, 0);
+						//		SetVertexDataNormals(2, 0, 1, 0);
+						//		SetVertexDataNormals(3, 0, 1, 0);
+						//		SetVertexDataNormals(4, 0, 1, 0);
+						//		SetVertexDataNormals(5, 0, 1, 0);
+						//		UnlockVertexData();
+						//		SetObjectUVManually(t.tobj, t.entityelement[t.e].fDecalFrame, t.entityprofile[t.entid].iDecalRows, t.entityprofile[t.entid].iDecalColumns);
+						//	}
+						//	g_bUVDataChangeObjectSeqOnce = true;
+						//	g_iUVDataChangeObjectSeqE = t.e;
+						//}
+					}
+					else
+					{
+						t.entityelement[t.e].fDecalFrame = t.entityelement[t.e].fDecalFrame + fNextFrame;
 					}
 				}
 			}
@@ -3285,6 +3311,13 @@ void entity_applydamage ( void )
 
 void entity_applydecalfordamage ( int ee, float fX, float fY, float fZ)
 {
+	if (ee > 0 && ee < t.entityelement.size())
+	{
+		// safety protection to prevent crash if entity element is not valid
+	}
+	else
+		return;
+		
 	// create either material decal specified in FPE or blood decal
 	int entid = t.entityelement[ee].bankindex;
 	if (entid > 0 && entid < t.entityprofile.size())
@@ -4484,6 +4517,7 @@ void entity_createobj ( void )
 			if (t.entityprofile[t.tentid].ismarker != 0 || t.entityprofile[t.tentid].cpuanims != 0 || t.entityprofile[t.tentid].isebe != 0) bUseInstancing = false;
 			if (t.entityprofile[t.tentid].ischaractercreator == 1) bUseInstancing = false;
 			if (t.entityprofile[t.tentid].animmax > 0)  bUseInstancing = false;
+			if (t.entityprofile[t.tentid].bIsDecal)  bUseInstancing = false;
 
 			//if (memcmp(&t.entityprofile[t.tentid].WEMaterial,&t.entityelement[t.tupdatee].eleprof.WEMaterial,sizeof(WickedMaterial)) != 0) bUseInstancing = false;
 

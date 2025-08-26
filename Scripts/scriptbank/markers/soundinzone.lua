@@ -1,4 +1,4 @@
--- Sound In Zone v6
+-- Sound In Zone v7
 -- DESCRIPTION: Plays the audio from <Sound0> when the player enters this zone, and stop other zone audio from playing.
 -- DESCRIPTION: You can optionally instruct the sound to play [ONLYONCE!=1].
 -- DESCRIPTION: [ZONEHEIGHT=100] controls how far above the zone the player can be before the zone is not triggered.
@@ -20,7 +20,7 @@ function soundinzone_properties(e, onlyonce, zoneheight, SpawnAtStart, SoundVolu
 	soundinzone[e].onlyonce = onlyonce
 	soundinzone[e].zoneheight = zoneheight
 	soundinzone[e].SpawnAtStart = SpawnAtStart or 1
-	soundinzone[e].SoundVolume = SoundVolume or 1
+	soundinzone[e].SoundVolume = SoundVolume or 100
 	soundinzone[e].OverlaySound = OverlaySound or 0	
  end
 

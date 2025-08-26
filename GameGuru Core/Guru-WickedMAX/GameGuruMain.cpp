@@ -125,15 +125,25 @@ bool GuruLoopLogic ( void )
 			{
 				// start init sequence
 				g_iInitializationSequence = 1;
+				
+				//PE: This will trigger void FileRedirectSetup() before we have set this as standalone.
+				bool bAreWeAEditor = true;
+				std::string appname = Appname();
+				const char* pestrcasestr(const char* arg1, const char* arg2);
+				if (!(pestrcasestr(appname.c_str(), "guru-mapeditor.exe") || pestrcasestr(appname.c_str(), "vr quest app.exe") || pestrcasestr(appname.c_str(), "gamegurumax.exe")))
+					bAreWeAEditor = false;
 
-				// sort out window BEFORE the splash for flicker free transition from splash
-				char pWhereAreWe[MAX_PATH];
-				GetCurrentDirectoryA(MAX_PATH, pWhereAreWe);
-				strcat(pWhereAreWe, "\\WorkshopTrustedItems.ini");
-				if(FileExist(pWhereAreWe)==0)
+				if (bAreWeAEditor)
 				{
-					extern void editor_preparewindow(int);
-					editor_preparewindow(0);
+					// sort out window BEFORE the splash for flicker free transition from splash
+					char pWhereAreWe[MAX_PATH];
+					GetCurrentDirectoryA(MAX_PATH, pWhereAreWe);
+					strcat(pWhereAreWe, "\\WorkshopTrustedItems.ini");
+					if (FileExist(pWhereAreWe) == 0)
+					{
+						extern void editor_preparewindow(int);
+						editor_preparewindow(0);
+					}
 				}
 				break;
 			}
