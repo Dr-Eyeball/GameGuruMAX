@@ -1303,6 +1303,7 @@ function hud0.main()
 												tqty = tqty - 1
 												if tqty <= 0 then
 													SetEntityCollected(entityindex,0,0)
+													SetEntityActive(entityindex,1)
 													Destroy(entityindex)
 													cycleuntilnomoretransfers = 1
 													break
