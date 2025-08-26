@@ -1,5 +1,5 @@
 -- LUA Script - precede every function and global member with lowercase name of script + '_main'
--- NPC Control v83 by Necrym 59 and Preben
+-- NPC Control v84 by Necrym 59 and Preben
 -- DESCRIPTION: The attached NPC will be controlled by this behavior.
 -- DESCRIPTION: [SENSE_TEXT$="Who's that ..an intruder??"]
 -- DESCRIPTION: [SENSE_RANGE=500(0,2000)]
@@ -490,7 +490,6 @@ function npc_control_main(e)
 	
 	---------------------------------------------------------------------------------------------------------------------------------
 	if state[e] == "sensed" then		
-		--StopSound(e,0)
 		if GetPlayerDistance(e) < npc_control[e].sense_range and allegiance[e] == 0 then
 			issensed[e] = 1
 			RotateToPlayerSlowly(e,GetEntityTurnSpeed(e)/2)
@@ -550,6 +549,16 @@ function npc_control_main(e)
 	end	
 	
 	if state[e] == "pursue" then
+		-- Trigger Combat Music
+		if playgsound[e] == 0 then			
+			PlayGlobalSound(g_Entity[e])				
+			playgsound[e] = 1
+		end				
+		-----------------------
+		svolume[e] = (2000-GetPlayerDistance(e))/10
+		SetSound(e,svolume_last[e])
+		SetSoundVolume(svolume[e])
+		
 		GetEntityPlayerVisibility(e)
 		if GetPlayerDistance(e) <= npc_control[e].attack_range and aggro[e] == 1 and npc_control[e].npc_can_shoot == 1 and g_Entity[e]['plrvisible'] == 1 then			
 			state[e] = "attack"
@@ -643,15 +652,6 @@ function npc_control_main(e)
 	end
 	
 	if state[e] == "attack" then	
-		-- Trigger Combat Music
-		if playgsound[e] == 0 then			
-			PlayGlobalSound(g_Entity[e])				
-			playgsound[e] = 1
-		end				
-		-----------------------
-		svolume[e] = (2000-GetPlayerDistance(e))/10
-		SetSound(e,svolume_last[e])
-		SetSoundVolume(svolume[e])				
 		------------------------CHECK ANIMATION FRAMES --------------------------------------------------------------------------------------------------------------------------
 		if setframes[e] == 0 then
 			staanim1[e], finanim1[e] = GetEntityAnimationStartFinish(e,npc_control[e].attack1_animation) -- return the start and finish frame of the specified animation in the object
