@@ -388,8 +388,7 @@ function npc_control_main(e)
 		local tflag2 = closestflag[e]
 		closestflag[e] = tflag
 		previousflag[e] = tflag2
-		-- Get path to new flag
-		local ex,ey,ez,ax,ay,az = GetEntityPosAng(e)
+		-- Get position of next flag
 		local tx,ty,tz = GetEntityPosAng(closestflag[e])
 		return tx,ty,tz
 	end
@@ -578,7 +577,7 @@ function npc_control_main(e)
 	
 		if GetPlayerDistance(e) > npc_control[e].attack_range or GetPlayerDistance(e) < npc_control[e].attack_range and aggro[e] == 1 then			
 			if g_Time > pathdelay[e] or hurtonce[e] == 1 then
-				local ex,ey,ez,ax,ay,az = GetEntityPosAng(e)
+				local ex,ey,ez = GetEntityPosAng(e)
 				destx[e] = g_PlayerPosX
 				desty[e] = g_PlayerPosY
 				destz[e] = g_PlayerPosZ
@@ -602,7 +601,7 @@ function npc_control_main(e)
 				if g_Entity[e]['plrvisible'] == 1 then currpause[e] = 0 end				
 				if pointcount[e] == 0 or plrlost[e] == 1 then
 					if resetstate[e] == 0 then
-						local ex,ey,ez,ax,ay,az = GetEntityPosAng(e)
+						local ex,ey,ez = GetEntityPosAng(e)
 						destx[e] = ex
 						desty[e] = ey
 						destz[e] = ez
@@ -632,11 +631,12 @@ function npc_control_main(e)
 				hurtonce[e] = 0
 			end
 			SetEntityMoveSpeed(e,npc_control[e].npc_run_speed)
+			local ex,ey,ez = GetEntityPosAng(e)
 			RDFindPath(ex,ey,ez,destx[e],desty[e],destz[e])
 			MoveAndRotateToXYZ(e,GetEntityMoveSpeed(e)/100,GetEntityTurnSpeed(e))		
 
 			if npc_control[e].force_move == 1 then
-				local ex,ey,ez,eax,eay,eaz = GetEntityPosAng(e)
+				local ex,ey,ez,_,eay,_ = GetEntityPosAng(e)
 				local ox,oy,oz = U.Rotate3D(0,0,150, 0,math.rad(eay),0)
 				colobj[e] = IntersectAll(ex,ey+35,ez,ex+ox,ey+oy+35,ez+oz,g_Entity[e]['obj'])
 				if colobj[e] > 0 then
@@ -788,7 +788,6 @@ function npc_control_main(e)
 		
 		if wandonce[e] == 0 then -- get a random point on a circle around the current location
 			if avoidance[e] == 0 then
-				local ex,ey,ez,eax,eay,eaz = GetEntityPosAng(e)
 				local ang = math.rad(math.random(1,360))
 				dist[e] = npc_control[e].roam_range
 				if scare[e] == 0 then dist[e] = npc_control[e].roam_range end
@@ -798,7 +797,6 @@ function npc_control_main(e)
 				destz[e] = startz[e] + math.sin(ang) * dist[e]
 			end	
 			if avoidance[e] == 1 then
-				local ex,ey,ez,eax,eay,eaz = GetEntityPosAng(e)
 				local ang = math.rad(math.random(-10,10))
 				dist[e] = (npc_control[e].roam_range/90)
 				destx[e] = startx[e] + math.cos(ang) * dist[e]
@@ -806,12 +804,11 @@ function npc_control_main(e)
 				destz[e] = startz[e] + math.sin(ang) * dist[e]
 			end
 			----------------------------------------------------------------
-			local ex,ey,ez,eax,eay,eaz = GetEntityPosAng(e)
+			local ex,ey,ez,_,eay,_ = GetEntityPosAng(e)
 			local ox,oy,oz = U.Rotate3D(0,0,150, 0,math.rad(eay),0)
 			colobj[e] = IntersectAll(ex,ey+35,ez,ex+ox,ey+oy+35,ez+oz,g_Entity[e]['obj'])
 			if colobj[e] == nil then colobj[e] = 0 end
 			if colobj[e] > 0 then
-				local ex,ey,ez,eax,eay,eaz = GetEntityPosAng(e)
 				local ang = math.rad(math.random(-10,10))
 				dist[e] = (npc_control[e].roam_range/90)
 				destx[e] = startx[e] + math.cos(ang) * dist[e]
@@ -849,11 +846,12 @@ function npc_control_main(e)
 				hurtonce[e] = 0
 			end
 		end
+		local ex,ey,ez = GetEntityPosAng(e)
 		RDFindPath(ex,ey,ez,destx[e],desty[e],destz[e])
 		MoveAndRotateToXYZ(e,GetEntityMoveSpeed(e)/100,GetEntityTurnSpeed(e))
 
 		if npc_control[e].force_move == 1 then
-			local ex,ey,ez,eax,eay,eaz = GetEntityPosAng(e)
+			local ex,ey,ez,_,eay,_ = GetEntityPosAng(e)
 			local ox,oy,oz = U.Rotate3D(0,0,150, 0,math.rad(eay),0)
 			colobj[e] = IntersectAll(ex,ey+35,ez,ex+ox,ey+oy+35,ez+oz,g_Entity[e]['obj'])
 			if colobj[e] > 0 then RotateY(e,math.random(90,240)) end
@@ -937,7 +935,6 @@ function npc_control_main(e)
 				end
 			end
 			if patrolmode[e] > 0 then
-				local ex,ey,ez,ax,ay,az = GetEntityPosAng(e)
 				local tx,ty,tz = GetEntityPosAng(closestflag[e])
 				destx[e] = tx
 				desty[e] = ty
@@ -963,7 +960,7 @@ function npc_control_main(e)
 			svolume_last[e] = 0
 			patrolonce[e] = 1
 		end
-		local ex,ey,ez,eax,eay,eaz = GetEntityPosAng(e)
+		local ex,ey,ez = GetEntityPosAng(e)
 		RDFindPath(ex,ey,ez, destx[e],desty[e],destz[e])
 		pointcountp[e] = RDGetPathPointCount()
 		if pointcountp[e] > 0 then
@@ -1037,7 +1034,7 @@ function npc_control_main(e)
 	end
 	
 	if g_Entity[e]['health'] < 1000 and state[e] ~= "die" then		
-		local ex,ey,ez,ax,ay,az = GetEntityPosAng(e)
+		local ex,ey,ez = GetEntityPosAng(e)
 		destx[e] = ex
 		desty[e] = ey
 		destz[e] = ez
@@ -1113,7 +1110,7 @@ function npc_control_main(e)
 	
 	--Diagnostic text -----------------------------------
 	if npc_control[e].diagnostics == 1 then
-		local ex,ey,ez,ax,ay,az = GetEntityPosAng(e)
+		local ex,_,ez = GetEntityPosAng(e)
 		Text(2,30,3,"Entity : " ..name1[e])
 		if allegiance[e] == 0 then Text(2,32,3,"Allegiance : Enemy") end
 		if allegiance[e] == 1 then Text(2,32,3,"Allegiance : Ally") end

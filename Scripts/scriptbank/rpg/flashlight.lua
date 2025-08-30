@@ -30,6 +30,8 @@
 -- DESCRIPTION: <Sound1> for switching on/off
 -- DESCRIPTION: <Sound2> for battery low
 
+-- N.B.: This behavior script depends on the global function 'CG_GetActiveCamera()'.
+
 local module_misclib = require "scriptbank\\module_misclib"
 local U = require "scriptbank\\utillib"
 g_tEnt = {}

@@ -41,7 +41,7 @@ function loopwaypoint_main(e)
  end
  LoopNon3DSound(e,0)
  if SndVol < nminvol then 
-		SndVol = nminv
+		SndVol = nminvol
 	elseif SndVol > nmaxvol then 
 		SndVol = nmaxvol
 	end		

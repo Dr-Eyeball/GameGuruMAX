@@ -232,8 +232,8 @@ function graphix_blizzard_particle_init(e)
 	g_graphix_blizzard_particle[e]['malphaendmax'] = 12
 end
 
-local mistImg  = mistImg  or ParticlesLoadImage( "effectbank\\particles\\weather\\graphixmist.dds", 8 )
-local snowImg = snowImg or ParticlesLoadImage( "effectbank\\particles\\weather\\graphixsnow.dds", 9 )
+local mistImg  = ParticlesLoadImage( "effectbank\\particles\\weather\\graphixmist.dds", 8 )
+local snowImg = ParticlesLoadImage( "effectbank\\particles\\weather\\graphixsnow.dds", 9 )
 
 function graphix_blizzard_particle_main(e)
 	local nfollowplayer = g_graphix_blizzard_particle[e]['followplayer']

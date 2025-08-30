@@ -34,9 +34,9 @@
 	local sx					= {}
 	local sy					= {}
 	local sz					= {}
-	local px					= {}
-	local py					= {}
-	local pz					= {}
+	local px					= 0.0
+	local py					= 0.0
+	local pz					= 0.0
 	local objecthit				= {}
 	local shothit				= {}
 	local snipertimer			= {}
@@ -46,7 +46,7 @@
 
 function sniper_properties(e, sniper_range, sniper_delay, hit_damage, hit_chance, idle_animation, aim_animation, shoot_animation, flinch_animation)
 	sniper[e] = g_Entity[e]
-	sniper[e].sniper_mode = sniper_mode
+	-- sniper[e].sniper_mode = sniper_mode -- unused
 	sniper[e].sniper_range = sniper_range
 	sniper[e].sniper_delay = sniper_delay
 	sniper[e].hit_damage = hit_damage

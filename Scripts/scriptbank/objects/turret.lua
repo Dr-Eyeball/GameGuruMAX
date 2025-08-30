@@ -61,7 +61,7 @@ end
 
 function turret_init(e)
 	turret[e] = {}
-	turret[e].use_range = use_range
+	turret[e].use_range = 80
 	turret[e].prompt_text = "E to Use, Q to Release"
 	turret[e].prompt_display = 1
 	turret[e].horizontal_view_limit = 45

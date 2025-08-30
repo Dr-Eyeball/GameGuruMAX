@@ -39,6 +39,7 @@ local defaultUnLockedText	= "Press E to open door"
 local defaultCloseText		= "Press E to close door"
 local defaultDoorType		= 'Manual'
 local defaultDoorRange		= 100
+local defaultOpeningStyle	= 1
 local defaultPromptDisplay	= 2
 local defaultItemHighlight	= 0
 local defaultHighlightIcon	= "imagebank\\icons\\hand.png"
@@ -91,10 +92,10 @@ function door_rotate_init_name( e, name )
 							closetext = defaultCloseText,
 							door_type = defaultDoorType,
 							door_range = defaultDoorRange,							
-							opening_style = opening_style,
-							prompt_display = prompt_display,
-							item_highlight = item_highlight,
-							highlight_icon = highlight_icon_imagefile
+							opening_style = defaultOpeningStyle,
+							prompt_display = defaultPromptDisplay,
+							item_highlight = defaultItemHighlight,
+							highlight_icon = defaultHighlightIcon
 					      }
 	tEnt[e] = 0
 	status[e] = "init"

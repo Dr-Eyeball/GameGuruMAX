@@ -55,7 +55,7 @@ function loop3dsound_multiple_main(e)
 				LoopSound(e,2) --LoopNon3DSound(e,2)
 				LoopSound(e,3) --LoopNon3DSound(e,3)
 				if SndVol < nminvol then 
-					SndVol = nminv
+					SndVol = nminvol
 				elseif SndVol > nmaxvol then 
 					SndVol = nmaxvol
 				end		

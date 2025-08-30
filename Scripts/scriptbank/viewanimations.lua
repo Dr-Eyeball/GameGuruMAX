@@ -12,6 +12,7 @@ function viewanimations_properties(e, range, startframe, endframe)
 	g_viewanimations[e]['range'] = range 
 	g_viewanimations[e]['startframe'] = startframe
 	g_viewanimations[e]['endframe'] = endframe
+	-- FIXME: check 'SetAnimationFrames' parameters (e, v). Recommend removing 'e'.
 	SetAnimationFrames(e,g_viewanimations[e]['startframe'],g_viewanimations[e]['endframe'])
 end 
 
@@ -21,6 +22,7 @@ function viewanimations_init(e)
 	g_viewanimations[e]['startframe'] = 0
 	g_viewanimations[e]['endframe'] = 10000
  CharacterControlLimbo(e)
+ -- FIXME: check 'SetAnimationFrames' parameters (e, v). Recommend removing 'e'.
  SetAnimationFrames(e,g_viewanimations[e]['startframe'],g_viewanimations[e]['endframe'])
  LoopAnimation(e)
 end

@@ -139,7 +139,7 @@ function climber_main(e)
 				local forwardposx, forwardposy, forwardposz = g_PlayerPosX + ox, g_PlayerPosY + oy, g_PlayerPosZ + oz + 2
 				-- 'forwardposx' ( / y / z ) are the values for "forwards" based on the direction the player is looking
 				SetFreezePosition( forwardposx, forwardposy, forwardposz )
-				TransportToFreezePositionOnly( forwardposx, forwardposy, forwardposz )				
+				TransportToFreezePositionOnly()
 				ForcePlayer( g_PlayerAngY, climbers[e].exit_force )	
 				climber.z = climber.z - 40
 				climber.state = 'top'

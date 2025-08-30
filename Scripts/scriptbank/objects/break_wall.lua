@@ -45,7 +45,7 @@ function break_wall_main(e)
 		Prompt(break_wall[e].prompt)
         if g_KeyPressE == 1 then
 			SetAnimationName(e,break_wall.break_animation)
-            PlayAnimation(e,break_wall.break_animation)
+            PlayAnimation(e)
 			PlaySound(e,0)
 			GravityOn(e)
 			CollisionOff(e)			

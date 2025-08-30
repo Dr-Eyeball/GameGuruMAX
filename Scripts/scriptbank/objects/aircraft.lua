@@ -44,15 +44,15 @@ g_LandingZone		= {}
 local aircraft 		= {}
 local vehicle 		= {}
 local controlEnt    = {}
-local timeLastFrame = {}
-local timeDiff      = {}
+local timeLastFrame = 0
+local timeDiff      = 0.0
 local maxSpeed 		= {}
 local playerPos 	= {}
 local LandingMode	= {}
 local XPressed		= {}
-local timeNow		= {}
-local omx			= {}
-local omy			= {}
+local timeNow		= 0.0
+local omx			= 0.0
+local omy			= 0.0
 local use_range		= {}
 local prompt_text	= {}
 local use_text1		= {}
@@ -61,13 +61,13 @@ local pilot_x 		= {}
 local pilot_y 		= {}
 local pilot_z 		= {}
 local max_speed		= {}
-local vlift			= {}
-local cmode			= {}
+local vlift			= 0.0
+local cmode			= 0
 local vehicle_type 	= {}
-local flying		= {}
+local flying		= 0
 local playonce		= {}
 local doonce 		= {}
-local tilt			= {}
+local tilt			= 0.0
 local nheightangle  = {}
 local status 		= {}
 local animonce		= {}
@@ -164,8 +164,8 @@ function aircraft_init(e)
 	vehicle[e].crosshair = ""
 
 	controlEnt    	= nil
-	timeLastFrame 	= nil
-	timeDiff      	= 0
+	timeLastFrame 	= 0
+	timeDiff      	= 0.0
 	g_LandingZone 	= 0
 	status[e] 		= "init"
 	vlift      		= 0
@@ -296,7 +296,7 @@ function aircraft_main(e)
 
 		if controlEnt == nil then controlEnt = e end
 		if controlEnt == e then
-			if timeLastFrame == nil then
+			if timeLastFrame == 0 then
 				timeLastFrame = timeNow
 				timeDiff = 1
 			else
@@ -349,7 +349,7 @@ function aircraft_main(e)
 						if deathfall[e] == 0 then fposy = fposy+25 end
 						fposz=fposz+200
 						SetFreezePosition(fposx,fposy,fposz)
-						TransportToFreezePositionOnly(fposx,fposy,fposz)
+						TransportToFreezePositionOnly()
 						SetCameraOverride(0)
 						DeactivateMouse()
 						RemovePlayerWeapon(9)

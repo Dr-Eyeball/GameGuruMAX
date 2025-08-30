@@ -228,7 +228,7 @@ function quest_poster_main(e)
 								if GetEntityCollected(ee) == 1 then
 									if lower(GetEntityName(ee)) == lower(g_quest_poster[e]['questobject']) then
 										tqty = GetEntityQuantity(ee)
-										if GetEntityCollectable(entityindex) == 2 then
+										if GetEntityCollectable(ee) == 2 then
 											-- resources spent can be zero
 											if tqty < 0 then tqty = 0 end
 										else

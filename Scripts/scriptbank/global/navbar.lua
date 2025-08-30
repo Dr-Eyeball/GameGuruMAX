@@ -22,7 +22,7 @@
 U = require "scriptbank\\utillib"
 
 g_navigation_bar = {}
-nbar = 0
+nbar = {}
 
 local iconimage			= {}
 local iconsprite		= {}
@@ -46,12 +46,13 @@ local compass			= {}
 local questentity 		= {}
 local queststatus 		= {}
 local status			= ""
-local hudsoff = hudsoff or _G.HideHuds
-local hudson = hudson or _G.ShowHuds
+-- TODO: Consider adding these to init during `status == "init"` too.
+local hudsoff = _G.HideHuds -- a function
+local hudson = _G.ShowHuds -- a function
 local hudsShowing = true
 
 function navbar_properties(e, navbarimage, viewrange, width, height, position_x, position_y, icon_width, icon_height, icon_position_y, compass_mode, compass_y, compass_view, compass_r, compass_g, compass_b, compass_font_size, objective_data, compass_spacer)
-	nbar.navbarimage = navbarimage or imagefile
+	nbar.navbarimage = navbarimage
 	nbar.viewrange = viewrange
 	nbar.width = width
 	nbar.height = height
@@ -127,7 +128,9 @@ function navbar_main(e)
 	if nbar.compass_mode == 1 then show_Compass() end
 	
 	if g_UserGlobalQuestTitleActiveE > 0 and queststatus[e] == 0 then
-		AddToNavbar(g_UserGlobalQuestTitleActiveE, "imagebank\\navbar\\currentquest.png", fixedsize, ignorerange, "")
+		local fixedsize = 0
+		local ignorerng = 1
+		AddToNavbar(g_UserGlobalQuestTitleActiveE, "imagebank\\navbar\\currentquest.png", fixedsize, ignorerng, "")
 		questentity[e] = g_UserGlobalQuestTitleActiveE
 		queststatus[e] = 1
 	end
@@ -273,5 +276,3 @@ function defn_Compass()
 		end
 	end    
 end
-
-		

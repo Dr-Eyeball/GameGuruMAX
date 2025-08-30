@@ -17,7 +17,7 @@
 	local status = {}
 	local attachTo = {}
 	local flashattached = {}	
-	local lightNum = GetEntityLightNumber(e)
+	local lightNum = 0
 	local tpositionx = {}
 	local tpositiony = {}
 	local tpositionz = {}
@@ -124,6 +124,7 @@ function npc_flashlight_main(e)
 		lightNum = GetEntityLightNumber( e )
 		flashattached[e] = 2
 		SetLightRange(lightNum,-1)
+		-- FIXME: Incorrect light logic for 'control()'. (Incorrect parameters and return value checking.)
 		module_lightcontrol.control(lightNum,0)
 		Destroy(lightNum)
 		Hide(lightNum)

@@ -37,7 +37,7 @@ local tEnt 			= {}
 local fuel_level	= {}
 local running		= {}
 local timer			= {}
-local played		= {}
+local played		= 0
 local tusedvalue	= {}
 local use_item_now	= {}
 local hl_icon		= {}
@@ -68,7 +68,7 @@ function generator_init(e)
 	generator[e].stopped_text = "Generator Stopped"
 	generator[e].prompt_display = 1
 	generator[e].item_highlight = 0
-	generator[e].highlight_icon = highlight_icon_imagefile	
+	generator[e].highlight_icon = "imagebank\\icons\\hand.png"
 	
 	fuel_level[e] = 0	
 	running[e] = 0

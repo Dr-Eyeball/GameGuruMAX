@@ -10,6 +10,8 @@
 -- DESCRIPTION: [HIDE_OBJECT!=0]
 -- DESCRIPTION: <Sound1> when quest completed.
 
+-- N.B.: This behavior script depends on the global variable 'g_quest_poster', which is defined and used in 'quest_poster.lua'.
+
 local module_misclib = require "scriptbank\\module_misclib"
 local U = require "scriptbank\\utillib"
 
@@ -206,7 +208,7 @@ function quest_sequencer_main(e)
 								if GetEntityCollected(ee) == 1 then
 									if lower(GetEntityName(ee)) == lower(g_quest_sequence[e].questobject) then
 										tqty = GetEntityQuantity(ee)
-										if GetEntityCollectable(entityindex) == 2 then
+										if GetEntityCollectable(ee) == 2 then
 											-- resources spent can be zero
 											if tqty < 0 then tqty = 0 end
 										else

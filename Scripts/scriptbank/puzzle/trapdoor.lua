@@ -50,7 +50,7 @@ function trapdoor_main(e)
 	g_trapdoor[e] = g_Entity[e]
 	if status[e] == "init" then		
 		if g_trapdoor[e]['range'] == nil then g_trapdoor[e]['range'] = 50 end
-		if g_trapdoor[e]['visibility'] == nil then g_conveyor[e]['visibility'] = 1 end
+		if g_trapdoor[e]['visibility'] == nil then g_trapdoor[e]['visibility'] = 1 end
 		if g_trapdoor[e]['visibility'] == 1 then Show(e) end
 		if g_trapdoor[e]['visibility'] == 2 then Hide(e) end
 		status[e] = "finish"

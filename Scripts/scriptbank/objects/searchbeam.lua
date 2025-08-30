@@ -13,7 +13,7 @@ local beam_object = {}
 local status = {}
 local attachTo = {}
 local beamattached = {}	
-local lightNum = GetEntityLightNumber( e )
+local lightNum = 0
 local anglex = {}
 local Axv = {}
 local Ayv = {}
@@ -100,6 +100,7 @@ function searchbeam_main(e)
 		lightNum = GetEntityLightNumber( e )
 		beamattached[e] = 2
 		SetLightRange(lightNum,-1)
+		-- FIXME: Incorrect light logic for 'control()'. (Incorrect parameters and return value checking.)
 		module_lightcontrol.control(lightNum,0)
 		Destroy(lightNum)
 		Hide(lightNum)

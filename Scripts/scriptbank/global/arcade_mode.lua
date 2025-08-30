@@ -103,7 +103,7 @@ function arcade_mode_main(e)
 				SetSpriteDepth(am_crosshair,100)
 				SetSpritePosition(am_crosshair,50,50)
 				SetSpriteOffset(am_crosshair,am_imgwidth1/2.0, am_imgheight1/2.0)
-				SetSpriteColor(sp_crosshair,255,255,255,200)			
+				SetSpriteColor(am_crosshair,255,255,255,200)			
 			end
 		end
 		startposx[e] = g_PlayerPosX

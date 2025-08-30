@@ -228,8 +228,8 @@ function graphix_rain_particle_init(e)
 	g_graphix_rain_particle[e]['malphaendmax'] = 10
 end
 
-local splashImg  = splashImg  or ParticlesLoadImage( "effectbank\\particles\\weather\\splash.dds", 8 )
-local rainImg = rainImg or ParticlesLoadImage( "effectbank\\particles\\weather\\rain.dds", 9 )
+local splashImg  = ParticlesLoadImage( "effectbank\\particles\\weather\\splash.dds", 8 )
+local rainImg = ParticlesLoadImage( "effectbank\\particles\\weather\\rain.dds", 9 )
 
 function graphix_rain_particle_main(e)
 	local nfollowplayer = g_graphix_rain_particle[e]['followplayer']

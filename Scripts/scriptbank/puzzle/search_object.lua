@@ -63,7 +63,7 @@ function search_object_properties(e, use_range, prompt_text, content, named_item
 	searchobject[e].noise_range = noise_range
 	searchobject[e].search_trigger = search_trigger
 	searchobject[e].use_range = use_range
-	searchobject[e].searchbar_image = searchbar_image or searchbar_imagefile
+	searchobject[e].searchbar_image = searchbar_image
 	searchobject[e].prompt_display = prompt_display
 	searchobject[e].item_highlight = item_highlight
 	searchobject[e].highlight_icon = highlight_icon_imagefile

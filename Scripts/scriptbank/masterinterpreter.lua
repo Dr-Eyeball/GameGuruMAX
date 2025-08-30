@@ -419,7 +419,7 @@ function masterinterpreter_gettargetslot ( e, output_e )
     if g_Entity[testslote] ~= nil then
      local dx = g_Entity[ testslote ]['x'] - g_PlayerPosX
      local dz = g_Entity[ testslote ]['z'] - g_PlayerPosZ
-	 local dd = math.sqrt(math.abs(dx*dx),math.abs(dz*dz))
+	 local dd = math.sqrt(dx*dx + dz*dz)
 	 if dd > 200 then 
       if slot == 0 then g_PlayerTargetSlot1 = 0 end
       if slot == 1 then g_PlayerTargetSlot2 = 0 end
@@ -448,7 +448,7 @@ function masterinterpreter_gettargetslot ( e, output_e )
       if g_Entity[testslote] ~= nil then
        local dx = g_Entity[ testslote ]['x'] - g_Entity[ e ]['x']
        local dz = g_Entity[ testslote ]['z'] - g_Entity[ e ]['z']
-	   local dd = math.sqrt(math.abs(dx*dx),math.abs(dz*dz))
+	   local dd = math.sqrt(dx*dx + dz*dz)
 	   if dd > 200 then 
         if slot == 0 then g_Entity[ee]['targetslot1'] = 0 end
         if slot == 1 then g_Entity[ee]['targetslot2'] = 0 end
@@ -1271,7 +1271,7 @@ function masterinterpreter_setnewtarget ( e, output_e, x, y, z, movingbackwards 
    -- no path if target very close to entity already
    local dx = lastpointx - g_Entity[ e ]['x']
    local dz = lastpointz - g_Entity[ e ]['z']
-   local dd = math.sqrt(math.abs(dx*dx)+math.abs(dz*dz))
+   local dd = math.sqrt(dx*dx + dz*dz)
    -- initial distance to dest recorded (updated in masterinterpreter_followtarget)
    output_e['lastgoodtargetdistance'] = dd
    if dd > 10.0 then
@@ -1311,7 +1311,7 @@ function masterinterpreter_followtarget ( e, output_e, stopfromend )
    if output_e['lastgoodtargetdistance'] == 0 then
     local dx = output_e['goodtargetdestinationx'] - g_Entity[ e ]['x']
     local dz = output_e['goodtargetdestinationz'] - g_Entity[ e ]['z']
-    local dd = math.sqrt(math.abs(dx*dx)+math.abs(dz*dz))
+    local dd = math.sqrt(dx*dx + dz*dz)
     output_e['lastgoodtargetdistance'] = dd
    end
    if output_e['goodtargetpointindex'] > 0 then

@@ -17,6 +17,7 @@
 
 	local played			= {}
 	local alerted			= {}
+	local wait				= {}
 	local status			= {}
 	
 function alertzone_properties(e, prompt_text, alert_range, alert_mode, zoneheight, SpawnAtStart)

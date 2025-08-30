@@ -906,6 +906,9 @@ end
 function SetAnimationName(e,str)
  SendMessageS_setanimationname(e,str)
 end
+-- TODO: check 'SetAnimationFrames' parameters (e, v). Appears misleading.
+-- TODO: Apply this? It appears 'SetAnimationFrames' should use 'range' parameters (startFrame, endFrame).
+-- TODO: Document this. This range appears to apply to the next/previous animation command. Which command is unknown.
 function SetAnimationFrames(e,v)
  SendMessageI_setanimationframes(e,v)
 end
@@ -945,13 +948,11 @@ end
 function GravityOn(e)
  SendMessageI_setnogravity(e,0)
 end
-function LookAtPlayer(e)
- SendMessageF_lookatplayer(e,100)
-end
-function LookAtPlayer(e,v)
- SendMessageF_lookattargete(e,0)
- SendMessageF_lookattargetyoffset(e,0)
- SendMessageF_lookatplayer(e,v)
+function LookAtPlayer(e, v)
+ v = v or 100
+ SendMessageF_lookattargete(e, 0)
+ SendMessageF_lookattargetyoffset(e, 0)
+ SendMessageF_lookatplayer(e, v)
 end
 function LookAtTarget(e,v,othere)
  SendMessageF_lookattargete(e,othere)
@@ -1281,7 +1282,7 @@ end
 function SetMultiplayerGameFriendlyFireOff()
 	mp_friendlyfireoff = 1;
 end
-function SetNameplatesOff()
+function SetNameplatesOff(v)
 	SendMessageI_nameplatesoff(v)
 end
 function GetCoOpMode()

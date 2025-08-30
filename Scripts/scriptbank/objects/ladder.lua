@@ -18,7 +18,7 @@
 local module_misclib = require "scriptbank\\module_misclib"
 local P = require "scriptbank\\physlib"
 local U = require "scriptbank\\utillib"
-g_tEnt = {}
+g_tEnt = 0
 
 local rad = math.rad
 local abs = math.abs
@@ -216,7 +216,7 @@ function ladder_main(e)
 				local forwardposx, forwardposy, forwardposz = g_PlayerPosX + ox, g_PlayerPosY + oy, g_PlayerPosZ + oz + 2
 				-- 'forwardposx' ( / y / z ) are the values for "forwards" based on the direction the player is looking
 				SetFreezePosition(forwardposx, forwardposy, forwardposz)
-				TransportToFreezePositionOnly(forwardposx, forwardposy, forwardposz)
+				TransportToFreezePositionOnly()
 				ForcePlayer(g_PlayerAngY, ladders[e].exit_force)
 				ladder.z = ladder.z - 40
 				ladder.state = 'top'

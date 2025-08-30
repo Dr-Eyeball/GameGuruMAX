@@ -75,7 +75,7 @@ function hack_properties(e, use_range, use_text, hack_time, hack_text, success_t
 	hack[e].alarm_reset = alarm_reset
 	hack[e].noise_range = noise_range
 	hack[e].hack_trigger = hack_trigger
-	hack[e].hackbar_image = hackbar_image or hackbar_imagefile
+	hack[e].hackbar_image = hackbar_image
 	hack[e].user_global_affected = user_global_affected
 	hack[e].affect_value = affect_value
 	hack[e].no_failures = no_failures or 0

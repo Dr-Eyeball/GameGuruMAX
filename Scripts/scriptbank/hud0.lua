@@ -296,14 +296,14 @@ function hud0.main()
 	local tcollectionmax = GetCollectionItemQuantity()
 	for tcollectionindex = 1, tcollectionmax, 1 do
 		if hud0_populateallcontainersfilled[tcollectionindex] == 0 then
-			local applyqty = -1
+			local applyqty = nil
 			local tcontainerfullname = "inventory:shop"
 			local tcontainernameunparsed = GetCollectionItemAttribute(tcollectionindex,"container")
 			if tcontainernameunparsed ~= nil then
 				i, j = string.find(tcontainernameunparsed,"=")
 				if i ~= nil then
 					tcontainername = string.sub(tcontainernameunparsed,1,i-1)
-					local qty = string.sub(tcontainernameunparsed,i+1,-1)
+					local tqty = string.sub(tcontainernameunparsed,i+1,-1)
 					applyqty = tonumber(tqty)
 				else
 					tcontainername = tcontainernameunparsed
@@ -315,6 +315,8 @@ function hud0.main()
 				local tname = GetCollectionItemAttribute(tcollectionindex,"title")
 				local anyee = 0
 				for ee = 1, g_EntityElementMax, 1 do
+					-- undefined global variable 'e':
+					-- TODO: if 'e' is indeed valid & intended here, then this needs to be documented, then rewritten to use a named global (or similar technique).
 					if e ~= ee then
 						if g_Entity[ee] ~= nil then
 							if GetEntityName(ee) == tname then
@@ -329,7 +331,7 @@ function hud0.main()
 					local newe = SpawnNewEntity(anyee)
 					SetEntityCollected(newe,3,-1,tcontainerfullname)
 					SetEntityActive(newe,0)
-					if applyqty ~= -1 then
+					if applyqty then
 						SetEntityQuantity(newe,applyqty)
 					end
 				end
@@ -501,7 +503,7 @@ function hud0.main()
 							hud0_gridSelected = gridi
 							local panelname = GetScreenElementName(thegrid)
 							if panelname == "inventory:container" then
-								if string.sub(g_UserGlobalContainer,1,5) == "chest" then
+								if g_UserGlobalContainer and string.sub(g_UserGlobalContainer,1,5) == "chest" then
 									-- chests are free for all
 									hud0_pulledoutofslot = 1
 								else	
@@ -559,7 +561,7 @@ function hud0.main()
 										
 										-- cancel if dragging into a container not owned by player
 										if panelnameTo == "inventory:container" then
-											if string.sub(g_UserGlobalContainer,1,5) ~= "chest" then
+											if g_UserGlobalContainer and string.sub(g_UserGlobalContainer,1,5) ~= "chest" then
 												-- owned by other - cannot move item here
 												cancelmove = 1
 											end
@@ -1103,7 +1105,7 @@ function hud0.main()
 										-- BUY or SELL
 										local tinventorysource = ""
 										local tinventorydest = ""
-										local thisValue = 0
+										local thisValue = nil
 										if actionOnObject == 3 and panelname == "inventory:container" then 
 											-- BUY
 											tinventorysource = "inventory:"..g_UserGlobalContainer
@@ -1119,7 +1121,7 @@ function hud0.main()
 										-- money check
 										local myMoney = 0
 										if _G["g_UserGlobal['".."MyMoney".."']"] ~= nil then myMoney = _G["g_UserGlobal['".."MyMoney".."']"] end
-										if (actionOnObject==3 and thisValue <= myMoney) or actionOnObject == 4 then
+										if (actionOnObject == 3 and thisValue and thisValue <= myMoney) or actionOnObject == 4 then
 											-- spend or gain money
 											if actionOnObject == 3 then
 												myMoney = myMoney - thisValue
@@ -1227,6 +1229,8 @@ function hud0.main()
 						local nameofitemtomake = GetCollectionItemAttribute(tcollectionindex,"description")						
 						local anyee = 0
 						for ee = 1, g_EntityElementMax, 1 do
+							-- undefined global variable 'e':
+							-- TODO: if 'e' is indeed valid & intended here, then this needs to be documented, then rewritten to use a named global (or similar technique).
 							if e ~= ee then
 								if g_Entity[ee] ~= nil then
 									if GetEntityName(ee) == nameofitemtomake then
@@ -1326,6 +1330,8 @@ function hud0.main()
 					-- ACCEPT on QUEST screen
 					local findee = 0
 					for ee = 1, g_EntityElementMax, 1 do
+						-- undefined global variable 'e':
+						-- TODO: if 'e' is indeed valid & intended here, then this needs to be documented, then rewritten to use a named global (or similar technique).
 						if e ~= ee then
 							if g_Entity[ee] ~= nil then
 								if GetEntityName(ee) == g_UserGlobalQuestTitleShowingObject then
@@ -1409,6 +1415,8 @@ function hud0.main()
 		if g_Entity[findee]['active'] == 0 or GetEntityCollected(findee) ~= 0 then
 			findee = 0
 			for ee = 1, g_EntityElementMax, 1 do
+				-- undefined global variable 'e':
+				-- TODO: if 'e' is indeed valid & intended here, then this needs to be documented, then rewritten to use a named global (or similar technique).
 				if e ~= ee then
 					if g_Entity[ee] ~= nil then
 						if GetEntityName(ee) == g_UserGlobalQuestTitleActiveObject2 then

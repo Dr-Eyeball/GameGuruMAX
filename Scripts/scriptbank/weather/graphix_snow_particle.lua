@@ -56,7 +56,7 @@ end
 function graphix_snow_particle_init(e)
 end
 
-local snowImg = snowImg or ParticlesLoadImage( "effectbank\\particles\\weather\\graphixsnow.dds", 9 )
+local snowImg = ParticlesLoadImage( "effectbank\\particles\\weather\\graphixsnow.dds", 9 )
 
 function graphix_snow_particle_main(e)
 

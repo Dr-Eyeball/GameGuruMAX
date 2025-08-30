@@ -16,7 +16,7 @@ local oxygen_bar		= {}
 
 local startframe 	= {}
 local endframe 		= {}
-local last_gun		= {}
+local last_gun		= ""
 local status 		= {}
 local oxbarsprite	= {}
 local oxlevel		= {}
@@ -64,6 +64,8 @@ function swimming_main(e)
 		SetGamePlayerControlUnderwater(0)
 		SetGamePlayerControlInWaterState(0)
 		SetUnderwaterOff()
+		-- Undefined variable 'underwaterSound':
+		-- TODO: if 'underwaterSound' is intended to be a behavior property, then complete the properties and local variables.
 		if (RawSoundExist(underwaterSound) == 1) then
 			StopRawSound(underwaterSound)
 		end

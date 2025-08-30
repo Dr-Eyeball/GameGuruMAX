@@ -50,7 +50,7 @@ function door_rotate_multi_properties( e, door_style, open_prompt, close_prompt,
 	door.auto_close_delay = auto_close_delay or 0	
 	door.prompt_display = prompt_display
 	door.item_highlight = item_highlight or 0
-	door.highlight_icon = highlight_icon or highlight_icon_imagefile
+	door.highlight_icon = highlight_icon_imagefile
 end
 
 function door_rotate_multi_init( e )
@@ -169,6 +169,7 @@ function door_rotate_multi_main( e )
 			door.state = 'closing'
 			PlaySound( e, 1 )
 		end
+		local LookingAt = GetPlrLookingAtEx(e,1)
 		if PlayerDist < door.use_range and GetEntityVisibility(e) == 1 and LookingAt == 1 then
 			--pinpoint select object--
 			module_misclib.pinpoint(e,door.use_range,door.item_highlight,hl_icon[e])

@@ -79,7 +79,7 @@ function particle_mover_main(e)
 				end
 			end
 		end
-		if partmover[e].particle_name > "" and partmover[e].particle_number == 0then
+		if partmover[e].particle_name > "" and partmover[e].particle_number == 0 then
 			for p = 1, g_EntityElementMax do
 				if p ~= nil and g_Entity[p] ~= nil then
 					if string.lower(GetEntityName(p)) == partmover[e].particle_name then
