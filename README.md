@@ -14,7 +14,7 @@ Steps to compiling and running GameGuru MAX:
 
 1. Create a DEV folder somewhere close to a root drive with lots of storage
 2. Install GitHub Desktop and log in with a previously registered GitHub account
-3. Use GitHub and click the green ![CODE](https://img.shields.io/badge/CODE-006400?style=flat&logoColor=white) button on [GameGuruMAX](https://github.com/Dark-Basic-Software-Limited/GameGuruMAX) to copy the repo web URL: https://github.com/Dark-Basic-Software-Limited/WickedRepo
+3. Use GitHub and click the green ![CODE](https://img.shields.io/badge/CODE-006400?style=flat&logoColor=white) button to copy the repo web URL from: https://github.com/Dark-Basic-Software-Limited/WickedRepo
 4. Use GitHub Desktop to CLONE this repository and name it WICKEDREPO located in the DEV folder (i.e. `D:\DEV\WICKEDREPO`)
 5. You will need to log into your GitHub account within GitHub Desktop
 6. Select CLONE a repository from the internet and select UTL, enter the URL you copied earlier
@@ -28,7 +28,7 @@ Steps to compiling and running GameGuru MAX:
 ## Cloning ASSIMP:
 
 1. The "`GameGuru MAX Missing LIBs`" zip (see below) contains the required `ASSIMP.LIB` file, but you will need ASSIMP repo side by side with the other repos
-2. Use GitHub and click the green ![CODE](https://img.shields.io/badge/CODE-006400?style=flat&logoColor=white) button on [assimp](https://github.com/Dark-Basic-Software-Limited/assimp) to copy the repo URL so you can clone the repo web URL: https://github.com/Dark-Basic-Software-Limited/assimp
+2. Use GitHub and click the green ![CODE](https://img.shields.io/badge/CODE-006400?style=flat&logoColor=white) button to copy the repo web URL so you can clone the repo from: https://github.com/Dark-Basic-Software-Limited/assimp
 3. Ensure the name you give for the local folder inside `DEV` is `ASSIMP` (i.e. `D:\DEV\ASSIMP`). Use capitals.
 4. Always respond you are using the repo fior YOUR OWN PURPOSES
 
